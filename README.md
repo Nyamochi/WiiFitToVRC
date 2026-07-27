@@ -1,5 +1,7 @@
 # WiiFitToVRC
 
+**[日本語](README.ja.md) | English**
+
 Turn a Wii Balance Board into a walking controller for VRChat (or any other Windows
 application). Stand on the board, shift your weight to walk/turn/jump/crouch, and the app turns
 that into keyboard/mouse input or a virtual Xbox 360 controller.
