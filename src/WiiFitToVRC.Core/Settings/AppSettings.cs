@@ -59,6 +59,10 @@ public sealed class AppSettings
     /// a dash ("ダッシュ判定") instead of an ordinary walk.</summary>
     public int DashPeriodMs { get; set; } = 300;
 
+    /// <summary>How long a confirmed forward/backward/dash direction persists (ms) after its last
+    /// confirming footstep before releasing back to Idle.</summary>
+    public int StepHoldMs { get; set; } = 116;
+
     /// <summary>Shows the raw-data recording controls (label picker, record button) on the main
     /// window -- only useful for capturing gesture logs during tuning, so hidden by default.</summary>
     public bool DebugMode { get; set; }

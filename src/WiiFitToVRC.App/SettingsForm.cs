@@ -15,7 +15,7 @@ public sealed class SettingsForm : Form
     // the longest Japanese label in this tab ("足踏み検知のしきい値" etc.) never runs into it.
     private const int ValueColumnX = 230;
 
-    private readonly TabControl _tabs = new() { Location = new Point(10, 10), Size = new Size(480, 460) };
+    private readonly TabControl _tabs = new() { Location = new Point(10, 10), Size = new Size(480, 500) };
     private readonly TabPage _generalTab = new();
     private readonly TabPage _keybindsTab = new();
     private readonly TabPage _controllerTab = new();
@@ -40,12 +40,13 @@ public sealed class SettingsForm : Form
     private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 250), Size = new Size(70, 24) };
     private readonly NumericUpDown _footstepThresholdInput = new() { Minimum = 101, Maximum = 300, Location = new Point(ValueColumnX, 284), Size = new Size(70, 24) };
     private readonly NumericUpDown _dashPeriodInput = new() { Minimum = 100, Maximum = 1000, Increment = 10, Location = new Point(ValueColumnX, 318), Size = new Size(70, 24) };
+    private readonly NumericUpDown _stepHoldInput = new() { Minimum = 20, Maximum = 1000, Increment = 10, Location = new Point(ValueColumnX, 352), Size = new Size(70, 24) };
 
     // Separate rows, not side by side -- the Japanese labels for these are long enough that two
     // AutoSize checkboxes on one row ran into each other and got visually clipped.
-    private readonly CheckBox _crouchEnabledCheck = new() { Location = new Point(ValueColumnX, 352), AutoSize = true };
-    private readonly CheckBox _jumpEnabledCheck = new() { Location = new Point(ValueColumnX, 376), AutoSize = true };
-    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 400), AutoSize = true };
+    private readonly CheckBox _crouchEnabledCheck = new() { Location = new Point(ValueColumnX, 386), AutoSize = true };
+    private readonly CheckBox _jumpEnabledCheck = new() { Location = new Point(ValueColumnX, 410), AutoSize = true };
+    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 434), AutoSize = true };
 
     private readonly ComboBox _forwardKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _dashKeyCombo = MakeCombo<VirtualKey>();
@@ -65,8 +66,8 @@ public sealed class SettingsForm : Form
     private readonly ComboBox _crouchButtonCombo = MakeCombo<ControllerButton>();
     private readonly ComboBox _dashButtonCombo = MakeCombo<ControllerButton>();
 
-    private readonly Button _saveButton = new() { Location = new Point(300, 480), AutoSize = true };
-    private readonly Button _cancelButton = new() { Location = new Point(390, 480), AutoSize = true };
+    private readonly Button _saveButton = new() { Location = new Point(300, 520), AutoSize = true };
+    private readonly Button _cancelButton = new() { Location = new Point(390, 520), AutoSize = true };
 
     public bool SettingsChanged { get; private set; }
 
@@ -81,7 +82,7 @@ public sealed class SettingsForm : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
-        ClientSize = new Size(500, 520);
+        ClientSize = new Size(500, 560);
         Text = Localizer.Get("Button_Settings", _uiLanguage);
 
         BuildLayout();
@@ -137,6 +138,7 @@ public sealed class SettingsForm : Form
         var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 252), AutoSize = true };
         var footstepLabel = new Label { Text = Localizer.Get("Settings_FootstepThreshold", _uiLanguage), Location = new Point(10, 286), AutoSize = true };
         var dashPeriodLabel = new Label { Text = Localizer.Get("Settings_DashPeriod", _uiLanguage), Location = new Point(10, 320), AutoSize = true };
+        var stepHoldLabel = new Label { Text = Localizer.Get("Settings_StepHold", _uiLanguage), Location = new Point(10, 354), AutoSize = true };
 
         _outputKeyboardRadio.Text = Localizer.Get("Settings_OutputMode_Keyboard", _uiLanguage);
         _outputKeyboardMouseRadio.Text = Localizer.Get("Settings_OutputMode_KeyboardMouse", _uiLanguage);
@@ -160,6 +162,7 @@ public sealed class SettingsForm : Form
             sleepLabel, _sleepSecondsInput,
             footstepLabel, _footstepThresholdInput,
             dashPeriodLabel, _dashPeriodInput,
+            stepHoldLabel, _stepHoldInput,
             _crouchEnabledCheck, _jumpEnabledCheck, _debugModeCheck,
         ]);
     }
@@ -249,6 +252,7 @@ public sealed class SettingsForm : Form
         _sleepSecondsInput.Value = Math.Clamp(_settings.SleepSeconds, (int)_sleepSecondsInput.Minimum, (int)_sleepSecondsInput.Maximum);
         _footstepThresholdInput.Value = Math.Clamp(_settings.FootstepThresholdPercent, (int)_footstepThresholdInput.Minimum, (int)_footstepThresholdInput.Maximum);
         _dashPeriodInput.Value = Math.Clamp(_settings.DashPeriodMs, (int)_dashPeriodInput.Minimum, (int)_dashPeriodInput.Maximum);
+        _stepHoldInput.Value = Math.Clamp(_settings.StepHoldMs, (int)_stepHoldInput.Minimum, (int)_stepHoldInput.Maximum);
 
         _crouchEnabledCheck.Checked = _settings.CrouchEnabled;
         _jumpEnabledCheck.Checked = _settings.JumpEnabled;
@@ -284,6 +288,7 @@ public sealed class SettingsForm : Form
         _settings.SleepSeconds = (int)_sleepSecondsInput.Value;
         _settings.FootstepThresholdPercent = (int)_footstepThresholdInput.Value;
         _settings.DashPeriodMs = (int)_dashPeriodInput.Value;
+        _settings.StepHoldMs = (int)_stepHoldInput.Value;
         _settings.CrouchEnabled = _crouchEnabledCheck.Checked;
         _settings.JumpEnabled = _jumpEnabledCheck.Checked;
         _settings.DebugMode = _debugModeCheck.Checked;

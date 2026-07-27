@@ -28,7 +28,6 @@ namespace WiiFitToVRC.Core.Motion;
 public sealed class DirectionClassifier
 {
     private const long AlternationWindowMs = 900; // max gap between opposite-foot peaks to count as one walking step
-    private const long HoldMs = 233;               // how long a stepping direction persists after its last confirming peak
 
     private const double TurnEnterX = 40;   // X (left-right %) magnitude to start timing a turn candidate
     private const double TurnExitX = 25;    // below this, a confirmed turn releases (hysteresis)
@@ -78,7 +77,10 @@ public sealed class DirectionClassifier
     /// configurable since how far above resting weight a real footstep reads varies by user.</param>
     /// <param name="dashPeriodMs">Peak-to-peak interval fast enough to count as a dash instead of
     /// a walk -- configurable since gait cadence varies by user.</param>
-    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs)
+    /// <param name="stepHoldMs">How long a confirmed stepping direction (Forward/Backward/Dash)
+    /// persists after its last confirming peak -- configurable since how "sticky" a step should
+    /// feel is a matter of taste.</param>
+    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs)
     {
         bool trEdge = _topRight.Update(cal.TopRight, nowMs, _reference.ReferenceTopRight, footstepThresholdRatio);
         bool tlEdge = _topLeft.Update(cal.TopLeft, nowMs, _reference.ReferenceTopLeft, footstepThresholdRatio);
@@ -93,19 +95,19 @@ public sealed class DirectionClassifier
         // the two so a step doesn't get attributed to the wrong direction.
         if (trEdge && y >= 0)
         {
-            HandleFrontEdge(Corner.Right, nowMs, dashPeriodMs);
+            HandleFrontEdge(Corner.Right, nowMs, dashPeriodMs, stepHoldMs);
         }
         if (tlEdge && y >= 0)
         {
-            HandleFrontEdge(Corner.Left, nowMs, dashPeriodMs);
+            HandleFrontEdge(Corner.Left, nowMs, dashPeriodMs, stepHoldMs);
         }
         if (brEdge && y <= 0)
         {
-            HandleBackEdge(Corner.Right, nowMs);
+            HandleBackEdge(Corner.Right, nowMs, stepHoldMs);
         }
         if (blEdge && y <= 0)
         {
-            HandleBackEdge(Corner.Left, nowMs);
+            HandleBackEdge(Corner.Left, nowMs, stepHoldMs);
         }
 
         UpdateTurn(x, nowMs);
@@ -185,25 +187,25 @@ public sealed class DirectionClassifier
         }
     }
 
-    private void HandleFrontEdge(Corner corner, long nowMs, long dashPeriodMs)
+    private void HandleFrontEdge(Corner corner, long nowMs, long dashPeriodMs, long stepHoldMs)
     {
         if (_lastFrontEdge != Corner.None && _lastFrontEdge != corner && nowMs - _lastFrontEdgeMs <= AlternationWindowMs)
         {
             long interval = nowMs - _lastFrontEdgeMs;
             _steppingDirection = interval < dashPeriodMs ? Direction.Dash : Direction.Forward;
-            _steppingUntilMs = nowMs + HoldMs;
+            _steppingUntilMs = nowMs + stepHoldMs;
         }
 
         _lastFrontEdge = corner;
         _lastFrontEdgeMs = nowMs;
     }
 
-    private void HandleBackEdge(Corner corner, long nowMs)
+    private void HandleBackEdge(Corner corner, long nowMs, long stepHoldMs)
     {
         if (_lastBackEdge != Corner.None && _lastBackEdge != corner && nowMs - _lastBackEdgeMs <= AlternationWindowMs)
         {
             _steppingDirection = Direction.Backward;
-            _steppingUntilMs = nowMs + HoldMs;
+            _steppingUntilMs = nowMs + stepHoldMs;
         }
 
         _lastBackEdge = corner;

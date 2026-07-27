@@ -50,7 +50,7 @@ static void RunOneFile(string path)
 
         double y = DirectionClassifier.ComputeY(cal);
 
-        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.15, dashPeriodMs: 300);
+        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.15, dashPeriodMs: 300, stepHoldMs: 116);
         directionCounts[direction] = directionCounts.GetValueOrDefault(direction) + 1;
 
         if (crouchDetector.Update(y, unixMs))

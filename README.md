@@ -97,6 +97,7 @@ All settings are edited from the in-app settings window (⚙ 設定) and persist
 | Sleep/wake seconds | How long presence must hold (both directions) before output locks/unlocks |
 | Footstep threshold % | How far above the learned resting weight a corner must spike to count as a footstep — see [docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md) |
 | Dash detection (ms) | Footstep-to-footstep interval fast enough to count as a dash instead of a walk |
+| Forward/backward key hold (ms) | How long a confirmed step persists after its last footstep before releasing back to Idle |
 | Crouch / Jump enabled | Toggle each gesture off entirely (no key output, no light) |
 | Debug mode | Shows the raw CSV recording controls used to capture logs for `ClassifyTest` |
 | Keybinds tab | Per-action key (and the dash modifier key) for keyboard output modes |
