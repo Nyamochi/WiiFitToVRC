@@ -1,0 +1,11 @@
+bin/
+obj/
+*.user
+.vs/
+logs/
+
+# Runtime settings are user-tuned per machine/hardware -- ship code defaults, not a snapshot.
+settings.json
+
+# Local publish output other than the committed top-level exe (see /publish.ps1).
+publish/

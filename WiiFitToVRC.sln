@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F6A7BF36-B818-42A7-97B4-981883F77FA3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiiFitToVRC.Core", "src\WiiFitToVRC.Core\WiiFitToVRC.Core.csproj", "{45798A5B-E930-49DC-A476-68DC83EF47D3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiiFitToVRC.App", "src\WiiFitToVRC.App\WiiFitToVRC.App.csproj", "{544A8AA6-0D41-40F0-8276-5CCF4D7AA9F3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{F0BD5D01-544B-40D1-8024-0444D559C012}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiiFitToVRC.PairTool", "tools\PairTool\WiiFitToVRC.PairTool.csproj", "{5F08EF81-7830-44BB-A57E-41F632035981}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiiFitToVRC.ClassifyTest", "tools\ClassifyTest\WiiFitToVRC.ClassifyTest.csproj", "{255665B5-1C9E-4CA7-8D4A-CC579595FDA5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{45798A5B-E930-49DC-A476-68DC83EF47D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45798A5B-E930-49DC-A476-68DC83EF47D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45798A5B-E930-49DC-A476-68DC83EF47D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45798A5B-E930-49DC-A476-68DC83EF47D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{544A8AA6-0D41-40F0-8276-5CCF4D7AA9F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{544A8AA6-0D41-40F0-8276-5CCF4D7AA9F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{544A8AA6-0D41-40F0-8276-5CCF4D7AA9F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{544A8AA6-0D41-40F0-8276-5CCF4D7AA9F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F08EF81-7830-44BB-A57E-41F632035981}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F08EF81-7830-44BB-A57E-41F632035981}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F08EF81-7830-44BB-A57E-41F632035981}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F08EF81-7830-44BB-A57E-41F632035981}.Release|Any CPU.Build.0 = Release|Any CPU
+		{255665B5-1C9E-4CA7-8D4A-CC579595FDA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{255665B5-1C9E-4CA7-8D4A-CC579595FDA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{255665B5-1C9E-4CA7-8D4A-CC579595FDA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{255665B5-1C9E-4CA7-8D4A-CC579595FDA5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{45798A5B-E930-49DC-A476-68DC83EF47D3} = {F6A7BF36-B818-42A7-97B4-981883F77FA3}
+		{544A8AA6-0D41-40F0-8276-5CCF4D7AA9F3} = {F6A7BF36-B818-42A7-97B4-981883F77FA3}
+		{5F08EF81-7830-44BB-A57E-41F632035981} = {F0BD5D01-544B-40D1-8024-0444D559C012}
+		{255665B5-1C9E-4CA7-8D4A-CC579595FDA5} = {F0BD5D01-544B-40D1-8024-0444D559C012}
+	EndGlobalSection
+EndGlobal

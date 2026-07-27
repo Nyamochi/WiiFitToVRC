@@ -1,0 +1,348 @@
+using WiiFitToVRC.Core.Hid;
+using WiiFitToVRC.Core.Motion;
+using WiiFitToVRC.Core.Settings;
+
+namespace WiiFitToVRC.Core.Input;
+
+/// <summary>
+/// Wires the direction/crouch/jump detectors to real output. Call Update() on every raw sensor
+/// sample (not throttled to a UI repaint rate) so turn-via-mouse/right-stick stays smooth.
+///
+/// Three output modes: Keyboard (turn via Q/E), KeyboardMouse (turn via mouse-look), and
+/// Controller (a virtual Xbox 360 pad via ViGEmBus) -- VRChat turned out to filter out
+/// SendInput-synthesized keyboard/mouse input as not "real" player input, so games like that need
+/// the controller path instead.
+/// </summary>
+public sealed class InputController : IDisposable
+{
+    // Forward/backward/turn/jump firing can transiently disturb the front-back balance enough to
+    // false-trigger crouch -- block crouch for this long after any of them last fired.
+    private const long CrouchCooldownMs = 500;
+
+    // Jump/crouch are discrete taps (press then release), unlike the held movement keys. Sending
+    // the down and up back-to-back with no gap in between meant the "down" edge could land and
+    // clear within the same frame the target game polls input on, so VRChat never observed it --
+    // this holds the tap down for a real, visible duration before releasing it. Driven off the
+    // existing per-sample loop (not a background timer) so it can't race KeySender's HeldKeys
+    // bookkeeping from a second thread.
+    private const long TapHoldMs = 60;
+
+    private readonly AppSettings _settings;
+    private readonly DirectionClassifier _direction = new();
+    private readonly CrouchDetector _crouch = new();
+    private readonly JumpDetector _jump = new();
+    private readonly PresenceGate _presence = new();
+    private readonly VirtualControllerSender _controller = new();
+
+    private Direction _lastAppliedDirection = Direction.Idle;
+    private bool _lastCrouching;
+    private long _lastMovementMs;
+    private long _jumpReleaseAtMs = -1;
+    private long _crouchReleaseAtMs = -1;
+
+    public Direction LastDirection => _lastAppliedDirection;
+    public bool IsCrouching => _lastCrouching;
+    public bool IsPresent => _presence.IsPresent;
+    public bool IsWeightCalibrated => _direction.IsWeightCalibrated;
+    public bool IsControllerAvailable => _controller.IsAvailable;
+    public string? ControllerUnavailableReason => _controller.UnavailableReason;
+
+    /// <summary>Fires on the calling (background HID) thread each time a jump is detected.</summary>
+    public event Action? Jumped;
+
+    /// <summary>Fires on the calling (background HID) thread when the weight reference refreshes
+    /// mid-session (see ReferenceWeightCalibrator.Refreshed) -- e.g. a different person stepped
+    /// on and stood still.</summary>
+    public event Action? WeightCalibrationRefreshed;
+
+    public InputController(AppSettings settings)
+    {
+        _settings = settings;
+        _direction.WeightCalibrationRefreshed += () => WeightCalibrationRefreshed?.Invoke();
+    }
+
+    public void Update(BalanceBoardSensors raw, CalibratedReading? cal, long nowMs)
+    {
+        if (cal is null)
+        {
+            return; // no calibration yet -- nothing meaningful to classify
+        }
+
+        if (_settings.OutputMode == OutputMode.Controller)
+        {
+            _controller.Connect(); // no-op once already connected, or already failed once
+        }
+
+        if (!_presence.Update(cal.Total, nowMs, _settings.PresenceWeightThreshold, _settings.SleepSeconds))
+        {
+            // Nobody's on the board yet (or hasn't been long enough after stepping on/off) --
+            // force everything back to Idle/released so key output and arrow lighting both go
+            // dark. Deliberately NOT the full ReleaseAll(): that also resets the presence gate's
+            // internal "how long have we been above threshold" timer, and this branch runs on
+            // every single sample during the whole ramp-up window while presence is still
+            // pending -- resetting it every time meant the timer could never actually accumulate
+            // past zero, so presence could never unlock at all.
+            ReleaseOutputOnly();
+            return;
+        }
+
+        var direction = _direction.Update(cal, nowMs, isPresent: true, _settings.FootstepThresholdPercent / 100.0, _settings.DashPeriodMs);
+        ApplyDirection(direction);
+
+        bool jumped = _settings.JumpEnabled && _jump.Update(cal.Total, nowMs);
+        if (jumped)
+        {
+            PressTap(isJump: true, nowMs);
+            Jumped?.Invoke();
+        }
+        ReleaseTapIfDue(isJump: true, nowMs);
+
+        if (direction != Direction.Idle || jumped)
+        {
+            _lastMovementMs = nowMs;
+        }
+
+        if (_settings.CrouchEnabled && nowMs - _lastMovementMs >= CrouchCooldownMs)
+        {
+            double y = DirectionClassifier.ComputeY(cal);
+            bool crouching = _crouch.Update(y, nowMs);
+            ApplyCrouch(crouching, nowMs);
+        }
+        ReleaseTapIfDue(isJump: false, nowMs);
+    }
+
+    private void ApplyDirection(Direction direction)
+    {
+        if (_settings.OutputMode == OutputMode.Controller)
+        {
+            ApplyDirectionController(direction);
+        }
+        else
+        {
+            if (direction != _lastAppliedDirection)
+            {
+                ReleaseDirectionKeys(_lastAppliedDirection);
+            }
+            ApplyDirectionKeyboard(direction);
+        }
+
+        _lastAppliedDirection = direction;
+    }
+
+    private void ApplyDirectionKeyboard(Direction direction)
+    {
+        switch (direction)
+        {
+            case Direction.Forward:
+                KeySender.KeyDown(_settings.ForwardKey);
+                break;
+            case Direction.Dash:
+                KeySender.KeyDown(_settings.DashModifierKey);
+                KeySender.KeyDown(_settings.DashKey);
+                break;
+            case Direction.Backward:
+                KeySender.KeyDown(_settings.BackwardKey);
+                break;
+            case Direction.TurnRight:
+                if (_settings.OutputMode == OutputMode.KeyboardMouse)
+                {
+                    MouseSender.MoveRelative(_settings.MouseTurnStrokeRight);
+                }
+                else
+                {
+                    KeySender.KeyDown(_settings.TurnRightKey);
+                }
+                break;
+            case Direction.TurnLeft:
+                if (_settings.OutputMode == OutputMode.KeyboardMouse)
+                {
+                    MouseSender.MoveRelative(-_settings.MouseTurnStrokeLeft);
+                }
+                else
+                {
+                    KeySender.KeyDown(_settings.TurnLeftKey);
+                }
+                break;
+        }
+    }
+
+    private void ReleaseDirectionKeys(Direction direction)
+    {
+        switch (direction)
+        {
+            case Direction.Forward:
+                KeySender.KeyUp(_settings.ForwardKey);
+                break;
+            case Direction.Dash:
+                KeySender.KeyUp(_settings.DashKey);
+                KeySender.KeyUp(_settings.DashModifierKey);
+                break;
+            case Direction.Backward:
+                KeySender.KeyUp(_settings.BackwardKey);
+                break;
+            case Direction.TurnRight:
+                KeySender.KeyUp(_settings.TurnRightKey); // no-op if it was never pressed (mouse mode)
+                break;
+            case Direction.TurnLeft:
+                KeySender.KeyUp(_settings.TurnLeftKey);
+                break;
+        }
+    }
+
+    // Unlike the keyboard path, sticks/buttons are absolute state set fresh every sample, so
+    // there's no separate "release the old direction" step -- moving the stick to a new position
+    // (or back to center) already replaces whatever it held before.
+    private void ApplyDirectionController(Direction direction)
+    {
+        double moveY = direction switch
+        {
+            Direction.Forward => 0.6,
+            Direction.Dash => 1.0,
+            Direction.Backward => -1.0,
+            _ => 0.0,
+        };
+        _controller.SetLeftStick(0, moveY);
+
+        double turnX = direction switch
+        {
+            Direction.TurnRight => _settings.ControllerTurnStrokeRight / 100.0,
+            Direction.TurnLeft => -_settings.ControllerTurnStrokeLeft / 100.0,
+            _ => 0.0,
+        };
+        _controller.SetRightStick(turnX, 0);
+
+        // Sprint modifier, mirroring the keyboard Shift+W combo.
+        _controller.SetButton(_settings.DashButton, direction == Direction.Dash);
+    }
+
+    // Crouch/stand share one toggle binding in the target game, so each transition (crouch
+    // starting AND crouch ending) must send exactly one tap -- a hold-style press/release pair
+    // would leave the two sides unpaired and desync the game's toggle state from what the app
+    // thinks it is.
+    private void ApplyCrouch(bool crouching, long nowMs)
+    {
+        if (crouching == _lastCrouching)
+        {
+            return;
+        }
+
+        PressTap(isJump: false, nowMs);
+        _lastCrouching = crouching;
+    }
+
+    // Presses (but doesn't yet release) the jump or crouch binding, and schedules the matching
+    // release for TapHoldMs later -- see the TapHoldMs comment for why the release is delayed
+    // rather than immediate.
+    private void PressTap(bool isJump, long nowMs)
+    {
+        if (_settings.OutputMode == OutputMode.Controller)
+        {
+            _controller.SetButton(isJump ? _settings.JumpButton : _settings.CrouchButton, true);
+        }
+        else
+        {
+            KeySender.KeyDown(isJump ? _settings.JumpKey : _settings.CrouchKey);
+        }
+
+        if (isJump)
+        {
+            _jumpReleaseAtMs = nowMs + TapHoldMs;
+        }
+        else
+        {
+            _crouchReleaseAtMs = nowMs + TapHoldMs;
+        }
+    }
+
+    private void ReleaseTapIfDue(bool isJump, long nowMs)
+    {
+        long releaseAtMs = isJump ? _jumpReleaseAtMs : _crouchReleaseAtMs;
+        if (releaseAtMs < 0 || nowMs < releaseAtMs)
+        {
+            return;
+        }
+        ReleaseTapNow(isJump);
+    }
+
+    private void ReleaseTapNow(bool isJump)
+    {
+        if (_settings.OutputMode == OutputMode.Controller)
+        {
+            _controller.SetButton(isJump ? _settings.JumpButton : _settings.CrouchButton, false);
+        }
+        else
+        {
+            KeySender.KeyUp(isJump ? _settings.JumpKey : _settings.CrouchKey);
+        }
+
+        if (isJump)
+        {
+            _jumpReleaseAtMs = -1;
+        }
+        else
+        {
+            _crouchReleaseAtMs = -1;
+        }
+    }
+
+    private void ReleaseOutputOnly()
+    {
+        if (_settings.OutputMode == OutputMode.Controller)
+        {
+            _controller.SetLeftStick(0, 0);
+            _controller.SetRightStick(0, 0);
+            _controller.SetButton(_settings.DashButton, false);
+        }
+        else
+        {
+            ReleaseDirectionKeys(_lastAppliedDirection);
+        }
+
+        // If a crouch tap is still physically down (mid-press), finish it now instead of doubling
+        // up with a fresh tap below -- that would send an extra, unwanted press.
+        if (_crouchReleaseAtMs >= 0)
+        {
+            ReleaseTapNow(isJump: false);
+        }
+        else if (_lastCrouching)
+        {
+            // Already fully released -- but the game still thinks we're crouched (toggle
+            // binding), so tap once more to bring it back to standing. This is an emergency
+            // cleanup path (disconnect/presence lost), so an instant tap is acceptable here even
+            // though ordinary taps hold for TapHoldMs.
+            if (_settings.OutputMode == OutputMode.Controller)
+            {
+                _controller.TapButton(_settings.CrouchButton);
+            }
+            else
+            {
+                KeySender.Tap(_settings.CrouchKey);
+            }
+        }
+        if (_jumpReleaseAtMs >= 0)
+        {
+            ReleaseTapNow(isJump: true);
+        }
+
+        _lastAppliedDirection = Direction.Idle;
+        _lastCrouching = false;
+    }
+
+    /// <summary>Releases every key/button this controller may be holding and resets the presence
+    /// gate -- call on disconnect/exit/recalibration, not from the per-sample "not present yet"
+    /// path.</summary>
+    public void ReleaseAll()
+    {
+        ReleaseOutputOnly();
+        _presence.Reset();
+    }
+
+    /// <summary>Call when the sensor zero-point changes (a fresh SensorCalibration pass) -- the
+    /// weight reference is only meaningful relative to that offset.</summary>
+    public void ResetWeightCalibration() => _direction.ResetWeightCalibration();
+
+    public void Dispose()
+    {
+        _controller.Dispose();
+    }
+}
