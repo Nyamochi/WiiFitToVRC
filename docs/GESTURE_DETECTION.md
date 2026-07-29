@@ -58,9 +58,9 @@ threshold %** of the weight reference (e.g. 120%) — a discrete "this foot just
   **Backward**.
 - If the two landings are closer together than **dash detection (ms)** (default 300ms), it's a
   **Dash** instead of a plain walk.
-- A confirmed direction persists for a short hold (**forward/backward key hold (ms)**, default
-  116ms) after its last confirming landing; each new landing refreshes the hold, so continuous
-  walking doesn't flicker back to Idle between steps.
+- A confirmed direction persists for a short hold (**stride length (ms)**, default 77ms) after its
+  last confirming landing; each new landing refreshes the hold, so continuous walking doesn't
+  flicker back to Idle between steps.
 
 Leaning forward and holding that lean *without* alternating feet does **not** count as Forward —
 it reads as Idle. Only an actual confirmed footstep pair produces movement.

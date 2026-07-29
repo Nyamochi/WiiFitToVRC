@@ -61,7 +61,7 @@ public sealed class AppSettings
 
     /// <summary>How long a confirmed forward/backward/dash direction persists (ms) after its last
     /// confirming footstep before releasing back to Idle.</summary>
-    public int StepHoldMs { get; set; } = 116;
+    public int StepHoldMs { get; set; } = 77;
 
     /// <summary>Shows the raw-data recording controls (label picker, record button) on the main
     /// window -- only useful for capturing gesture logs during tuning, so hidden by default.</summary>
