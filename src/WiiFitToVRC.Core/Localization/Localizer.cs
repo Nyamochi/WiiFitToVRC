@@ -40,7 +40,7 @@ public static class Localizer
         ["Record_Recording"] = ["Recording: {0} -> {1}", "記録中: {0} -> {1}", "记录中: {0} -> {1}", "記錄中: {0} -> {1}", "기록 중: {0} -> {1}", "Enregistrement : {0} -> {1}", "Aufnahme: {0} -> {1}", "Registrazione: {0} -> {1}"],
         ["Record_Stopped"] = ["Recording stopped", "記録停止しました", "记录已停止", "記錄已停止", "기록이 중지되었습니다", "Enregistrement arrêté", "Aufnahme gestoppt", "Registrazione interrotta"],
         ["Button_Settings"] = ["Settings", "設定", "设置", "設定", "설정", "Paramètres", "Einstellungen", "Impostazioni"],
-        ["Settings_Language"] = ["Language", "言語", "语言", "語言", "언어", "Langue", "Sprache", "Lingua"],
+        ["Settings_Language"] = ["Language", "言語 (Language)", "语言 (Language)", "語言 (Language)", "언어 (Language)", "Langue (Language)", "Sprache (Language)", "Lingua (Language)"],
         ["Settings_LanguageAuto"] = ["Auto (follow Windows setting)", "自動(OS設定に従う)", "自动(跟随系统设置)", "自動(跟隨系統設定)", "자동(Windows 설정 따름)", "Automatique (suivre Windows)", "Automatisch (Windows-Einstellung folgen)", "Automatico (segui Windows)"],
         ["Settings_OutputMode"] = ["Output mode", "出力方式", "输出方式", "輸出方式", "출력 방식", "Mode de sortie", "Ausgabemodus", "Modalità di uscita"],
         ["Settings_OutputMode_Keyboard"] = ["Keyboard (turn via Q/E)", "キーボード(Q/Eで旋回)", "键盘(Q/E转向)", "鍵盤(Q/E轉向)", "키보드(Q/E로 회전)", "Clavier (rotation Q/E)", "Tastatur (Drehung mit Q/E)", "Tastiera (rotazione Q/E)"],
@@ -87,18 +87,20 @@ public static class Localizer
         AppLanguage.Korean, AppLanguage.French, AppLanguage.German, AppLanguage.Italian,
     ];
 
-    /// <summary>Each language's own name, always shown in itself (a language picker convention).</summary>
+    /// <summary>Each language's own name, always shown in itself (a language picker convention) --
+    /// with the English name in parentheses for every non-English entry, so someone who can't read
+    /// the current UI language can still recognize their own in the list.</summary>
     public static readonly (AppLanguage Language, string NativeName)[] SelectableLanguages =
     [
         (AppLanguage.Auto, "__AUTO__"), // caller substitutes the localized Settings_LanguageAuto string
         (AppLanguage.English, "English"),
-        (AppLanguage.Japanese, "日本語"),
-        (AppLanguage.ChineseSimplified, "简体中文"),
-        (AppLanguage.ChineseTraditional, "繁體中文"),
-        (AppLanguage.Korean, "한국어"),
-        (AppLanguage.French, "Français"),
-        (AppLanguage.German, "Deutsch"),
-        (AppLanguage.Italian, "Italiano"),
+        (AppLanguage.Japanese, "日本語 (Japanese)"),
+        (AppLanguage.ChineseSimplified, "简体中文 (Chinese Simplified)"),
+        (AppLanguage.ChineseTraditional, "繁體中文 (Chinese Traditional)"),
+        (AppLanguage.Korean, "한국어 (Korean)"),
+        (AppLanguage.French, "Français (French)"),
+        (AppLanguage.German, "Deutsch (German)"),
+        (AppLanguage.Italian, "Italiano (Italian)"),
     ];
 
     public static AppLanguage ResolveAuto()

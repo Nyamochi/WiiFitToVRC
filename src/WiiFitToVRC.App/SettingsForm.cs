@@ -27,7 +27,8 @@ public sealed class SettingsForm : Form
     private readonly RadioButton _outputControllerRadio = new() { Location = new Point(ValueColumnX, 54), AutoSize = true };
     private readonly RadioButton _outputOscRadio = new() { Location = new Point(ValueColumnX, 77), AutoSize = true };
 
-    private readonly ComboBox _languageCombo = new() { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(ValueColumnX, 109), Size = new Size(220, 24) };
+    // Wide enough for the longest entry, e.g. "简体中文 (Chinese Simplified)".
+    private readonly ComboBox _languageCombo = new() { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(ValueColumnX, 109), Size = new Size(250, 24) };
 
     private readonly TrackBar _strokeRightSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 149), Size = new Size(180, 40), TickFrequency = 5 };
     private readonly Label _strokeRightValueLabel = new() { Location = new Point(ValueColumnX + 190, 157), AutoSize = true };
