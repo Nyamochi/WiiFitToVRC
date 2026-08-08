@@ -15,7 +15,7 @@ public sealed class SettingsForm : Form
     // the longest Japanese label in this tab ("足踏み検知のしきい値" etc.) never runs into it.
     private const int ValueColumnX = 230;
 
-    private readonly TabControl _tabs = new() { Location = new Point(10, 10), Size = new Size(480, 523) };
+    private readonly TabControl _tabs = new() { Location = new Point(10, 10), Size = new Size(480, 547) };
     private readonly TabPage _generalTab = new();
     private readonly TabPage _keybindsTab = new();
     private readonly TabPage _controllerTab = new();
@@ -48,7 +48,8 @@ public sealed class SettingsForm : Form
     // AutoSize checkboxes on one row ran into each other and got visually clipped.
     private readonly CheckBox _crouchEnabledCheck = new() { Location = new Point(ValueColumnX, 409), AutoSize = true };
     private readonly CheckBox _jumpEnabledCheck = new() { Location = new Point(ValueColumnX, 433), AutoSize = true };
-    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 457), AutoSize = true };
+    private readonly CheckBox _turnEnabledCheck = new() { Location = new Point(ValueColumnX, 457), AutoSize = true };
+    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 481), AutoSize = true };
 
     private readonly ComboBox _forwardKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _dashKeyCombo = MakeCombo<VirtualKey>();
@@ -68,8 +69,8 @@ public sealed class SettingsForm : Form
     private readonly ComboBox _crouchButtonCombo = MakeCombo<ControllerButton>();
     private readonly ComboBox _dashButtonCombo = MakeCombo<ControllerButton>();
 
-    private readonly Button _saveButton = new() { Location = new Point(300, 543), AutoSize = true };
-    private readonly Button _cancelButton = new() { Location = new Point(390, 543), AutoSize = true };
+    private readonly Button _saveButton = new() { Location = new Point(300, 567), AutoSize = true };
+    private readonly Button _cancelButton = new() { Location = new Point(390, 567), AutoSize = true };
 
     public bool SettingsChanged { get; private set; }
 
@@ -84,7 +85,7 @@ public sealed class SettingsForm : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
-        ClientSize = new Size(500, 583);
+        ClientSize = new Size(500, 607);
         Text = Localizer.Get("Button_Settings", _uiLanguage);
 
         BuildLayout();
@@ -148,6 +149,7 @@ public sealed class SettingsForm : Form
         _outputOscRadio.Text = Localizer.Get("Settings_OutputMode_Osc", _uiLanguage);
         _crouchEnabledCheck.Text = Localizer.Get("Settings_CrouchEnabled", _uiLanguage);
         _jumpEnabledCheck.Text = Localizer.Get("Settings_JumpEnabled", _uiLanguage);
+        _turnEnabledCheck.Text = Localizer.Get("Settings_TurnEnabled", _uiLanguage);
         _debugModeCheck.Text = Localizer.Get("Settings_DebugMode", _uiLanguage);
 
         foreach (var (language, nativeName) in Localizer.SelectableLanguages)
@@ -166,7 +168,7 @@ public sealed class SettingsForm : Form
             footstepLabel, _footstepThresholdInput,
             dashPeriodLabel, _dashPeriodInput,
             stepHoldLabel, _stepHoldInput,
-            _crouchEnabledCheck, _jumpEnabledCheck, _debugModeCheck,
+            _crouchEnabledCheck, _jumpEnabledCheck, _turnEnabledCheck, _debugModeCheck,
         ]);
     }
 
@@ -260,6 +262,7 @@ public sealed class SettingsForm : Form
 
         _crouchEnabledCheck.Checked = _settings.CrouchEnabled;
         _jumpEnabledCheck.Checked = _settings.JumpEnabled;
+        _turnEnabledCheck.Checked = _settings.TurnEnabled;
         _debugModeCheck.Checked = _settings.DebugMode;
 
         _forwardKeyCombo.SelectedItem = _settings.ForwardKey;
@@ -296,6 +299,7 @@ public sealed class SettingsForm : Form
         _settings.StepHoldMs = (int)_stepHoldInput.Value;
         _settings.CrouchEnabled = _crouchEnabledCheck.Checked;
         _settings.JumpEnabled = _jumpEnabledCheck.Checked;
+        _settings.TurnEnabled = _turnEnabledCheck.Checked;
         _settings.DebugMode = _debugModeCheck.Checked;
 
         _settings.ForwardKey = (VirtualKey)_forwardKeyCombo.SelectedItem!;

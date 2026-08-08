@@ -126,6 +126,7 @@ All settings are edited from the in-app settings window (⚙ 設定) and persist
 | Dash detection (ms) | Footstep-to-footstep interval fast enough to count as a dash instead of a walk |
 | Stride length (ms) | How long a confirmed step persists after its last footstep before releasing back to Idle |
 | Crouch / Jump enabled | Toggle each gesture off entirely (no key output, no light) |
+| Turning enabled | When off, turning isn't detected at all, so no turn-equivalent output is ever sent in any output mode -- mouse, keyboard, controller, or OSC (forward/backward/dash are unaffected) |
 | Debug mode | Shows the raw CSV recording controls used to capture logs for `ClassifyTest` |
 | Keybinds tab | Per-action key (and the dash modifier key) for keyboard output modes |
 | Controller tab | Per-action button and stick deflection for virtual controller mode |

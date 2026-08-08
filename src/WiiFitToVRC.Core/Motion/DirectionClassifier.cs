@@ -80,7 +80,10 @@ public sealed class DirectionClassifier
     /// <param name="stepHoldMs">How long a confirmed stepping direction (Forward/Backward/Dash)
     /// persists after its last confirming peak -- configurable since how "sticky" a step should
     /// feel is a matter of taste.</param>
-    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs)
+    /// <param name="turnEnabled">When false, turning is not tracked at all (any in-progress lean
+    /// is dropped) and stepping is never blocked by it -- lets output modes fully lock out
+    /// left/right turning while leaving forward/backward/dash untouched.</param>
+    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, bool turnEnabled)
     {
         bool trEdge = _topRight.Update(cal.TopRight, nowMs, _reference.ReferenceTopRight, footstepThresholdRatio);
         bool tlEdge = _topLeft.Update(cal.TopLeft, nowMs, _reference.ReferenceTopLeft, footstepThresholdRatio);
@@ -110,7 +113,19 @@ public sealed class DirectionClassifier
             HandleBackEdge(Corner.Left, nowMs, stepHoldMs);
         }
 
-        UpdateTurn(x, nowMs);
+        if (turnEnabled)
+        {
+            UpdateTurn(x, nowMs);
+        }
+        else if (_turnConfirmed || _turnCandidateSinceMs >= 0)
+        {
+            // Drop any in-progress or confirmed turn immediately -- otherwise disabling turning
+            // mid-lean would leave a stale confirmation that never releases (X never gets sampled
+            // again while turnEnabled stays false) or re-appears the instant it's re-enabled.
+            _turnConfirmed = false;
+            _turnCandidateSide = Direction.Idle;
+            _turnCandidateSinceMs = -1;
+        }
 
         Direction proposed;
         if (_turnConfirmed)

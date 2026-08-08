@@ -55,6 +55,11 @@ public sealed class AppSettings
     public bool CrouchEnabled { get; set; } = true;
     public bool JumpEnabled { get; set; } = true;
 
+    /// <summary>When false, turning is not detected at all, so no equivalent output (mouse-look,
+    /// turn keys, right stick, or the OSC LookHorizontal axis) is ever sent in any output mode --
+    /// forward/backward/dash keep working normally.</summary>
+    public bool TurnEnabled { get; set; } = true;
+
     /// <summary>How far above a corner's reference resting weight (see ReferenceWeightCalibrator)
     /// it must rise to count as a footstep for forward/backward detection, as a percentage
     /// (e.g. 120 = 120%).</summary>

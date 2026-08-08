@@ -76,6 +76,12 @@ confirmed turn always wins over stepping while it's active. Once one side fires,
 is blocked from firing for 500ms (rebound-cooldown), since the recoil of a hard weight shift can
 briefly nudge the other side past its own threshold too.
 
+**Turning enabled** in Settings turns this whole model off, not just its output: when disabled, no
+lean is ever tracked as a turn candidate (any in-progress lean is dropped immediately), so
+forward/backward/dash are never blocked by it either. No turn-equivalent output is sent in any
+output mode while disabled -- no turn keys, no mouse-look movement, no right-stick deflection, and
+no OSC `LookHorizontal` messages.
+
 ## Jump: rise, then rapid collapse
 
 [`JumpDetector.cs`](../src/WiiFitToVRC.Core/Motion/JumpDetector.cs) tracks a slow-moving baseline

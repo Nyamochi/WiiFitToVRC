@@ -65,6 +65,7 @@ public static class Localizer
         ["Settings_StepHold"] = ["Stride length (ms)", "歩幅(ms)", "步幅(ms)", "步幅(ms)", "보폭(ms)", "Longueur de foulée (ms)", "Schrittlänge (ms)", "Lunghezza del passo (ms)"],
         ["Settings_CrouchEnabled"] = ["Crouch detection enabled", "しゃがみ検知を有効にする", "启用蹲下检测", "啟用蹲下偵測", "웅크리기 감지 사용", "Détection de l'accroupissement activée", "Ducken-Erkennung aktiviert", "Rilevamento accovacciamento attivo"],
         ["Settings_JumpEnabled"] = ["Jump detection enabled", "ジャンプ検知を有効にする", "启用跳跃检测", "啟用跳躍偵測", "점프 감지 사용", "Détection du saut activée", "Sprung-Erkennung aktiviert", "Rilevamento salto attivo"],
+        ["Settings_TurnEnabled"] = ["Turning enabled", "旋回動作を有効にする", "启用转向动作", "啟用轉向動作", "회전 동작 사용", "Rotation activée", "Drehen aktiviert", "Rotazione attiva"],
         ["Settings_DebugMode"] = ["Debug mode (show recording controls)", "デバッグモード(記録操作を表示)", "调试模式(显示记录控件)", "偵錯模式(顯示記錄控制項)", "디버그 모드(기록 컨트롤 표시)", "Mode débogage (afficher les contrôles d'enregistrement)", "Debug-Modus (Aufnahmesteuerung anzeigen)", "Modalità debug (mostra controlli di registrazione)"],
         ["Settings_Tab_General"] = ["General", "全般", "常规", "一般", "일반", "Général", "Allgemein", "Generale"],
         ["Settings_Tab_Keybinds"] = ["Keybinds", "キー割り当て", "按键绑定", "按鍵綁定", "키 바인딩", "Touches", "Tastenbelegung", "Tasti"],
