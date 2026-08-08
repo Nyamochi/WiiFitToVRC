@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using InTheHand.Net.Bluetooth;
 using InTheHand.Net.Sockets;
 
@@ -23,6 +24,28 @@ public record PairingOutcome(PairingResult Result, string? DeviceAddress, string
 /// </summary>
 public static class BalanceBoardPairing
 {
+    /// <summary>
+    /// Matches any of the balance board's known model-number forms, which vary by hardware
+    /// revision/color code and region (e.g. "RVL-021-JPN", "RVL-A-BC-JPN-1", "(CW)RVL-A-BC-JPN",
+    /// "RVL-A-BC(JPN)"), so pairing isn't limited to the single literal name string.
+    /// </summary>
+    private static readonly Regex BalanceBoardModelRegex = new(
+        @"(\([A-Z]{1,4}\))?RVL-([0-9]{3}|[A-Z]-BC)((-[A-Z]{3,4})|(\([A-Z]{3,4}\)))?(-[0-9]+)?",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>
+    /// Matches the plain, previously-sufficient name-substring check first (e.g. "Nintendo"), and
+    /// only reaches for the model-number regex as a fallback when nothing in <paramref
+    /// name="devices"/> matches that way -- the substring check alone already worked reliably, so
+    /// it stays the primary path and the regex only broadens matching when it comes up empty.
+    /// </summary>
+    private static IEnumerable<T> MatchDevices<T>(IEnumerable<T> devices, string nameContains, Func<T, string> nameOf)
+    {
+        var list = devices as ICollection<T> ?? devices.ToList();
+        var byName = list.Where(d => nameOf(d).Contains(nameContains, StringComparison.OrdinalIgnoreCase)).ToList();
+        return byName.Count > 0 ? byName : list.Where(d => BalanceBoardModelRegex.IsMatch(nameOf(d)));
+    }
+
     public static PairingOutcome PairAndInstall(string nameContains = "Nintendo", bool removeExisting = true, int discoveryAttempts = 100, CancellationToken cancellationToken = default)
     {
         using var btClient = new BluetoothClient();
@@ -30,13 +53,8 @@ public static class BalanceBoardPairing
         if (removeExisting)
         {
             var existing = btClient.DiscoverDevices(255, false, true, false);
-            foreach (var item in existing)
+            foreach (var item in MatchDevices(existing, nameContains, d => d.DeviceName))
             {
-                if (!item.DeviceName.Contains(nameContains, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
                 BluetoothSecurity.RemoveDevice(item.DeviceAddress);
                 item.SetServiceState(BluetoothService.HumanInterfaceDevice, false);
             }
@@ -52,7 +70,7 @@ public static class BalanceBoardPairing
             cancellationToken.ThrowIfCancellationRequested();
             var discovered = btClient.DiscoverDevices(255, false, false, true);
             discoveredCount = discovered.Length;
-            target = discovered.FirstOrDefault(d => d.DeviceName.Contains(nameContains, StringComparison.OrdinalIgnoreCase));
+            target = MatchDevices(discovered, nameContains, d => d.DeviceName).FirstOrDefault();
         }
 
         if (target is null)
