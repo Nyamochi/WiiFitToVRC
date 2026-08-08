@@ -6,12 +6,17 @@ namespace WiiFitToVRC.Core.Settings;
 /// <summary>How gestures reach the target application. Keyboard/KeyboardMouse both use
 /// SendInput; they differ only in how turning is sent (key vs. mouse-look). Controller emulates a
 /// virtual Xbox 360 pad via ViGEmBus -- some games (VRChat included) filter out SendInput-
-/// synthesized keyboard/mouse input but accept genuine-looking HID gamepad input.</summary>
+/// synthesized keyboard/mouse input but accept genuine-looking HID gamepad input. Osc sends
+/// movement/turn/jump to VRChat's own OSC input endpoint over UDP, which bypasses SendInput (and
+/// therefore window-focus filtering) entirely -- useful when the game's input is locked to a VR
+/// device and won't accept SendInput at all, even the virtual controller. VRChat has no OSC
+/// address for crouch, so crouch always falls back to a plain key press regardless of this mode.</summary>
 public enum OutputMode
 {
     Keyboard,
     KeyboardMouse,
     Controller,
+    Osc,
 }
 
 public enum AppLanguage

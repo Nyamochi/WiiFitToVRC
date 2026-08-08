@@ -8,10 +8,12 @@ namespace WiiFitToVRC.Core.Input;
 /// Wires the direction/crouch/jump detectors to real output. Call Update() on every raw sensor
 /// sample (not throttled to a UI repaint rate) so turn-via-mouse/right-stick stays smooth.
 ///
-/// Three output modes: Keyboard (turn via Q/E), KeyboardMouse (turn via mouse-look), and
-/// Controller (a virtual Xbox 360 pad via ViGEmBus) -- VRChat turned out to filter out
-/// SendInput-synthesized keyboard/mouse input as not "real" player input, so games like that need
-/// the controller path instead.
+/// Four output modes: Keyboard (turn via Q/E), KeyboardMouse (turn via mouse-look), Controller (a
+/// virtual Xbox 360 pad via ViGEmBus), and Osc (VRChat's own OSC input endpoint over UDP) --
+/// VRChat turned out to filter out SendInput-synthesized keyboard/mouse input as not "real"
+/// player input, so games like that need the controller path instead; some VR headset setups
+/// lock input focus to the VR device and reject SendInput entirely (even the virtual controller),
+/// which is what the OSC path is for.
 /// </summary>
 public sealed class InputController : IDisposable
 {
@@ -33,6 +35,7 @@ public sealed class InputController : IDisposable
     private readonly JumpDetector _jump = new();
     private readonly PresenceGate _presence = new();
     private readonly VirtualControllerSender _controller = new();
+    private readonly OscSender _osc = new();
 
     private Direction _lastAppliedDirection = Direction.Idle;
     private bool _lastCrouching;
@@ -116,6 +119,10 @@ public sealed class InputController : IDisposable
         if (_settings.OutputMode == OutputMode.Controller)
         {
             ApplyDirectionController(direction);
+        }
+        else if (_settings.OutputMode == OutputMode.Osc)
+        {
+            ApplyDirectionOsc(direction);
         }
         else
         {
@@ -215,6 +222,31 @@ public sealed class InputController : IDisposable
         _controller.SetButton(_settings.DashButton, direction == Direction.Dash);
     }
 
+    // Like the controller path, OSC axes/buttons are absolute state resent fresh every sample --
+    // no separate "release the old direction" step needed.
+    private void ApplyDirectionOsc(Direction direction)
+    {
+        double vertical = direction switch
+        {
+            Direction.Forward => 1.0,
+            Direction.Dash => 1.0,
+            Direction.Backward => -1.0,
+            _ => 0.0,
+        };
+        _osc.SetMoveAxis(vertical, 0.0);
+
+        double look = direction switch
+        {
+            Direction.TurnRight => 1.0,
+            Direction.TurnLeft => -1.0,
+            _ => 0.0,
+        };
+        _osc.SetLookAxis(look);
+
+        // Mirrors the keyboard Shift+W combo / controller sprint button via VRChat's own /input/Run.
+        _osc.SetRun(direction == Direction.Dash);
+    }
+
     // Crouch/stand share one toggle binding in the target game, so each transition (crouch
     // starting AND crouch ending) must send exactly one tap -- a hold-style press/release pair
     // would leave the two sides unpaired and desync the game's toggle state from what the app
@@ -238,6 +270,12 @@ public sealed class InputController : IDisposable
         if (_settings.OutputMode == OutputMode.Controller)
         {
             _controller.SetButton(isJump ? _settings.JumpButton : _settings.CrouchButton, true);
+        }
+        else if (isJump && _settings.OutputMode == OutputMode.Osc)
+        {
+            // VRChat's OSC input has no crouch address, so only jump uses it here -- crouch
+            // always falls through to the plain key press below, even in OSC mode.
+            _osc.SetJump(true);
         }
         else
         {
@@ -270,6 +308,10 @@ public sealed class InputController : IDisposable
         {
             _controller.SetButton(isJump ? _settings.JumpButton : _settings.CrouchButton, false);
         }
+        else if (isJump && _settings.OutputMode == OutputMode.Osc)
+        {
+            _osc.SetJump(false);
+        }
         else
         {
             KeySender.KeyUp(isJump ? _settings.JumpKey : _settings.CrouchKey);
@@ -292,6 +334,12 @@ public sealed class InputController : IDisposable
             _controller.SetLeftStick(0, 0);
             _controller.SetRightStick(0, 0);
             _controller.SetButton(_settings.DashButton, false);
+        }
+        else if (_settings.OutputMode == OutputMode.Osc)
+        {
+            _osc.SetMoveAxis(0, 0);
+            _osc.SetLookAxis(0);
+            _osc.SetRun(false);
         }
         else
         {
@@ -344,5 +392,6 @@ public sealed class InputController : IDisposable
     public void Dispose()
     {
         _controller.Dispose();
+        _osc.Dispose();
     }
 }

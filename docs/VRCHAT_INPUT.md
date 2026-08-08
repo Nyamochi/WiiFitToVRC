@@ -1,7 +1,7 @@
 # Getting input into VRChat
 
 Synthetic input (`SendInput`) that works perfectly in most Windows applications can be silently
-ignored by VRChat. This app has two different fixes for that, used depending on output mode.
+ignored by VRChat. This app has three different fixes for that, used depending on output mode.
 
 ## The problem
 
@@ -63,3 +63,28 @@ VRChat ever sees it, especially if VRChat is launched through Steam. If the app 
 virtual controller successfully (Windows/Steam both show it as connected) but VRChat still doesn't
 respond, disable Steam Input specifically for VRChat: in your Steam library, right-click
 **VRChat → Properties → Controller**, and set the per-game override to **Disable Steam Input**.
+
+## Fix 3: VRChat's own OSC input (OSC output mode)
+
+Some VR headset/runtime setups lock the game's input focus to the VR device entirely, and reject
+`SendInput` no matter what it looks like -- keyboard, mouse, or even the virtual controller from
+Fix 2. For that case, [`OscSender.cs`](../src/WiiFitToVRC.Core/Input/OscSender.cs) skips
+`SendInput` altogether and talks to
+[VRChat's own OSC input feature](https://docs.vrchat.com/docs/osc-as-input-controller) instead --
+a local UDP message VRChat listens for directly, independent of window focus or input-device
+locking.
+
+- `/input/Vertical` / `/input/Horizontal` (float axes) carry forward/backward movement.
+- `/input/LookHorizontal` (float axis) carries turning.
+- `/input/Run` (bool) is set while dashing, and `/input/Jump` (bool) for jump.
+- Messages are sent to `127.0.0.1:9000`, VRChat's default local OSC receive port, and only when a
+  value actually changes (not every sample), matching VRChat's own OSC address list exactly.
+
+**VRChat has no OSC address for crouch.** It isn't part of VRChat's official OSC input list at
+all, so crouch is not sent through this path -- `InputController` always falls back to a plain
+`CrouchKey` press for it, even while OSC output mode is otherwise active. If your environment
+blocks `SendInput` entirely, crouch may not work while everything else does; this is a VRChat OSC
+limitation, not something this app can work around.
+
+**VRChat's OSC input must be enabled** in-game: Action Menu → Options → OSC → Enabled (it's on by
+default in recent VRChat versions, but worth checking if OSC mode doesn't seem to do anything).

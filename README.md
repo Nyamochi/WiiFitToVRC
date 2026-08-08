@@ -16,11 +16,14 @@ that into keyboard/mouse input or a virtual Xbox 360 controller.
 - **Gesture detection** for forward, backward, dash, turn left/right, jump, and crouch — see
   [docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md) for exactly how each is judged and which
   settings tune them.
-- **Three output modes**:
+- **Four output modes**:
   - Keyboard (turning via Q/E)
   - Keyboard + mouse (turning via mouse-look — the default)
   - Virtual Xbox 360 controller, for games that reject synthetic keyboard/mouse input (VRChat
     included) — see [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md).
+  - VRChat OSC input, for VR setups where the game's input focus is locked to the VR device and
+    rejects synthetic input entirely, even the virtual controller — see
+    [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md).
 - Fully configurable keybinds/controller bindings, turn sensitivity, weight thresholds, and
   timing, all from the in-app settings window.
 - Localized UI: auto-detects the Windows display language, with English, Japanese, Simplified &
@@ -90,7 +93,7 @@ All settings are edited from the in-app settings window (⚙ 設定) and persist
 
 | Setting | What it does |
 |---|---|
-| Output mode | Keyboard / Keyboard+Mouse / Virtual Controller (see [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md)) |
+| Output mode | Keyboard / Keyboard+Mouse / Virtual Controller / VRChat OSC (see [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md)) |
 | Language | UI language, or Auto to follow Windows |
 | Turn sensitivity | Mouse pixels-per-tick (keyboard+mouse mode) or stick deflection % (controller mode), separately for left/right |
 | Presence weight threshold | Calibrated total weight that counts as "someone is on the board" |

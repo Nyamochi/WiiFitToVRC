@@ -15,38 +15,40 @@ public sealed class SettingsForm : Form
     // the longest Japanese label in this tab ("足踏み検知のしきい値" etc.) never runs into it.
     private const int ValueColumnX = 230;
 
-    private readonly TabControl _tabs = new() { Location = new Point(10, 10), Size = new Size(480, 500) };
+    private readonly TabControl _tabs = new() { Location = new Point(10, 10), Size = new Size(480, 523) };
     private readonly TabPage _generalTab = new();
     private readonly TabPage _keybindsTab = new();
     private readonly TabPage _controllerTab = new();
 
-    // Keyboard = turn via Q/E, KeyboardMouse = turn via mouse-look, Controller = virtual gamepad.
+    // Keyboard = turn via Q/E, KeyboardMouse = turn via mouse-look, Controller = virtual gamepad,
+    // Osc = VRChat's own OSC input endpoint (for VR setups that lock out SendInput entirely).
     private readonly RadioButton _outputKeyboardRadio = new() { Location = new Point(ValueColumnX, 8), AutoSize = true };
     private readonly RadioButton _outputKeyboardMouseRadio = new() { Location = new Point(ValueColumnX, 31), AutoSize = true };
     private readonly RadioButton _outputControllerRadio = new() { Location = new Point(ValueColumnX, 54), AutoSize = true };
+    private readonly RadioButton _outputOscRadio = new() { Location = new Point(ValueColumnX, 77), AutoSize = true };
 
-    private readonly ComboBox _languageCombo = new() { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(ValueColumnX, 86), Size = new Size(220, 24) };
+    private readonly ComboBox _languageCombo = new() { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(ValueColumnX, 109), Size = new Size(220, 24) };
 
-    private readonly TrackBar _strokeRightSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 126), Size = new Size(180, 40), TickFrequency = 5 };
-    private readonly Label _strokeRightValueLabel = new() { Location = new Point(ValueColumnX + 190, 134), AutoSize = true };
-    private readonly TrackBar _strokeLeftSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 166), Size = new Size(180, 40), TickFrequency = 5 };
-    private readonly Label _strokeLeftValueLabel = new() { Location = new Point(ValueColumnX + 190, 174), AutoSize = true };
+    private readonly TrackBar _strokeRightSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 149), Size = new Size(180, 40), TickFrequency = 5 };
+    private readonly Label _strokeRightValueLabel = new() { Location = new Point(ValueColumnX + 190, 157), AutoSize = true };
+    private readonly TrackBar _strokeLeftSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 189), Size = new Size(180, 40), TickFrequency = 5 };
+    private readonly Label _strokeLeftValueLabel = new() { Location = new Point(ValueColumnX + 190, 197), AutoSize = true };
 
     // 1000-10000 in steps of 100 -- a plain TrackBar steps by 1 per dragged unit, so the control
     // itself covers 10-100 (hundreds of weight) and the real value is *100.
-    private readonly TrackBar _presenceSlider = new() { Minimum = 10, Maximum = 100, Location = new Point(ValueColumnX, 206), Size = new Size(180, 40), TickFrequency = 10 };
-    private readonly Label _presenceValueLabel = new() { Location = new Point(ValueColumnX + 190, 214), AutoSize = true };
+    private readonly TrackBar _presenceSlider = new() { Minimum = 10, Maximum = 100, Location = new Point(ValueColumnX, 229), Size = new Size(180, 40), TickFrequency = 10 };
+    private readonly Label _presenceValueLabel = new() { Location = new Point(ValueColumnX + 190, 237), AutoSize = true };
 
-    private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 250), Size = new Size(70, 24) };
-    private readonly NumericUpDown _footstepThresholdInput = new() { Minimum = 101, Maximum = 300, Location = new Point(ValueColumnX, 284), Size = new Size(70, 24) };
-    private readonly NumericUpDown _dashPeriodInput = new() { Minimum = 100, Maximum = 1000, Increment = 10, Location = new Point(ValueColumnX, 318), Size = new Size(70, 24) };
-    private readonly NumericUpDown _stepHoldInput = new() { Minimum = 20, Maximum = 1000, Increment = 10, Location = new Point(ValueColumnX, 352), Size = new Size(70, 24) };
+    private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 273), Size = new Size(70, 24) };
+    private readonly NumericUpDown _footstepThresholdInput = new() { Minimum = 101, Maximum = 300, Location = new Point(ValueColumnX, 307), Size = new Size(70, 24) };
+    private readonly NumericUpDown _dashPeriodInput = new() { Minimum = 100, Maximum = 1000, Increment = 10, Location = new Point(ValueColumnX, 341), Size = new Size(70, 24) };
+    private readonly NumericUpDown _stepHoldInput = new() { Minimum = 20, Maximum = 1000, Increment = 10, Location = new Point(ValueColumnX, 375), Size = new Size(70, 24) };
 
     // Separate rows, not side by side -- the Japanese labels for these are long enough that two
     // AutoSize checkboxes on one row ran into each other and got visually clipped.
-    private readonly CheckBox _crouchEnabledCheck = new() { Location = new Point(ValueColumnX, 386), AutoSize = true };
-    private readonly CheckBox _jumpEnabledCheck = new() { Location = new Point(ValueColumnX, 410), AutoSize = true };
-    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 434), AutoSize = true };
+    private readonly CheckBox _crouchEnabledCheck = new() { Location = new Point(ValueColumnX, 409), AutoSize = true };
+    private readonly CheckBox _jumpEnabledCheck = new() { Location = new Point(ValueColumnX, 433), AutoSize = true };
+    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 457), AutoSize = true };
 
     private readonly ComboBox _forwardKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _dashKeyCombo = MakeCombo<VirtualKey>();
@@ -66,8 +68,8 @@ public sealed class SettingsForm : Form
     private readonly ComboBox _crouchButtonCombo = MakeCombo<ControllerButton>();
     private readonly ComboBox _dashButtonCombo = MakeCombo<ControllerButton>();
 
-    private readonly Button _saveButton = new() { Location = new Point(300, 520), AutoSize = true };
-    private readonly Button _cancelButton = new() { Location = new Point(390, 520), AutoSize = true };
+    private readonly Button _saveButton = new() { Location = new Point(300, 543), AutoSize = true };
+    private readonly Button _cancelButton = new() { Location = new Point(390, 543), AutoSize = true };
 
     public bool SettingsChanged { get; private set; }
 
@@ -82,7 +84,7 @@ public sealed class SettingsForm : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
-        ClientSize = new Size(500, 560);
+        ClientSize = new Size(500, 583);
         Text = Localizer.Get("Button_Settings", _uiLanguage);
 
         BuildLayout();
@@ -131,18 +133,19 @@ public sealed class SettingsForm : Form
         _generalTab.Text = Localizer.Get("Settings_Tab_General", _uiLanguage);
 
         var outputModeLabel = new Label { Text = Localizer.Get("Settings_OutputMode", _uiLanguage), Location = new Point(10, 12), AutoSize = true };
-        var languageLabel = new Label { Text = Localizer.Get("Settings_Language", _uiLanguage), Location = new Point(10, 90), AutoSize = true };
-        var strokeRightLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeRight", _uiLanguage), Location = new Point(10, 134), AutoSize = true };
-        var strokeLeftLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeLeft", _uiLanguage), Location = new Point(10, 174), AutoSize = true };
-        var presenceLabel = new Label { Text = Localizer.Get("Settings_PresenceThreshold", _uiLanguage), Location = new Point(10, 214), AutoSize = true };
-        var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 252), AutoSize = true };
-        var footstepLabel = new Label { Text = Localizer.Get("Settings_FootstepThreshold", _uiLanguage), Location = new Point(10, 286), AutoSize = true };
-        var dashPeriodLabel = new Label { Text = Localizer.Get("Settings_DashPeriod", _uiLanguage), Location = new Point(10, 320), AutoSize = true };
-        var stepHoldLabel = new Label { Text = Localizer.Get("Settings_StepHold", _uiLanguage), Location = new Point(10, 354), AutoSize = true };
+        var languageLabel = new Label { Text = Localizer.Get("Settings_Language", _uiLanguage), Location = new Point(10, 113), AutoSize = true };
+        var strokeRightLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeRight", _uiLanguage), Location = new Point(10, 157), AutoSize = true };
+        var strokeLeftLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeLeft", _uiLanguage), Location = new Point(10, 197), AutoSize = true };
+        var presenceLabel = new Label { Text = Localizer.Get("Settings_PresenceThreshold", _uiLanguage), Location = new Point(10, 237), AutoSize = true };
+        var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 275), AutoSize = true };
+        var footstepLabel = new Label { Text = Localizer.Get("Settings_FootstepThreshold", _uiLanguage), Location = new Point(10, 309), AutoSize = true };
+        var dashPeriodLabel = new Label { Text = Localizer.Get("Settings_DashPeriod", _uiLanguage), Location = new Point(10, 343), AutoSize = true };
+        var stepHoldLabel = new Label { Text = Localizer.Get("Settings_StepHold", _uiLanguage), Location = new Point(10, 377), AutoSize = true };
 
         _outputKeyboardRadio.Text = Localizer.Get("Settings_OutputMode_Keyboard", _uiLanguage);
         _outputKeyboardMouseRadio.Text = Localizer.Get("Settings_OutputMode_KeyboardMouse", _uiLanguage);
         _outputControllerRadio.Text = Localizer.Get("Settings_OutputMode_Controller", _uiLanguage);
+        _outputOscRadio.Text = Localizer.Get("Settings_OutputMode_Osc", _uiLanguage);
         _crouchEnabledCheck.Text = Localizer.Get("Settings_CrouchEnabled", _uiLanguage);
         _jumpEnabledCheck.Text = Localizer.Get("Settings_JumpEnabled", _uiLanguage);
         _debugModeCheck.Text = Localizer.Get("Settings_DebugMode", _uiLanguage);
@@ -154,7 +157,7 @@ public sealed class SettingsForm : Form
         }
 
         _generalTab.Controls.AddRange([
-            outputModeLabel, _outputKeyboardRadio, _outputKeyboardMouseRadio, _outputControllerRadio,
+            outputModeLabel, _outputKeyboardRadio, _outputKeyboardMouseRadio, _outputControllerRadio, _outputOscRadio,
             languageLabel, _languageCombo,
             strokeRightLabel, _strokeRightSlider, _strokeRightValueLabel,
             strokeLeftLabel, _strokeLeftSlider, _strokeLeftValueLabel,
@@ -239,6 +242,7 @@ public sealed class SettingsForm : Form
         _outputKeyboardRadio.Checked = _settings.OutputMode == OutputMode.Keyboard;
         _outputKeyboardMouseRadio.Checked = _settings.OutputMode == OutputMode.KeyboardMouse;
         _outputControllerRadio.Checked = _settings.OutputMode == OutputMode.Controller;
+        _outputOscRadio.Checked = _settings.OutputMode == OutputMode.Osc;
 
         _strokeRightSlider.Value = Math.Clamp(_settings.MouseTurnStrokeRight, _strokeRightSlider.Minimum, _strokeRightSlider.Maximum);
         _strokeRightValueLabel.Text = _strokeRightSlider.Value.ToString();
@@ -279,7 +283,8 @@ public sealed class SettingsForm : Form
     private void Save()
     {
         _settings.Language = ((LanguageItem)_languageCombo.SelectedItem!).Language;
-        _settings.OutputMode = _outputControllerRadio.Checked ? OutputMode.Controller
+        _settings.OutputMode = _outputOscRadio.Checked ? OutputMode.Osc
+            : _outputControllerRadio.Checked ? OutputMode.Controller
             : _outputKeyboardMouseRadio.Checked ? OutputMode.KeyboardMouse
             : OutputMode.Keyboard;
         _settings.MouseTurnStrokeRight = _strokeRightSlider.Value;
