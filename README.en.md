@@ -42,10 +42,21 @@ each feature if something doesn't work as expected.
 - Localized UI: auto-detects the Windows display language, with English, Japanese, Simplified &
   Traditional Chinese, Korean, French, German, and Italian built in.
 
+## Works with other games too
+
+The app's output is plain keyboard WASD (or mouse) input, so as long as a game accepts WASD
+movement, this app works with it too, whether or not that game officially supports it. Games it's
+been tried with:
+
+- Death Stranding
+- Resident Evil
+- Monster Hunter
+- Armored Core IV
+
 ## Requirements
 
 - Windows 10/11
-- A Wii Balance Board (Bluetooth)
+- A Wii Balance Board (Bluetooth) — discontinued, but commonly found cheaply secondhand
 - A Bluetooth adapter that supports HID devices
 - For the virtual controller output mode: [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)
   (a real kernel driver — this app cannot install it for you; download and install it yourself)

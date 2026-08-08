@@ -28,10 +28,19 @@ Wii 밸런스 보드를 VRChat(또는 다른 Windows 애플리케이션)용 보�
 - 키 바인딩/컨트롤러 할당, 회전 감도, 하중 임계값, 각종 타이밍 등을 앱 내 설정 화면에서 세밀하게 조정 가능.
 - 다국어 UI: Windows 표시 언어를 자동 감지. 일본어·영어·중국어 간체/번체·한국어·프랑스어·독일어·이탈리아어를 지원합니다.
 
+## VRChat 외의 게임에서도 사용 가능합니다
+
+이 앱의 출력은 일반적인 키보드 WASD(또는 마우스) 입력이므로, 공식적으로 지원하지 않더라도 WASD 이동을 지원하는 게임이라면 걷기 위주의 다른 게임에서도 동작합니다. 사용해 본 예:
+
+- Death Stranding
+- Resident Evil
+- Monster Hunter
+- Armored Core IV
+
 ## 동작 환경
 
 - Windows 10/11
-- Wii 밸런스 보드(Bluetooth)
+- Wii 밸런스 보드(Bluetooth) — 단종된 제품이지만 중고 시장에서 저렴하게 구할 수 있습니다
 - HID 장치를 지원하는 Bluetooth 어댑터
 - 가상 컨트롤러 출력 모드를 사용할 경우: [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)(실제 커널 드라이버입니다 — 이 앱이 자동으로 설치할 수 없으므로 직접 다운로드하여 설치해야 합니다)
 
