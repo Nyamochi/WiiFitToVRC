@@ -1,113 +1,103 @@
 # WiiFitToVRC
 
-**[日本語](README.ja.md) | English**
+**日本語** | [English](README.en.md) | [한국어](README.ko.md) | [简体中文](README.zh-Hans.md) | [繁體中文](README.zh-Hant.md)
 
-Turn a Wii Balance Board into a walking controller for VRChat (or any other Windows
-application). Stand on the board, shift your weight to walk/turn/jump/crouch, and the app turns
-that into keyboard/mouse input or a virtual Xbox 360 controller.
+Wiiバランスボードを、VRChat(またはその他のWindowsアプリ)向けの歩行コントローラーに変えるアプリです。ボードに乗って体重を移動させるだけで、前進・後進・旋回・ジャンプ・しゃがみをキーボード/マウス入力、仮想Xboxコントローラー入力、またはVRChatのOSC入力に変換します。
 
-## Features
+## かんたん導入(はじめての方へ)
 
-- **Pairs with the balance board over Bluetooth with no PIN prompt** — see
-  [docs/BALANCE_BOARD.md](docs/BALANCE_BOARD.md) for how and why.
-- **Two-stage calibration**: a one-time sensor zero-point calibration (step off the board), and a
-  continuously self-refreshing "resting weight" reference that adapts automatically when a
-  different person steps on.
-- **Gesture detection** for forward, backward, dash, turn left/right, jump, and crouch — see
-  [docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md) for exactly how each is judged and which
-  settings tune them.
-- **Four output modes**:
-  - Keyboard (turning via Q/E)
-  - Keyboard + mouse (turning via mouse-look — the default)
-  - Virtual Xbox 360 controller, for games that reject synthetic keyboard/mouse input (VRChat
-    included) — see [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md).
-  - VRChat OSC input, for VR setups where the game's input focus is locked to the VR device and
-    rejects synthetic input entirely, even the virtual controller — see
-    [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md).
-- Fully configurable keybinds/controller bindings, turn sensitivity, weight thresholds, and
-  timing, all from the in-app settings window.
-- Localized UI: auto-detects the Windows display language, with English, Japanese, Simplified &
-  Traditional Chinese, Korean, French, German, and Italian built in.
+プログラミングの知識は一切不要です。以下の手順だけで動作します。
 
-## Requirements
+1. このリポジトリのトップページにある `WiiFitToVRC.exe` をクリックしてダウンロードします(インストール作業は不要です)。
+2. ダウンロードしたファイルをダブルクリックして起動します。
+3. Wiiバランスボードの電池ボックスにある **SYNC** ボタンを押してから、アプリの **接続** ボタンを押します。
+4. 画面の案内(**キャリブレーション** → ボードから降りて待つ → 再びボードに乗って待つ)に従うだけで準備完了です。あとはVRChatを起動し、ボードの上で体重を移動すれば歩けます。
+
+より詳しい手順は下の「クイックスタート」を、うまく動かないときは各機能の詳しい説明([docs](docs/)フォルダ、英語)を参照してください。
+
+## 特徴
+
+- **PIN入力なしでBluetoothペアリング** — 仕組みは[docs/BALANCE_BOARD.md](docs/BALANCE_BOARD.md)(英語)を参照。
+- **2段階のキャリブレーション**: センサーのゼロ点を合わせる一回限りのキャリブレーション(ボードから降りて実施)と、常時バックグラウンドで自動更新され続ける「基準体重」(別の人が乗ってもすぐに追従します)。
+- **前進・後進・ダッシュ・左右旋回・ジャンプ・しゃがみのジェスチャー検知** — それぞれの判定ロジックと調整可能な設定項目は[docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md)(英語)を参照。
+- **4つの出力モード**:
+  - キーボード(旋回はQ/Eキー)
+  - キーボード+マウス(旋回はマウスの視点移動 — デフォルト)
+  - 仮想Xbox 360コントローラー — SendInputによる合成キーボード/マウス入力を拒否するゲーム(VRChatを含む)向け。詳細は[docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md)(英語)を参照。
+  - VRChatのOSC機能を利用 — VR機器に入力がロックされ、仮想コントローラーを含むあらゆる合成入力を受け付けない環境向け。詳細は[docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md)(英語)を参照。
+- キーバインド/コントローラー割り当て、旋回感度、荷重しきい値、各種タイミングなど、アプリ内の設定画面から細かく調整可能。
+- 多言語UI: Windowsの表示言語を自動検出。日本語・英語・簡体字/繁体字中国語・韓国語・フランス語・ドイツ語・イタリア語に対応。
+
+## 動作環境
 
 - Windows 10/11
-- A Wii Balance Board (Bluetooth)
-- A Bluetooth adapter that supports HID devices
-- For the virtual controller output mode: [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)
-  (a real kernel driver — this app cannot install it for you; download and install it yourself)
+- Wiiバランスボード(Bluetooth)
+- HIDデバイスに対応したBluetoothアダプター
+- 仮想コントローラー出力モードを使う場合: [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)(実在のカーネルドライバです — このアプリから自動インストールすることはできないため、ご自身でダウンロード・インストールしてください)
 
-## Quick start
+## クイックスタート
 
-1. Download `WiiFitToVRC.exe` from the root of this repository (a self-contained build — no
-   .NET runtime install needed) and run it.
-2. Press the **SYNC** button inside the battery compartment of the balance board, then click
-   **接続 (Connect)** in the app.
-3. Once connected, click **キャリブレーション (Calibrate)** and step off the board for the
-   10-second sensor calibration.
-4. Step back on and stand normally for a while — the app needs a stretch of genuinely still
-   standing to learn your resting weight before gesture detection turns on (status bar shows
-   "体重キャリブレーション中" / "Weight calibrating" until then).
-5. Open **設定 (Settings)** to pick an output mode and tune keybinds/sensitivity to taste.
+1. このリポジトリのルートにある`WiiFitToVRC.exe`をダウンロードして実行します(自己完結型ビルドのため.NETランタイムのインストールは不要です)。
+2. バランスボードの電池ボックス内にある**SYNC**ボタンを押してから、アプリの**接続**ボタンをクリックします。
+3. 接続後、**キャリブレーション**をクリックし、10秒間ボードから降りてセンサーキャリブレーションを行います。
+4. 再びボードに乗り、しばらく普通に立っていてください。ジェスチャー検知が始まる前に、静止した状態が一定時間続くのを待って基準体重を学習する必要があります(それまではステータス欄に「体重キャリブレーション中」と表示されます)。
+5. **設定**画面を開き、出力モードの選択やキーバインド・感度の調整を行ってください。
 
-## Building from source
+## ソースからのビルド
 
-Requires the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
+[.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)が必要です。
 
 ```
 dotnet build WiiFitToVRC.sln
 ```
 
-To produce the self-contained single-file exe shipped at the repo root:
+リポジトリのルートに配置されている自己完結型の単一exeを生成するには:
 
 ```
 powershell -File publish.ps1
 ```
 
-## Project structure
+## プロジェクト構成
 
 ```
-WiiFitToVRC.exe          Prebuilt self-contained executable (see publish.ps1)
-publish.ps1               Rebuilds and republishes WiiFitToVRC.exe
+WiiFitToVRC.exe          ビルド済みの自己完結型実行ファイル(publish.ps1で生成)
+publish.ps1               WiiFitToVRC.exeを再ビルド・再配置するスクリプト
 src/
-  WiiFitToVRC.Core/        Domain logic: Bluetooth pairing, HID I/O, gesture detection,
-                           settings, localization, input output (keyboard/mouse/controller)
-  WiiFitToVRC.App/         WinForms UI (monitor window + settings dialog)
+  WiiFitToVRC.Core/        ドメインロジック: Bluetoothペアリング、HID通信、ジェスチャー検知、
+                           設定、多言語化、出力(キーボード/マウス/コントローラー/OSC)
+  WiiFitToVRC.App/         WinForms UI(モニター画面・設定ダイアログ)
 tools/
-  PairTool/                Standalone console tool for testing balance board pairing in isolation
-  ClassifyTest/             Offline replay tool: re-runs the gesture classifiers against a
-                           recorded CSV log, for tuning thresholds without live hardware
+  PairTool/                バランスボードのペアリングを単体でテストするコンソールツール
+  ClassifyTest/             オフライン再生ツール: 記録済みCSVログに対して分類ロジックを
+                           再実行し、実機なしでしきい値調整を行うためのもの
 reference/
-  WiiBalanceWalker_v0.4/    InTheHand.Net.Personal.dll (32feet.NET), used for Bluetooth device
-                           management — see the accompanying README.txt for attribution
-docs/
-  BALANCE_BOARD.md          Balance board Bluetooth/HID protocol details
-  GESTURE_DETECTION.md      How each gesture is classified, and the settings that tune it
-  VRCHAT_INPUT.md           Why plain SendInput doesn't work in VRChat, and the two fixes used
+  WiiBalanceWalker_v0.4/    InTheHand.Net.Personal.dll(32feet.NET)。Bluetooth管理に使用
+                           — 帰属表示は同梱のREADME.txtを参照
+docs/                      (現時点では英語のみ)
+  BALANCE_BOARD.md          バランスボードのBluetooth/HIDプロトコル詳細
+  GESTURE_DETECTION.md      各ジェスチャーの判定方法と、それを調整する設定項目
+  VRCHAT_INPUT.md           素のSendInputがVRChatで効かない理由と、3つの対処法
 ```
 
-## Settings reference
+## 設定リファレンス
 
-All settings are edited from the in-app settings window (⚙ 設定) and persisted to
-`settings.json` next to the exe. Nothing needs to be hand-edited, but a summary:
+すべての設定はアプリ内の設定画面(⚙ 設定)から編集でき、exeと同じフォルダの`settings.json`に保存されます。手動編集の必要はありませんが、概要は以下の通りです:
 
-| Setting | What it does |
+| 設定項目 | 内容 |
 |---|---|
-| Output mode | Keyboard / Keyboard+Mouse / Virtual Controller / VRChat OSC (see [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md)) |
-| Language | UI language, or Auto to follow Windows |
-| Turn sensitivity | Mouse pixels-per-tick (keyboard+mouse mode) or stick deflection % (controller mode), separately for left/right |
-| Presence weight threshold | Calibrated total weight that counts as "someone is on the board" |
-| Sleep/wake seconds | How long presence must hold (both directions) before output locks/unlocks |
-| Footstep threshold % | How far above the learned resting weight a corner must spike to count as a footstep — see [docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md) |
-| Dash detection (ms) | Footstep-to-footstep interval fast enough to count as a dash instead of a walk |
-| Stride length (ms) | How long a confirmed step persists after its last footstep before releasing back to Idle |
-| Crouch / Jump enabled | Toggle each gesture off entirely (no key output, no light) |
-| Debug mode | Shows the raw CSV recording controls used to capture logs for `ClassifyTest` |
-| Keybinds tab | Per-action key (and the dash modifier key) for keyboard output modes |
-| Controller tab | Per-action button and stick deflection for virtual controller mode |
+| 出力方式 | キーボード / キーボード+マウス / 仮想コントローラー / VRChat OSC(詳細は[docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md)) |
+| 言語 | UIの表示言語。自動でWindowsの設定に追従も可能 |
+| 旋回感度 | マウスの移動量(キーボード+マウスモード)またはスティック偏移%(コントローラーモード)。左右別々に設定可能 |
+| 反応する荷重のしきい値 | 「ボードに人が乗っている」と判定する較正後の合計荷重 |
+| スリープ・復帰までの秒数 | 出力がロック/解除されるまでに必要な継続時間(両方向共通) |
+| 足踏み検知のしきい値(%) | 学習済みの基準体重に対して、コーナーがどれだけ上振れしたら足踏みと判定するか — 詳細は[docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md) |
+| ダッシュ判定(ms) | 足踏み同士の間隔がこれより短ければダッシュと判定 |
+| 歩幅(ms) | 足踏みを検知してから、次の足踏みがないままIdleに戻るまでの持続時間 |
+| しゃがみ/ジャンプの有効化 | 各ジェスチャーを個別にオフにできます(キー出力・ライト点灯とも完全に無効化) |
+| デバッグモード | `ClassifyTest`用のログを記録する生データ記録コントロールを表示 |
+| キー割り当てタブ | キーボード出力モード時の各アクションのキー(ダッシュの修飾キーを含む) |
+| コントローラータブ | 仮想コントローラーモード時の各アクションのボタンとスティック偏移量 |
 
-## License
+## ライセンス
 
-[MIT](LICENSE) for this project's own code. The bundled `InTheHand.Net.Personal.dll` is a
-third-party library (32feet.NET) — see [reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt](reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt)
-for its own attribution.
+このプロジェクト自体のコードは[MIT](LICENSE)です。同梱している`InTheHand.Net.Personal.dll`はサードパーティ製ライブラリ(32feet.NET)です — 帰属表示は[reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt](reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt)を参照してください。
