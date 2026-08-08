@@ -326,7 +326,9 @@ public partial class MonitorForm : Form
             }
 
             _statusLabel.Text = Localizer.Get("Status_HidConnecting", lang);
-            for (int i = 0; i < 150 && device is null; i++)
+            // No attempt cap or timeout here either -- keep polling for the HID interface to
+            // appear until it does or the user cancels via the abort button.
+            while (device is null)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 device = await Task.Run(() => BalanceBoardDevice.TryOpen(), cancellationToken);
@@ -334,12 +336,6 @@ public partial class MonitorForm : Form
                 {
                     await Task.Delay(300, cancellationToken);
                 }
-            }
-
-            if (device is null)
-            {
-                _statusLabel.Text = Localizer.Get("Status_HidTimeout", lang);
-                return;
             }
 
             await AttachDeviceAsync(device, cancellationToken);

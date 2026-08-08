@@ -46,7 +46,7 @@ public static class BalanceBoardPairing
         return byName.Count > 0 ? byName : list.Where(d => BalanceBoardModelRegex.IsMatch(nameOf(d)));
     }
 
-    public static PairingOutcome PairAndInstall(string nameContains = "Nintendo", bool removeExisting = true, int discoveryAttempts = 100, CancellationToken cancellationToken = default)
+    public static PairingOutcome PairAndInstall(string nameContains = "Nintendo", bool removeExisting = true, CancellationToken cancellationToken = default)
     {
         using var btClient = new BluetoothClient();
 
@@ -61,21 +61,15 @@ public static class BalanceBoardPairing
         }
 
         // Each DiscoverDevices() call only sees the board if it's actively in SYNC mode *during*
-        // that scan, so retry (checking for cancellation between attempts, since a single scan
-        // can't be aborted mid-flight) to tolerate a delayed button press.
+        // that scan, so keep scanning with no attempt cap or timeout -- the caller runs this on a
+        // background thread and the user cancels via the UI whenever they like, so there's no
+        // reason to ever give up on our own and report "not found" while they're still trying.
         BluetoothDeviceInfo? target = null;
-        int discoveredCount = 0;
-        for (int attempt = 0; attempt < discoveryAttempts && target is null; attempt++)
+        while (target is null)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var discovered = btClient.DiscoverDevices(255, false, false, true);
-            discoveredCount = discovered.Length;
             target = MatchDevices(discovered, nameContains, d => d.DeviceName).FirstOrDefault();
-        }
-
-        if (target is null)
-        {
-            return new PairingOutcome(PairingResult.NoDeviceFound, null, $"'{nameContains}' を含むデバイスが見つかりませんでした(未検出: {discoveredCount}件)");
         }
 
         try
