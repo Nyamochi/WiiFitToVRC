@@ -18,7 +18,7 @@ that into keyboard/mouse input, a virtual Xbox 360 controller, or VRChat's own O
 
 Note: to confirm the board is connected properly, open Notepad and step on the board -- if it
 types w/s/a/d, everything's working. If the game still doesn't respond (for example, in VR mode),
-try switching the output mode in Settings to VRChat OSC.
+first enable OSC in VRChat itself, then try switching the output mode in Settings to VRChat OSC.
 
 See "Quick start" below for more detail, and the [docs](docs/) folder for a deeper explanation of
 each feature if something doesn't work as expected.
@@ -129,6 +129,7 @@ All settings are edited from the in-app settings window (⚙ 設定) and persist
 | Footstep threshold % | How far above the learned resting weight a corner must spike to count as a footstep — see [docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md) |
 | Dash detection (ms) | Footstep-to-footstep interval fast enough to count as a dash instead of a walk |
 | Stride length (ms) | How long a confirmed step persists after its last footstep before releasing back to Idle |
+| Gesture sensitivity | Weak-to-Strong slider for how easily turn/jump/crouch fire (forward/backward/dash isn't affected). The middle (default) keeps the original detection thresholds unchanged |
 | Crouch / Jump enabled | Toggle each gesture off entirely (no key output, no light) |
 | Turning enabled | When off, turning isn't detected at all, so no turn-equivalent output is ever sent in any output mode -- mouse, keyboard, controller, or OSC (forward/backward/dash are unaffected) |
 | Debug mode | Shows the raw CSV recording controls used to capture logs for `ClassifyTest` |

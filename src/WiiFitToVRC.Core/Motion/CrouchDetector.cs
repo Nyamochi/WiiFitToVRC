@@ -12,25 +12,33 @@ namespace WiiFitToVRC.Core.Motion;
 /// </summary>
 public sealed class CrouchDetector
 {
-    private const double EnterY = 45;
-    private const double ExitY = 30;
-    private const long MinHoldMs = 500;
+    // Baseline (Gesture sensitivity = 50) values -- scaled by GestureSensitivityScale before use.
+    private const double BaselineEnterY = 45;
+    private const double BaselineExitY = 30;
+    private const long BaselineMinHoldMs = 500;
 
     private long _aboveSinceMs = -1;
 
     public bool IsCrouching { get; private set; }
 
-    public bool Update(double y, long nowMs)
+    /// <param name="gestureSensitivity">0-100, see GestureSensitivityScale -- scales the entry/exit
+    /// Y thresholds and the minimum hold duration together (does not affect forward/backward).</param>
+    public bool Update(double y, long nowMs, int gestureSensitivity)
     {
+        double multiplier = GestureSensitivityScale.ThresholdMultiplier(gestureSensitivity);
+        double enterY = BaselineEnterY * multiplier;
+        double exitY = BaselineExitY * multiplier;
+        long minHoldMs = (long)(BaselineMinHoldMs * multiplier);
+
         if (!IsCrouching)
         {
-            if (y > EnterY)
+            if (y > enterY)
             {
                 if (_aboveSinceMs < 0)
                 {
                     _aboveSinceMs = nowMs;
                 }
-                if (nowMs - _aboveSinceMs >= MinHoldMs)
+                if (nowMs - _aboveSinceMs >= minHoldMs)
                 {
                     IsCrouching = true;
                 }
@@ -40,7 +48,7 @@ public sealed class CrouchDetector
                 _aboveSinceMs = -1;
             }
         }
-        else if (y < ExitY)
+        else if (y < exitY)
         {
             IsCrouching = false;
             _aboveSinceMs = -1;

@@ -29,9 +29,10 @@ public sealed class DirectionClassifier
 {
     private const long AlternationWindowMs = 900; // max gap between opposite-foot peaks to count as one walking step
 
-    private const double TurnEnterX = 40;   // X (left-right %) magnitude to start timing a turn candidate
-    private const double TurnExitX = 25;    // below this, a confirmed turn releases (hysteresis)
-    private const long TurnSustainMs = 400; // how long the lean must hold continuously before it's confirmed
+    // Baseline (Gesture sensitivity = 50) values -- scaled by GestureSensitivityScale before use.
+    private const double BaselineTurnEnterX = 40;   // X (left-right %) magnitude to start timing a turn candidate
+    private const double BaselineTurnExitX = 25;    // below this, a confirmed turn releases (hysteresis)
+    private const long BaselineTurnSustainMs = 400; // how long the lean must hold continuously before it's confirmed
 
     private enum Corner { None, Right, Left }
 
@@ -83,7 +84,10 @@ public sealed class DirectionClassifier
     /// <param name="turnEnabled">When false, turning is not tracked at all (any in-progress lean
     /// is dropped) and stepping is never blocked by it -- lets output modes fully lock out
     /// left/right turning while leaving forward/backward/dash untouched.</param>
-    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, bool turnEnabled)
+    /// <param name="gestureSensitivity">0-100, see GestureSensitivityScale -- scales the turn
+    /// entry/exit thresholds and sustain duration (does not affect forward/backward/dash, which
+    /// has its own separate footstep-threshold setting).</param>
+    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, bool turnEnabled, int gestureSensitivity)
     {
         bool trEdge = _topRight.Update(cal.TopRight, nowMs, _reference.ReferenceTopRight, footstepThresholdRatio);
         bool tlEdge = _topLeft.Update(cal.TopLeft, nowMs, _reference.ReferenceTopLeft, footstepThresholdRatio);
@@ -115,7 +119,8 @@ public sealed class DirectionClassifier
 
         if (turnEnabled)
         {
-            UpdateTurn(x, nowMs);
+            double multiplier = GestureSensitivityScale.ThresholdMultiplier(gestureSensitivity);
+            UpdateTurn(x, nowMs, BaselineTurnEnterX * multiplier, BaselineTurnExitX * multiplier, (long)(BaselineTurnSustainMs * multiplier));
         }
         else if (_turnConfirmed || _turnCandidateSinceMs >= 0)
         {
@@ -161,13 +166,13 @@ public sealed class DirectionClassifier
     /// every reference value here is only meaningful relative to that offset.</summary>
     public void ResetWeightCalibration() => _reference.Reset();
 
-    private void UpdateTurn(double x, long nowMs)
+    private void UpdateTurn(double x, long nowMs, double enterX, double exitX, long sustainMs)
     {
         if (_turnConfirmed)
         {
             // Hysteresis: only release once the lean has fallen back under the lower bound, not
             // the moment it dips below the (higher) entry bound.
-            bool stillLeaning = _turnSide == Direction.TurnRight ? x > TurnExitX : x < -TurnExitX;
+            bool stillLeaning = _turnSide == Direction.TurnRight ? x > exitX : x < -exitX;
             if (!stillLeaning)
             {
                 _turnConfirmed = false;
@@ -177,7 +182,7 @@ public sealed class DirectionClassifier
             return;
         }
 
-        Direction side = x > TurnEnterX ? Direction.TurnRight : x < -TurnEnterX ? Direction.TurnLeft : Direction.Idle;
+        Direction side = x > enterX ? Direction.TurnRight : x < -enterX ? Direction.TurnLeft : Direction.Idle;
 
         if (side == Direction.Idle)
         {
@@ -195,7 +200,7 @@ public sealed class DirectionClassifier
             return;
         }
 
-        if (nowMs - _turnCandidateSinceMs >= TurnSustainMs)
+        if (nowMs - _turnCandidateSinceMs >= sustainMs)
         {
             _turnConfirmed = true;
             _turnSide = side;

@@ -50,15 +50,15 @@ static void RunOneFile(string path)
 
         double y = DirectionClassifier.ComputeY(cal);
 
-        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 77, turnEnabled: true);
+        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 77, turnEnabled: true, gestureSensitivity: 50);
         directionCounts[direction] = directionCounts.GetValueOrDefault(direction) + 1;
 
-        if (crouchDetector.Update(y, unixMs))
+        if (crouchDetector.Update(y, unixMs, gestureSensitivity: 50))
         {
             crouchSamples++;
         }
 
-        if (jumpDetector.Update(cal.Total, unixMs))
+        if (jumpDetector.Update(cal.Total, unixMs, gestureSensitivity: 50))
         {
             jumpTriggers++;
         }

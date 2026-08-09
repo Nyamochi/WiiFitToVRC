@@ -89,10 +89,10 @@ public sealed class InputController : IDisposable
             return;
         }
 
-        var direction = _direction.Update(cal, nowMs, isPresent: true, _settings.FootstepThresholdPercent / 100.0, _settings.DashPeriodMs, _settings.StepHoldMs, _settings.TurnEnabled);
+        var direction = _direction.Update(cal, nowMs, isPresent: true, _settings.FootstepThresholdPercent / 100.0, _settings.DashPeriodMs, _settings.StepHoldMs, _settings.TurnEnabled, _settings.GestureSensitivity);
         ApplyDirection(direction);
 
-        bool jumped = _settings.JumpEnabled && _jump.Update(cal.Total, nowMs);
+        bool jumped = _settings.JumpEnabled && _jump.Update(cal.Total, nowMs, _settings.GestureSensitivity);
         if (jumped)
         {
             PressTap(isJump: true, nowMs);
@@ -108,7 +108,7 @@ public sealed class InputController : IDisposable
         if (_settings.CrouchEnabled && nowMs - _lastMovementMs >= CrouchCooldownMs)
         {
             double y = DirectionClassifier.ComputeY(cal);
-            bool crouching = _crouch.Update(y, nowMs);
+            bool crouching = _crouch.Update(y, nowMs, _settings.GestureSensitivity);
             ApplyCrouch(crouching, nowMs);
         }
         ReleaseTapIfDue(isJump: false, nowMs);

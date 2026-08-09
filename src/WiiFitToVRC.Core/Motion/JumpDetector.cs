@@ -14,7 +14,11 @@ namespace WiiFitToVRC.Core.Motion;
 /// </summary>
 public sealed class JumpDetector
 {
-    private const double SpikeMultiplier = 1.5;
+    // Baseline (Gesture sensitivity = 50) push-off spike threshold -- scaled by
+    // GestureSensitivityScale before use. The other constants below describe the shape of a real
+    // jump's collapse-then-settle curve (distinguishing it from a crouch push) rather than "how
+    // hard you have to move," so they're left fixed rather than tied to the sensitivity setting.
+    private const double BaselineSpikeMultiplier = 1.5;
     private const double AirborneFraction = 0.3;
     private const double SettledLow = 0.7;
     private const double SettledHigh = 1.3;
@@ -27,9 +31,12 @@ public sealed class JumpDetector
     private State _state = State.Idle;
     private long _armedSinceMs;
 
-    /// <summary>Returns true exactly on the sample where a jump (push-off confirmed by the
-    /// following airborne dip) is detected.</summary>
-    public bool Update(int total, long nowMs)
+    /// <param name="gestureSensitivity">0-100, see GestureSensitivityScale -- scales how large the
+    /// push-off spike must be relative to the baseline weight to arm (does not affect
+    /// forward/backward).</param>
+    /// <returns>True exactly on the sample where a jump (push-off confirmed by the following
+    /// airborne dip) is detected.</returns>
+    public bool Update(int total, long nowMs, int gestureSensitivity)
     {
         if (_baselineEma < 0)
         {
@@ -37,10 +44,14 @@ public sealed class JumpDetector
             return false;
         }
 
+        // Anchored at 1.0 (a ratio, not a raw magnitude) -- moves the same direction as the other
+        // detectors' thresholds: more sensitive pulls it toward 1.0 (a smaller spike is enough).
+        double spikeMultiplier = 1.0 + (BaselineSpikeMultiplier - 1.0) * GestureSensitivityScale.ThresholdMultiplier(gestureSensitivity);
+
         switch (_state)
         {
             case State.Idle:
-                if (total > _baselineEma * SpikeMultiplier)
+                if (total > _baselineEma * spikeMultiplier)
                 {
                     _state = State.Armed;
                     _armedSinceMs = nowMs;

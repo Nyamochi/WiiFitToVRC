@@ -82,6 +82,9 @@ forward/backward/dash are never blocked by it either. No turn-equivalent output 
 output mode while disabled -- no turn keys, no mouse-look movement, no right-stick deflection, and
 no OSC `LookHorizontal` messages.
 
+The ±40/±25/400ms figures above are the values at the default **Gesture sensitivity** setting (see
+below) -- all three scale together as that setting moves away from its default.
+
 ## Jump: rise, then rapid collapse
 
 [`JumpDetector.cs`](../src/WiiFitToVRC.Core/Motion/JumpDetector.cs) tracks a slow-moving baseline
@@ -89,7 +92,10 @@ of the calibrated total weight. Firing on the push-off spike alone turned out to
 indistinguishable from a fast crouch (committing weight forward quickly can also spike the total
 briefly), so a jump is only confirmed once the spike is *followed by* a rapid collapse toward
 near-zero weight (the moment the feet actually leave the board) within half a second. If the spike
-never collapses that way, it wasn't a jump, and nothing fires.
+never collapses that way, it wasn't a jump, and nothing fires. **Gesture sensitivity** scales how
+large that initial push-off spike must be (relative to the baseline) to arm; the collapse/settle
+shape that follows is left fixed, since it describes what a real jump looks like rather than how
+hard you have to move.
 
 ## Crouch: slow and sustained, not a spike
 
@@ -99,6 +105,18 @@ level — only confirms crouch once Y has stayed above the threshold *continuous
 jump's front-loading is a brief spike immediately followed by the airborne weight collapse (see
 above), so it can't sustain the hold; a real crouch settles in and stays there. Standing back up
 isn't rate-gated — any drop back below the lower threshold (`Y < 30`) ends the crouch immediately.
+These figures are likewise the defaults at **Gesture sensitivity** = 50; the enter/exit Y
+thresholds and the hold duration all scale together with that setting.
+
+## Gesture sensitivity: one dial for turn/jump/crouch
+
+[`GestureSensitivityScale.cs`](../src/WiiFitToVRC.Core/Motion/GestureSensitivityScale.cs) turns the
+single **Gesture sensitivity** setting (0-100, default 50, shown in Settings as a Weak-to-Strong
+slider with no numeric readout) into a multiplier applied to the thresholds above:
+`1.0 - (sensitivity - 50) * 0.01`. 50 is neutral (multiplier exactly 1.0 -- the original hardcoded
+values, unchanged), each point away from 50 is a 1% change, so 0 is 1.5x (thresholds/durations 50%
+larger, harder to trigger) and 100 is 0.5x (50% smaller, easier to trigger). It does not affect
+forward/backward/dash, which has its own separate **Footstep threshold %** setting instead.
 
 Crouch is also suppressed for 500ms after any forward/backward/turn/jump last fired, since those
 can transiently disturb the front-back balance enough to look like the start of a crouch.
