@@ -363,28 +363,56 @@ public partial class MonitorForm : Form
     private async Task ConnectAsync(CancellationToken cancellationToken, bool forceSyncPairing = false)
     {
         var lang = CurrentLanguage;
-        _connectButton.Text = Localizer.Get("Button_ConnectAbort", lang);
-        _statusLabel.Text = Localizer.Get("Status_Pairing", lang);
         _inHidWaitPhase = false;
         BalanceBoardDevice? device = null;
 
         try
         {
-            // forceSyncPairing skips the remembered-profile fast path entirely and erases any
-            // existing bond first -- used when the user clicks "abort and use SYNC" because that
-            // fast path got stuck (see OnConnectButtonClicked/StartConnectFlowAsync).
-            var outcome = forceSyncPairing
-                ? await Task.Run(() => BalanceBoardPairing.ForceSyncPairAndInstall(cancellationToken: cancellationToken), cancellationToken)
-                : await Task.Run(() => BalanceBoardPairing.PairAndInstall(cancellationToken: cancellationToken), cancellationToken);
+            // Decide up front which strategy applies -- these are two entirely separate paths
+            // now, not alternated on a timer, so a profile that exists is searched for
+            // continuously rather than sitting unused for seconds at a time while an unrelated
+            // SYNC-mode scan runs. forceSyncPairing (the "abort and use SYNC" button) skips this
+            // check and erases any existing bond first, for when the profile itself is the problem.
+            bool hasRememberedDevice = !forceSyncPairing
+                && await Task.Run(() => BalanceBoardPairing.HasRememberedDevice(), cancellationToken);
+
+            PairingOutcome outcome;
+            if (hasRememberedDevice)
+            {
+                // A bonded profile already exists -- search for that specific known device
+                // indefinitely; a plain power-on is enough, no SYNC needed.
+                _statusLabel.Text = Localizer.Get("Status_HidConnecting", lang);
+                _connectButton.Text = Localizer.Get("Button_ConnectAbortToSync", lang);
+                _inHidWaitPhase = true;
+                outcome = await Task.Run(() => BalanceBoardPairing.ReconnectRemembered("Nintendo", cancellationToken), cancellationToken);
+            }
+            else
+            {
+                // No profile at all -- the only option is discovering the board while it's
+                // actively in SYNC mode.
+                _connectButton.Text = Localizer.Get("Button_ConnectAbort", lang);
+                _statusLabel.Text = Localizer.Get("Status_Pairing", lang);
+                outcome = forceSyncPairing
+                    ? await Task.Run(() => BalanceBoardPairing.ForceSyncPairAndInstall(cancellationToken: cancellationToken), cancellationToken)
+                    : await Task.Run(() => BalanceBoardPairing.PairAndInstall(cancellationToken: cancellationToken), cancellationToken);
+            }
+
             if (outcome.Result != PairingResult.Success)
             {
                 _statusLabel.Text = Localizer.GetFormatted("Status_PairFail", lang, outcome.Result, outcome.Message ?? "");
                 return;
             }
 
-            _statusLabel.Text = Localizer.Get("Status_HidConnecting", lang);
-            _connectButton.Text = Localizer.Get("Button_ConnectAbortToSync", lang);
-            _inHidWaitPhase = true;
+            if (!_inHidWaitPhase)
+            {
+                // The SYNC branch doesn't reach this state until its own pairing step already
+                // succeeded above -- now enter the same "waiting for the OS to expose the HID
+                // device" phase the remembered-profile branch was already in.
+                _statusLabel.Text = Localizer.Get("Status_HidConnecting", lang);
+                _connectButton.Text = Localizer.Get("Button_ConnectAbortToSync", lang);
+                _inHidWaitPhase = true;
+            }
+
             // No attempt cap or timeout here either -- keep polling for the HID interface to
             // appear until it does or the user cancels via the abort button.
             while (device is null)
