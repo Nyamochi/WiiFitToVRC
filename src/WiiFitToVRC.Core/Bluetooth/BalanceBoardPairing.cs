@@ -46,24 +46,36 @@ public static class BalanceBoardPairing
         return byName.Count > 0 ? byName : list.Where(d => BalanceBoardModelRegex.IsMatch(nameOf(d)));
     }
 
-    public static PairingOutcome PairAndInstall(string nameContains = "Nintendo", bool removeExisting = true, CancellationToken cancellationToken = default)
+    public static PairingOutcome PairAndInstall(string nameContains = "Nintendo", CancellationToken cancellationToken = default)
     {
         using var btClient = new BluetoothClient();
 
-        if (removeExisting)
+        // Fast path: if Windows already has a remembered (bonded) profile for the board from a
+        // previous SYNC pairing, re-asserting the HID service against that existing bond is
+        // enough -- Windows reconnects as soon as the board is powered on and in range, with no
+        // fresh SYNC-mode discovery needed. This used to be erased and re-paired from scratch on
+        // every connect (to avoid a stuck HID service registration), but that meant the plain
+        // power button could never be enough on its own -- SYNC was required every single time.
+        var remembered = btClient.DiscoverDevices(255, false, true, false);
+        var rememberedMatch = MatchDevices(remembered, nameContains, d => d.DeviceName).FirstOrDefault();
+        if (rememberedMatch is not null)
         {
-            var existing = btClient.DiscoverDevices(255, false, true, false);
-            foreach (var item in MatchDevices(existing, nameContains, d => d.DeviceName))
+            try
             {
-                BluetoothSecurity.RemoveDevice(item.DeviceAddress);
-                item.SetServiceState(BluetoothService.HumanInterfaceDevice, false);
+                rememberedMatch.SetServiceState(BluetoothService.HumanInterfaceDevice, true);
+                return new PairingOutcome(PairingResult.Success, rememberedMatch.DeviceAddress.ToString(), null);
+            }
+            catch (Exception)
+            {
+                // The stored bond didn't take -- fall through to a fresh SYNC-mode pairing below.
             }
         }
 
-        // Each DiscoverDevices() call only sees the board if it's actively in SYNC mode *during*
-        // that scan, so keep scanning with no attempt cap or timeout -- the caller runs this on a
-        // background thread and the user cancels via the UI whenever they like, so there's no
-        // reason to ever give up on our own and report "not found" while they're still trying.
+        // No usable existing profile -- fall back to discovering the board while it's actively in
+        // SYNC mode, same as a first-time pairing. Each DiscoverDevices() call only sees the board
+        // if it's actively in SYNC mode *during* that scan, so keep scanning with no attempt cap
+        // or timeout -- the caller runs this on a background thread and the user cancels via the
+        // UI whenever they like, so there's no reason to ever give up on our own.
         BluetoothDeviceInfo? target = null;
         while (target is null)
         {

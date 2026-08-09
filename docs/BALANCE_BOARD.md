@@ -13,14 +13,22 @@ not use a PIN**. Naively calling Windows' standard PIN/passkey authentication AP
 The actual working sequence (see
 [`BalanceBoardPairing.cs`](../src/WiiFitToVRC.Core/Bluetooth/BalanceBoardPairing.cs)):
 
-1. Remove any existing (possibly stale) device record for the board.
-2. Repeatedly call `BluetoothClient.DiscoverDevices(255, false, false, true)` (via 32feet.NET's
+1. Check whether Windows already has a *remembered* (bonded) device record matching the board from
+   an earlier SYNC pairing. If so, call `SetServiceState(BluetoothService.HumanInterfaceDevice,
+   true)` on it directly and stop there -- re-asserting the HID service against an existing bond
+   is enough for Windows to reconnect as soon as the board is powered on and in range, with no
+   SYNC button needed at all. (An earlier version of this code erased and re-paired from scratch
+   on every connect to dodge a stuck HID service registration, but that meant SYNC was required
+   every single time, even for a board Windows already knew about.)
+2. If no remembered record exists (first-ever pairing, or the stored bond didn't actually
+   reconnect), fall back to fresh SYNC-mode pairing: repeatedly call
+   `BluetoothClient.DiscoverDevices(255, false, false, true)` (via 32feet.NET's
    `InTheHand.Net.Personal.dll`) until the board shows up in the SYNC-discoverable device list.
    This can take several attempts since the discovery window and the SYNC button's active window
    don't perfectly line up.
 3. Call `target.SetServiceState(BluetoothService.HumanInterfaceDevice, true)` on the discovered
    device. That's it — no PIN exchange, no `PairRequest`. This alone gets Windows to install it as
-   an HID device.
+   an HID device, and it's now remembered for step 1 to use next time.
 
 Once paired this way, Windows treats it as a normal Bluetooth HID device, including on future
 app/system restarts (the app's startup auto-connect just tries to open the HID device directly,
