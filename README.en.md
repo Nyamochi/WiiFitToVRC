@@ -13,9 +13,11 @@ that into keyboard/mouse input, a virtual Xbox 360 controller, or VRChat's own O
 3. The app starts searching automatically as soon as it opens. Just press the **SYNC** button
    inside the battery compartment of the balance board and it connects on its own -- no need to
    click the connect button.
-4. Follow the on-screen prompts (**キャリブレーション (Calibrate)** → step off the board and wait
-   → step back on and wait) and you're ready to go. Launch VRChat and shift your weight on the
-   board to walk.
+4. Calibration also starts automatically once connected. A "please place the board on the floor"
+   message appears, then calibration begins on its own 5 seconds later -- have the board on the
+   floor with nothing on it by then.
+5. Once calibration finishes, step on the board and stand normally for a moment and you're ready
+   to go. Launch VRChat and shift your weight on the board to walk.
 
 Note: to confirm the board is connected properly, open Notepad and step on the board -- if it
 types w/s/a/d, everything's working. If the game still doesn't respond (for example, in VR mode),

@@ -120,7 +120,7 @@ public partial class MonitorForm : Form
                 // Connecting silently in the background means there was no explicit user action
                 // to hang a "now press Calibrate" prompt on -- run it once automatically instead,
                 // so the app is immediately usable without requiring a manual step first.
-                await CalibrateAsync();
+                await AutoCalibrateAsync();
             }
             catch (Exception)
             {
@@ -140,6 +140,17 @@ public partial class MonitorForm : Form
         {
             ApplyLocalization();
         }
+    }
+
+    // Calibration triggered automatically right after a connection (whether from the startup
+    // probe or a full search-and-pair), rather than requiring a manual click of Calibrate. Shows
+    // an explicit "place it on the floor" prompt and waits before starting, since a connection
+    // completing doesn't mean the board is actually in position yet.
+    private async Task AutoCalibrateAsync()
+    {
+        _statusLabel.Text = Localizer.Get("Status_CalibrationAutoPrompt", CurrentLanguage);
+        await Task.Delay(5000);
+        await CalibrateAsync();
     }
 
     private async Task CalibrateAsync()
@@ -358,6 +369,7 @@ public partial class MonitorForm : Form
             }
 
             await AttachDeviceAsync(device, cancellationToken);
+            await AutoCalibrateAsync();
             return;
         }
         catch (OperationCanceledException)
