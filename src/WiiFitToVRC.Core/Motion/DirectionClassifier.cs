@@ -84,10 +84,10 @@ public sealed class DirectionClassifier
     /// <param name="turnEnabled">When false, turning is not tracked at all (any in-progress lean
     /// is dropped) and stepping is never blocked by it -- lets output modes fully lock out
     /// left/right turning while leaving forward/backward/dash untouched.</param>
-    /// <param name="gestureSensitivity">0-100, see GestureSensitivityScale -- scales the turn
+    /// <param name="turnSensitivity">0-100, see GestureSensitivityScale -- scales the turn
     /// entry/exit thresholds and sustain duration (does not affect forward/backward/dash, which
     /// has its own separate footstep-threshold setting).</param>
-    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, bool turnEnabled, int gestureSensitivity)
+    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, bool turnEnabled, int turnSensitivity)
     {
         bool trEdge = _topRight.Update(cal.TopRight, nowMs, _reference.ReferenceTopRight, footstepThresholdRatio);
         bool tlEdge = _topLeft.Update(cal.TopLeft, nowMs, _reference.ReferenceTopLeft, footstepThresholdRatio);
@@ -119,7 +119,7 @@ public sealed class DirectionClassifier
 
         if (turnEnabled)
         {
-            double multiplier = GestureSensitivityScale.ThresholdMultiplier(gestureSensitivity);
+            double multiplier = GestureSensitivityScale.ThresholdMultiplier(turnSensitivity);
             UpdateTurn(x, nowMs, BaselineTurnEnterX * multiplier, BaselineTurnExitX * multiplier, (long)(BaselineTurnSustainMs * multiplier));
         }
         else if (_turnConfirmed || _turnCandidateSinceMs >= 0)

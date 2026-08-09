@@ -21,11 +21,11 @@ public sealed class CrouchDetector
 
     public bool IsCrouching { get; private set; }
 
-    /// <param name="gestureSensitivity">0-100, see GestureSensitivityScale -- scales the entry/exit
+    /// <param name="crouchSensitivity">0-100, see GestureSensitivityScale -- scales the entry/exit
     /// Y thresholds and the minimum hold duration together (does not affect forward/backward).</param>
-    public bool Update(double y, long nowMs, int gestureSensitivity)
+    public bool Update(double y, long nowMs, int crouchSensitivity)
     {
-        double multiplier = GestureSensitivityScale.ThresholdMultiplier(gestureSensitivity);
+        double multiplier = GestureSensitivityScale.ThresholdMultiplier(crouchSensitivity);
         double enterY = BaselineEnterY * multiplier;
         double exitY = BaselineExitY * multiplier;
         long minHoldMs = (long)(BaselineMinHoldMs * multiplier);

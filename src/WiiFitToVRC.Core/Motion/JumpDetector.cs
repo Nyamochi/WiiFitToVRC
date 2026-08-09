@@ -31,12 +31,12 @@ public sealed class JumpDetector
     private State _state = State.Idle;
     private long _armedSinceMs;
 
-    /// <param name="gestureSensitivity">0-100, see GestureSensitivityScale -- scales how large the
+    /// <param name="jumpSensitivity">0-100, see GestureSensitivityScale -- scales how large the
     /// push-off spike must be relative to the baseline weight to arm (does not affect
     /// forward/backward).</param>
     /// <returns>True exactly on the sample where a jump (push-off confirmed by the following
     /// airborne dip) is detected.</returns>
-    public bool Update(int total, long nowMs, int gestureSensitivity)
+    public bool Update(int total, long nowMs, int jumpSensitivity)
     {
         if (_baselineEma < 0)
         {
@@ -46,7 +46,7 @@ public sealed class JumpDetector
 
         // Anchored at 1.0 (a ratio, not a raw magnitude) -- moves the same direction as the other
         // detectors' thresholds: more sensitive pulls it toward 1.0 (a smaller spike is enough).
-        double spikeMultiplier = 1.0 + (BaselineSpikeMultiplier - 1.0) * GestureSensitivityScale.ThresholdMultiplier(gestureSensitivity);
+        double spikeMultiplier = 1.0 + (BaselineSpikeMultiplier - 1.0) * GestureSensitivityScale.ThresholdMultiplier(jumpSensitivity);
 
         switch (_state)
         {

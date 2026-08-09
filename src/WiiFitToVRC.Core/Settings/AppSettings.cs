@@ -60,10 +60,12 @@ public sealed class AppSettings
     /// forward/backward/dash keep working normally.</summary>
     public bool TurnEnabled { get; set; } = true;
 
-    /// <summary>0-100, how easily turn/jump/crouch fire (forward/backward/dash has its own
-    /// separate footstep-threshold setting instead). 50 is neutral and reproduces the original
+    /// <summary>0-100, how easily each gesture fires individually (forward/backward/dash has its
+    /// own separate footstep-threshold setting instead). 50 is neutral and reproduces the original
     /// hardcoded thresholds exactly; see GestureSensitivityScale for the exact scaling.</summary>
-    public int GestureSensitivity { get; set; } = 50;
+    public int TurnSensitivity { get; set; } = 50;
+    public int JumpSensitivity { get; set; } = 50;
+    public int CrouchSensitivity { get; set; } = 50;
 
     /// <summary>How far above a corner's reference resting weight (see ReferenceWeightCalibrator)
     /// it must rise to count as a footstep for forward/backward detection, as a percentage
