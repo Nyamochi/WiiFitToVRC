@@ -62,8 +62,11 @@ been tried with:
 - Windows 10/11
 - A Wii Balance Board (Bluetooth) — discontinued, but commonly found cheaply secondhand
 - A Bluetooth adapter that supports HID devices
-- For the virtual controller output mode: [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)
-  (a real kernel driver — this app cannot install it for you; download and install it yourself)
+
+### Using the virtual controller (optional)
+
+[ViGEmBus](https://github.com/nefarius/ViGEmBus/releases) (a real kernel driver — this app cannot
+install it for you; download and install it yourself)
 
 ## Quick start
 

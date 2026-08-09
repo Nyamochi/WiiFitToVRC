@@ -44,7 +44,10 @@
 - Windows 10/11
 - Wii 平衡板(蓝牙)— 已停产,但在二手市场很容易以低价购得
 - 支持 HID 设备的蓝牙适配器
-- 若使用虚拟手柄输出模式:需要 [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)(这是一个真实的内核驱动程序 — 本应用无法自动为您安装,请自行下载并安装)
+
+### 使用虚拟手柄时(可选)
+
+[ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)(这是一个真实的内核驱动程序 — 本应用无法自动为您安装,请自行下载并安装)
 
 ## 快速开始
 

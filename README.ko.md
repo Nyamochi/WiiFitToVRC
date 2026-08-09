@@ -44,7 +44,10 @@ Wii 밸런스 보드를 VRChat(또는 다른 Windows 애플리케이션)용 보�
 - Windows 10/11
 - Wii 밸런스 보드(Bluetooth) — 단종된 제품이지만 중고 시장에서 저렴하게 구할 수 있습니다
 - HID 장치를 지원하는 Bluetooth 어댑터
-- 가상 컨트롤러 출력 모드를 사용할 경우: [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)(실제 커널 드라이버입니다 — 이 앱이 자동으로 설치할 수 없으므로 직접 다운로드하여 설치해야 합니다)
+
+### 가상 컨트롤러를 사용할 경우(선택 사항)
+
+[ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)(실제 커널 드라이버입니다 — 이 앱이 자동으로 설치할 수 없으므로 직접 다운로드하여 설치해야 합니다)
 
 ## 빠른 시작
 

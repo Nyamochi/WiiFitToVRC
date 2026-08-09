@@ -44,7 +44,10 @@ Wiiバランスボードを、VRChat(またはその他のWindowsアプリ)向�
 - Windows 10/11
 - Wiiバランスボード(Bluetooth) — 生産終了製品ですが、中古市場で安価に入手できます
 - HIDデバイスに対応したBluetoothアダプター
-- 仮想コントローラー出力モードを使う場合: [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)(実在のカーネルドライバです — このアプリから自動インストールすることはできないため、ご自身でダウンロード・インストールしてください)
+
+### 仮想コントローラーを使用する場合(任意)
+
+[ViGEmBus](https://github.com/nefarius/ViGEmBus/releases)(実在のカーネルドライバです — このアプリから自動インストールすることはできないため、ご自身でダウンロード・インストールしてください)
 
 ## クイックスタート
 
