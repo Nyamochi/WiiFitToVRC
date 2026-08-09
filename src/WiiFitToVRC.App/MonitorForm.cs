@@ -46,12 +46,6 @@ public partial class MonitorForm : Form
     private int _logRowCount;
     private string? _currentLabel;
     private CancellationTokenSource? _connectCts;
-    // Set while ConnectAsync is polling for the HID device after Bluetooth-level pairing already
-    // succeeded -- distinct "abort and use SYNC" wording/behavior applies only during this phase
-    // (see OnConnectButtonClicked), since that's specifically where a stuck/broken remembered bond
-    // would otherwise hang forever with no way out except a fresh SYNC pairing.
-    private bool _inHidWaitPhase;
-    private bool _forceSyncPairOnRestart;
     private long _lastUiUpdateTicks;
     private long _jumpFlashUntilTicks;
     private long _weightCalibrationFlashUntilTicks;
@@ -191,13 +185,6 @@ public partial class MonitorForm : Form
     {
         if (_connectCts is not null)
         {
-            // During the HID-wait phase specifically, the button reads "abort and use SYNC" --
-            // clicking it doesn't just cancel and go idle, it immediately re-launches the connect
-            // flow forced through a fresh erase-and-SYNC pairing (see StartConnectFlowAsync).
-            if (_inHidWaitPhase)
-            {
-                _forceSyncPairOnRestart = true;
-            }
             _statusLabel.Text = Localizer.Get("Status_Aborting", CurrentLanguage);
             _connectButton.Enabled = false;
             _connectCts.Cancel();
@@ -214,26 +201,18 @@ public partial class MonitorForm : Form
     }
 
     // Shared by the initial auto-search on launch and a manual click of the connect button once
-    // idle (after a cancel or a disconnect). After a cancel requested specifically to force a
-    // fresh SYNC pairing (see OnConnectButtonClicked), automatically restarts once with that mode
-    // instead of leaving the user to click Connect a second time themselves.
-    private async Task StartConnectFlowAsync(bool forceSyncPairing = false)
+    // idle (after a cancel or a disconnect).
+    private async Task StartConnectFlowAsync()
     {
         _connectCts = new CancellationTokenSource();
         try
         {
-            await ConnectAsync(_connectCts.Token, forceSyncPairing);
+            await ConnectAsync(_connectCts.Token);
         }
         finally
         {
             _connectCts.Dispose();
             _connectCts = null;
-        }
-
-        if (_forceSyncPairOnRestart)
-        {
-            _forceSyncPairOnRestart = false;
-            await StartConnectFlowAsync(forceSyncPairing: true);
         }
     }
 
@@ -360,59 +339,23 @@ public partial class MonitorForm : Form
         _recordButton.Text = _logWriter is null ? Localizer.Get("Button_RecordStart", lang) : Localizer.Get("Button_RecordStop", lang);
     }
 
-    private async Task ConnectAsync(CancellationToken cancellationToken, bool forceSyncPairing = false)
+    private async Task ConnectAsync(CancellationToken cancellationToken)
     {
         var lang = CurrentLanguage;
-        _inHidWaitPhase = false;
+        _connectButton.Text = Localizer.Get("Button_ConnectAbort", lang);
+        _statusLabel.Text = Localizer.Get("Status_Pairing", lang);
         BalanceBoardDevice? device = null;
 
         try
         {
-            // Decide up front which strategy applies -- these are two entirely separate paths
-            // now, not alternated on a timer, so a profile that exists is searched for
-            // continuously rather than sitting unused for seconds at a time while an unrelated
-            // SYNC-mode scan runs. forceSyncPairing (the "abort and use SYNC" button) skips this
-            // check and erases any existing bond first, for when the profile itself is the problem.
-            bool hasRememberedDevice = !forceSyncPairing
-                && await Task.Run(() => BalanceBoardPairing.HasRememberedDevice(), cancellationToken);
-
-            PairingOutcome outcome;
-            if (hasRememberedDevice)
-            {
-                // A bonded profile already exists -- search for that specific known device
-                // indefinitely; a plain power-on is enough, no SYNC needed.
-                _statusLabel.Text = Localizer.Get("Status_HidConnecting", lang);
-                _connectButton.Text = Localizer.Get("Button_ConnectAbortToSync", lang);
-                _inHidWaitPhase = true;
-                outcome = await Task.Run(() => BalanceBoardPairing.ReconnectRemembered("Nintendo", cancellationToken), cancellationToken);
-            }
-            else
-            {
-                // No profile at all -- the only option is discovering the board while it's
-                // actively in SYNC mode.
-                _connectButton.Text = Localizer.Get("Button_ConnectAbort", lang);
-                _statusLabel.Text = Localizer.Get("Status_Pairing", lang);
-                outcome = forceSyncPairing
-                    ? await Task.Run(() => BalanceBoardPairing.ForceSyncPairAndInstall(cancellationToken: cancellationToken), cancellationToken)
-                    : await Task.Run(() => BalanceBoardPairing.PairAndInstall(cancellationToken: cancellationToken), cancellationToken);
-            }
-
+            var outcome = await Task.Run(() => BalanceBoardPairing.PairAndInstall(cancellationToken: cancellationToken), cancellationToken);
             if (outcome.Result != PairingResult.Success)
             {
                 _statusLabel.Text = Localizer.GetFormatted("Status_PairFail", lang, outcome.Result, outcome.Message ?? "");
                 return;
             }
 
-            if (!_inHidWaitPhase)
-            {
-                // The SYNC branch doesn't reach this state until its own pairing step already
-                // succeeded above -- now enter the same "waiting for the OS to expose the HID
-                // device" phase the remembered-profile branch was already in.
-                _statusLabel.Text = Localizer.Get("Status_HidConnecting", lang);
-                _connectButton.Text = Localizer.Get("Button_ConnectAbortToSync", lang);
-                _inHidWaitPhase = true;
-            }
-
+            _statusLabel.Text = Localizer.Get("Status_HidConnecting", lang);
             // No attempt cap or timeout here either -- keep polling for the HID interface to
             // appear until it does or the user cancels via the abort button.
             while (device is null)
@@ -425,14 +368,12 @@ public partial class MonitorForm : Form
                 }
             }
 
-            _inHidWaitPhase = false;
             await AttachDeviceAsync(device, cancellationToken);
             await AutoCalibrateAsync();
             return;
         }
         catch (OperationCanceledException)
         {
-            _inHidWaitPhase = false;
             device?.Dispose();
             _statusLabel.Text = Localizer.Get("Status_Aborted", lang);
         }

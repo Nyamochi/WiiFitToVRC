@@ -16,7 +16,6 @@ public static class Localizer
         ["Status_NotConnected"] = ["Not connected", "未接続", "未连接", "未連接", "연결 안 됨", "Non connecté", "Nicht verbunden", "Non connesso"],
         ["Button_ConnectPrompt"] = ["Search again", "再検索", "重新搜索", "重新搜尋", "다시 검색", "Rechercher à nouveau", "Erneut suchen", "Cerca di nuovo"],
         ["Button_ConnectAbort"] = ["Cancel", "接続中断", "中断连接", "中斷連接", "연결 중단", "Annuler", "Abbrechen", "Annulla"],
-        ["Button_ConnectAbortToSync"] = ["Cancel and use SYNC", "中断してsync", "取消并使用SYNC", "取消並使用SYNC", "취소하고 SYNC 사용", "Annuler et utiliser SYNC", "Abbrechen und SYNC verwenden", "Annulla e usa SYNC"],
         ["Button_Connected"] = ["Connected", "接続済み", "已连接", "已連接", "연결됨", "Connecté", "Verbunden", "Connesso"],
         ["Button_Disconnect"] = ["Disconnect", "切断", "断开连接", "斷開連接", "연결 끊기", "Déconnecter", "Trennen", "Disconnetti"],
         ["Button_Calibrate"] = ["Calibrate", "キャリブレーション", "校准", "校準", "보정", "Étalonnage", "Kalibrierung", "Calibrazione"],
