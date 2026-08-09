@@ -20,8 +20,10 @@ Note: to confirm the board is connected properly, open Notepad and step on the b
 types w/s/a/d, everything's working. If the game still doesn't respond (for example, in VR mode),
 first enable OSC in VRChat itself, then try switching the output mode in Settings to VRChat OSC.
 
-See "Quick start" below for more detail, and the [docs](docs/) folder for a deeper explanation of
-each feature if something doesn't work as expected.
+See the [docs](docs/) folder for a deeper explanation of each feature if something doesn't work as
+expected.
+
+For feedback or bug reports, contact the creator on X: [@nyamo_chi](https://x.com/nyamo_chi)
 
 ## Features
 
@@ -68,19 +70,6 @@ been tried with:
 [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases) (a real kernel driver — this app cannot
 install it for you; download and install it yourself)
 
-## Quick start
-
-1. Download `WiiFitToVRC.exe` from the root of this repository (a self-contained build — no
-   .NET runtime install needed) and run it.
-2. Press the **SYNC** button inside the battery compartment of the balance board, then click
-   **接続 (Connect)** in the app.
-3. Once connected, click **キャリブレーション (Calibrate)** and step off the board for the
-   10-second sensor calibration.
-4. Step back on and stand normally for a while — the app needs a stretch of genuinely still
-   standing to learn your resting weight before gesture detection turns on (status bar shows
-   "体重キャリブレーション中" / "Weight calibrating" until then).
-5. Open **設定 (Settings)** to pick an output mode and tune keybinds/sensitivity to taste.
-
 ## Building from source
 
 Requires the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
@@ -126,13 +115,13 @@ All settings are edited from the in-app settings window (⚙ 設定) and persist
 |---|---|
 | Output mode | Keyboard / Keyboard+Mouse / Virtual Controller / VRChat OSC (see [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md)) |
 | Language | UI language, or Auto to follow Windows |
+| Gesture sensitivity (Turn/Jump/Crouch) | Independent Weak-to-Strong sliders for how easily each one fires (forward/backward/dash isn't affected). The middle (default) keeps the original detection thresholds unchanged |
 | Turn sensitivity | Mouse pixels-per-tick (keyboard+mouse mode) or stick deflection % (controller mode), separately for left/right |
 | Presence weight threshold | Calibrated total weight that counts as "someone is on the board" |
 | Sleep/wake seconds | How long presence must hold (both directions) before output locks/unlocks |
 | Footstep threshold % | How far above the learned resting weight a corner must spike to count as a footstep — see [docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md) |
 | Dash detection (ms) | Footstep-to-footstep interval fast enough to count as a dash instead of a walk |
 | Stride length (ms) | How long a confirmed step persists after its last footstep before releasing back to Idle |
-| Gesture sensitivity (Turn/Jump/Crouch) | Independent Weak-to-Strong sliders for how easily each one fires (forward/backward/dash isn't affected). The middle (default) keeps the original detection thresholds unchanged |
 | Crouch / Jump enabled | Toggle each gesture off entirely (no key output, no light) |
 | Turning enabled | When off, turning isn't detected at all, so no turn-equivalent output is ever sent in any output mode -- mouse, keyboard, controller, or OSC (forward/backward/dash are unaffected) |
 | Debug mode | Shows the raw CSV recording controls used to capture logs for `ClassifyTest` |

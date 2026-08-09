@@ -32,46 +32,48 @@ public sealed class SettingsForm : Form
     // Wide enough for the longest entry, e.g. "简体中文 (Chinese Simplified)".
     private readonly ComboBox _languageCombo = new() { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(ValueColumnX, 109), Size = new Size(250, 24) };
 
-    private readonly TrackBar _strokeRightSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 149), Size = new Size(180, 40), TickFrequency = 5 };
-    private readonly Label _strokeRightValueLabel = new() { Location = new Point(ValueColumnX + 190, 157), AutoSize = true };
-    private readonly TrackBar _strokeLeftSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 189), Size = new Size(180, 40), TickFrequency = 5 };
-    private readonly Label _strokeLeftValueLabel = new() { Location = new Point(ValueColumnX + 190, 197), AutoSize = true };
+    // Turn/jump/crouch sensitivity, each independently adjustable (0-100, 50 = today's original
+    // thresholds unchanged). Flanked by qualitative "Weak"/"Strong" labels, plus the raw numeric
+    // value after "Strong" so it's clear where the slider currently sits.
+    private readonly TrackBar _turnSensitivitySlider = new() { Minimum = 0, Maximum = 100, Location = new Point(ValueColumnX + 55, 165), Size = new Size(140, 40), TickFrequency = 10 };
+    private readonly Label _turnSensitivityWeakLabel = new() { Location = new Point(ValueColumnX, 173), AutoSize = true };
+    private readonly Label _turnSensitivityStrongLabel = new() { Location = new Point(ValueColumnX + 201, 173), AutoSize = true };
+    private readonly Label _turnSensitivityValueLabel = new() { Location = new Point(ValueColumnX + 255, 173), AutoSize = true };
+
+    private readonly TrackBar _jumpSensitivitySlider = new() { Minimum = 0, Maximum = 100, Location = new Point(ValueColumnX + 55, 205), Size = new Size(140, 40), TickFrequency = 10 };
+    private readonly Label _jumpSensitivityWeakLabel = new() { Location = new Point(ValueColumnX, 213), AutoSize = true };
+    private readonly Label _jumpSensitivityStrongLabel = new() { Location = new Point(ValueColumnX + 201, 213), AutoSize = true };
+    private readonly Label _jumpSensitivityValueLabel = new() { Location = new Point(ValueColumnX + 255, 213), AutoSize = true };
+
+    private readonly TrackBar _crouchSensitivitySlider = new() { Minimum = 0, Maximum = 100, Location = new Point(ValueColumnX + 55, 245), Size = new Size(140, 40), TickFrequency = 10 };
+    private readonly Label _crouchSensitivityWeakLabel = new() { Location = new Point(ValueColumnX, 253), AutoSize = true };
+    private readonly Label _crouchSensitivityStrongLabel = new() { Location = new Point(ValueColumnX + 201, 253), AutoSize = true };
+    private readonly Label _crouchSensitivityValueLabel = new() { Location = new Point(ValueColumnX + 255, 253), AutoSize = true };
+
+    private readonly TrackBar _strokeRightSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 305), Size = new Size(180, 40), TickFrequency = 5 };
+    private readonly Label _strokeRightValueLabel = new() { Location = new Point(ValueColumnX + 190, 313), AutoSize = true };
+    private readonly TrackBar _strokeLeftSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 345), Size = new Size(180, 40), TickFrequency = 5 };
+    private readonly Label _strokeLeftValueLabel = new() { Location = new Point(ValueColumnX + 190, 353), AutoSize = true };
 
     // 1000-10000 in steps of 100 -- a plain TrackBar steps by 1 per dragged unit, so the control
     // itself covers 10-100 (hundreds of weight) and the real value is *100.
-    private readonly TrackBar _presenceSlider = new() { Minimum = 10, Maximum = 100, Location = new Point(ValueColumnX, 229), Size = new Size(180, 40), TickFrequency = 10 };
-    private readonly Label _presenceValueLabel = new() { Location = new Point(ValueColumnX + 190, 237), AutoSize = true };
+    private readonly TrackBar _presenceSlider = new() { Minimum = 10, Maximum = 100, Location = new Point(ValueColumnX, 385), Size = new Size(180, 40), TickFrequency = 10 };
+    private readonly Label _presenceValueLabel = new() { Location = new Point(ValueColumnX + 190, 393), AutoSize = true };
 
-    private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 273), Size = new Size(70, 24) };
-    private readonly NumericUpDown _footstepThresholdInput = new() { Minimum = 101, Maximum = 300, Location = new Point(ValueColumnX, 307), Size = new Size(70, 24) };
-    private readonly NumericUpDown _dashPeriodInput = new() { Minimum = 100, Maximum = 1000, Increment = 10, Location = new Point(ValueColumnX, 341), Size = new Size(70, 24) };
-    private readonly NumericUpDown _stepHoldInput = new() { Minimum = 20, Maximum = 1000, Increment = 10, Location = new Point(ValueColumnX, 375), Size = new Size(70, 24) };
-
-    // Turn/jump/crouch sensitivity, each independently adjustable (0-100, 50 = today's original
-    // thresholds unchanged). Flanked by qualitative "Weak"/"Strong" labels rather than a live
-    // numeric readout -- the underlying value is an internal percentage-difference scale that
-    // doesn't need to be shown.
-    private readonly TrackBar _turnSensitivitySlider = new() { Minimum = 0, Maximum = 100, Location = new Point(ValueColumnX + 55, 435), Size = new Size(140, 40), TickFrequency = 10 };
-    private readonly Label _turnSensitivityWeakLabel = new() { Location = new Point(ValueColumnX, 443), AutoSize = true };
-    private readonly Label _turnSensitivityStrongLabel = new() { Location = new Point(ValueColumnX + 201, 443), AutoSize = true };
-
-    private readonly TrackBar _jumpSensitivitySlider = new() { Minimum = 0, Maximum = 100, Location = new Point(ValueColumnX + 55, 475), Size = new Size(140, 40), TickFrequency = 10 };
-    private readonly Label _jumpSensitivityWeakLabel = new() { Location = new Point(ValueColumnX, 483), AutoSize = true };
-    private readonly Label _jumpSensitivityStrongLabel = new() { Location = new Point(ValueColumnX + 201, 483), AutoSize = true };
-
-    private readonly TrackBar _crouchSensitivitySlider = new() { Minimum = 0, Maximum = 100, Location = new Point(ValueColumnX + 55, 515), Size = new Size(140, 40), TickFrequency = 10 };
-    private readonly Label _crouchSensitivityWeakLabel = new() { Location = new Point(ValueColumnX, 523), AutoSize = true };
-    private readonly Label _crouchSensitivityStrongLabel = new() { Location = new Point(ValueColumnX + 201, 523), AutoSize = true };
+    private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 429), Size = new Size(70, 24) };
+    private readonly NumericUpDown _footstepThresholdInput = new() { Minimum = 101, Maximum = 300, Location = new Point(ValueColumnX, 463), Size = new Size(70, 24) };
+    private readonly NumericUpDown _dashPeriodInput = new() { Minimum = 100, Maximum = 1000, Increment = 10, Location = new Point(ValueColumnX, 497), Size = new Size(70, 24) };
+    private readonly NumericUpDown _stepHoldInput = new() { Minimum = 20, Maximum = 1000, Increment = 10, Location = new Point(ValueColumnX, 531), Size = new Size(70, 24) };
 
     // Separate rows, not side by side -- the Japanese labels for these are long enough that two
     // AutoSize checkboxes on one row ran into each other and got visually clipped.
-    private readonly CheckBox _crouchEnabledCheck = new() { Location = new Point(ValueColumnX, 577), AutoSize = true };
-    private readonly CheckBox _jumpEnabledCheck = new() { Location = new Point(ValueColumnX, 601), AutoSize = true };
-    private readonly CheckBox _turnEnabledCheck = new() { Location = new Point(ValueColumnX, 625), AutoSize = true };
-    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 649), AutoSize = true };
+    private readonly CheckBox _crouchEnabledCheck = new() { Location = new Point(ValueColumnX, 565), AutoSize = true };
+    private readonly CheckBox _jumpEnabledCheck = new() { Location = new Point(ValueColumnX, 589), AutoSize = true };
+    private readonly CheckBox _turnEnabledCheck = new() { Location = new Point(ValueColumnX, 613), AutoSize = true };
+    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 637), AutoSize = true };
 
-    private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 673), Size = new Size(180, 24) };
-    private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 672), Size = new Size(34, 24) };
+    private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 661), Size = new Size(180, 24) };
+    private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 660), Size = new Size(34, 24) };
 
     private readonly ComboBox _forwardKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _dashKeyCombo = MakeCombo<VirtualKey>();
@@ -91,6 +93,7 @@ public sealed class SettingsForm : Form
     private readonly ComboBox _crouchButtonCombo = MakeCombo<ControllerButton>();
     private readonly ComboBox _dashButtonCombo = MakeCombo<ControllerButton>();
 
+    private readonly Button _resetButton = new() { Location = new Point(260, 500), AutoSize = true };
     private readonly Button _saveButton = new() { Location = new Point(380, 500), AutoSize = true };
     private readonly Button _cancelButton = new() { Location = new Point(470, 500), AutoSize = true };
 
@@ -111,7 +114,7 @@ public sealed class SettingsForm : Form
         Text = Localizer.Get("Button_Settings", _uiLanguage);
 
         BuildLayout();
-        LoadFromSettings();
+        LoadFromSettings(_settings);
 
         // WinForms auto-scrolls a scrollable container to keep whatever control ends up with
         // initial focus in view -- with this many controls stacked in the General tab, that could
@@ -121,10 +124,16 @@ public sealed class SettingsForm : Form
         _strokeRightSlider.ValueChanged += (_, _) => _strokeRightValueLabel.Text = _strokeRightSlider.Value.ToString();
         _strokeLeftSlider.ValueChanged += (_, _) => _strokeLeftValueLabel.Text = _strokeLeftSlider.Value.ToString();
         _presenceSlider.ValueChanged += (_, _) => _presenceValueLabel.Text = (_presenceSlider.Value * 100).ToString();
+        _turnSensitivitySlider.ValueChanged += (_, _) => _turnSensitivityValueLabel.Text = _turnSensitivitySlider.Value.ToString();
+        _jumpSensitivitySlider.ValueChanged += (_, _) => _jumpSensitivityValueLabel.Text = _jumpSensitivitySlider.Value.ToString();
+        _crouchSensitivitySlider.ValueChanged += (_, _) => _crouchSensitivityValueLabel.Text = _crouchSensitivitySlider.Value.ToString();
         _controllerStrokeRightSlider.ValueChanged += (_, _) => _controllerStrokeRightValueLabel.Text = _controllerStrokeRightSlider.Value.ToString();
         _controllerStrokeLeftSlider.ValueChanged += (_, _) => _controllerStrokeLeftValueLabel.Text = _controllerStrokeLeftSlider.Value.ToString();
         _saveButton.Click += (_, _) => Save();
         _cancelButton.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
+        // Loads the hardcoded AppSettings defaults into the form fields only -- Cancel still
+        // discards them, Save is still required to actually persist a reset.
+        _resetButton.Click += (_, _) => LoadFromSettings(new AppSettings());
         _debugFolderBrowseButton.Click += (_, _) => BrowseDebugFolder();
     }
 
@@ -167,9 +176,10 @@ public sealed class SettingsForm : Form
         BuildKeybindsTab();
         BuildControllerTab();
 
+        _resetButton.Text = Localizer.Get("Settings_ResetToDefaults", _uiLanguage);
         _saveButton.Text = Localizer.Get("Settings_Save", _uiLanguage);
         _cancelButton.Text = Localizer.Get("Settings_Cancel", _uiLanguage);
-        Controls.AddRange([_saveButton, _cancelButton]);
+        Controls.AddRange([_resetButton, _saveButton, _cancelButton]);
     }
 
     private void BuildGeneralTab()
@@ -178,18 +188,20 @@ public sealed class SettingsForm : Form
 
         var outputModeLabel = new Label { Text = Localizer.Get("Settings_OutputMode", _uiLanguage), Location = new Point(10, 12), AutoSize = true };
         var languageLabel = new Label { Text = Localizer.Get("Settings_Language", _uiLanguage), Location = new Point(10, 113), AutoSize = true };
-        var strokeRightLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeRight", _uiLanguage), Location = new Point(10, 157), AutoSize = true };
-        var strokeLeftLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeLeft", _uiLanguage), Location = new Point(10, 197), AutoSize = true };
-        var presenceLabel = new Label { Text = Localizer.Get("Settings_PresenceThreshold", _uiLanguage), Location = new Point(10, 237), AutoSize = true };
-        var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 275), AutoSize = true };
-        var footstepLabel = new Label { Text = Localizer.Get("Settings_FootstepThreshold", _uiLanguage), Location = new Point(10, 309), AutoSize = true };
-        var dashPeriodLabel = new Label { Text = Localizer.Get("Settings_DashPeriod", _uiLanguage), Location = new Point(10, 343), AutoSize = true };
-        var stepHoldLabel = new Label { Text = Localizer.Get("Settings_StepHold", _uiLanguage), Location = new Point(10, 377), AutoSize = true };
-        var gestureSensitivityGroupLabel = new Label { Text = Localizer.Get("Settings_GestureSensitivity_Group", _uiLanguage), Location = new Point(10, 409), AutoSize = true };
-        var turnSensitivityLabel = new Label { Text = Localizer.Get("Settings_GestureSensitivity_Turn", _uiLanguage), Location = new Point(10, 443), AutoSize = true };
-        var jumpSensitivityLabel = new Label { Text = Localizer.Get("Settings_GestureSensitivity_Jump", _uiLanguage), Location = new Point(10, 483), AutoSize = true };
-        var crouchSensitivityLabel = new Label { Text = Localizer.Get("Settings_GestureSensitivity_Crouch", _uiLanguage), Location = new Point(10, 523), AutoSize = true };
-        var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 677), AutoSize = true };
+        var gestureSensitivityGroupLabel = new Label { Text = Localizer.Get("Settings_GestureSensitivity_Group", _uiLanguage), Location = new Point(10, 141), AutoSize = true };
+        // Two half-width spaces before each sub-item's label, so it visually reads as indented
+        // under the group heading above it rather than a plain top-level row.
+        var turnSensitivityLabel = new Label { Text = "  " + Localizer.Get("Settings_GestureSensitivity_Turn", _uiLanguage), Location = new Point(10, 173), AutoSize = true };
+        var jumpSensitivityLabel = new Label { Text = "  " + Localizer.Get("Settings_GestureSensitivity_Jump", _uiLanguage), Location = new Point(10, 213), AutoSize = true };
+        var crouchSensitivityLabel = new Label { Text = "  " + Localizer.Get("Settings_GestureSensitivity_Crouch", _uiLanguage), Location = new Point(10, 253), AutoSize = true };
+        var strokeRightLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeRight", _uiLanguage), Location = new Point(10, 313), AutoSize = true };
+        var strokeLeftLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeLeft", _uiLanguage), Location = new Point(10, 353), AutoSize = true };
+        var presenceLabel = new Label { Text = Localizer.Get("Settings_PresenceThreshold", _uiLanguage), Location = new Point(10, 393), AutoSize = true };
+        var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 431), AutoSize = true };
+        var footstepLabel = new Label { Text = Localizer.Get("Settings_FootstepThreshold", _uiLanguage), Location = new Point(10, 465), AutoSize = true };
+        var dashPeriodLabel = new Label { Text = Localizer.Get("Settings_DashPeriod", _uiLanguage), Location = new Point(10, 499), AutoSize = true };
+        var stepHoldLabel = new Label { Text = Localizer.Get("Settings_StepHold", _uiLanguage), Location = new Point(10, 533), AutoSize = true };
+        var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 665), AutoSize = true };
 
         _outputKeyboardRadio.Text = Localizer.Get("Settings_OutputMode_Keyboard", _uiLanguage);
         _outputKeyboardMouseRadio.Text = Localizer.Get("Settings_OutputMode_KeyboardMouse", _uiLanguage);
@@ -221,6 +233,10 @@ public sealed class SettingsForm : Form
         _generalTab.Controls.AddRange([
             outputModeLabel, _outputKeyboardRadio, _outputKeyboardMouseRadio, _outputControllerRadio, _outputOscRadio,
             languageLabel, _languageCombo,
+            gestureSensitivityGroupLabel,
+            turnSensitivityLabel, _turnSensitivityWeakLabel, _turnSensitivitySlider, _turnSensitivityStrongLabel, _turnSensitivityValueLabel,
+            jumpSensitivityLabel, _jumpSensitivityWeakLabel, _jumpSensitivitySlider, _jumpSensitivityStrongLabel, _jumpSensitivityValueLabel,
+            crouchSensitivityLabel, _crouchSensitivityWeakLabel, _crouchSensitivitySlider, _crouchSensitivityStrongLabel, _crouchSensitivityValueLabel,
             strokeRightLabel, _strokeRightSlider, _strokeRightValueLabel,
             strokeLeftLabel, _strokeLeftSlider, _strokeLeftValueLabel,
             presenceLabel, _presenceSlider, _presenceValueLabel,
@@ -228,10 +244,6 @@ public sealed class SettingsForm : Form
             footstepLabel, _footstepThresholdInput,
             dashPeriodLabel, _dashPeriodInput,
             stepHoldLabel, _stepHoldInput,
-            gestureSensitivityGroupLabel,
-            turnSensitivityLabel, _turnSensitivityWeakLabel, _turnSensitivitySlider, _turnSensitivityStrongLabel,
-            jumpSensitivityLabel, _jumpSensitivityWeakLabel, _jumpSensitivitySlider, _jumpSensitivityStrongLabel,
-            crouchSensitivityLabel, _crouchSensitivityWeakLabel, _crouchSensitivitySlider, _crouchSensitivityStrongLabel,
             _crouchEnabledCheck, _jumpEnabledCheck, _turnEnabledCheck, _debugModeCheck,
             debugFolderLabel, _debugFolderInput, _debugFolderBrowseButton,
         ]);
@@ -299,11 +311,14 @@ public sealed class SettingsForm : Form
         ]);
     }
 
-    private void LoadFromSettings()
+    // Populates every control from the given settings snapshot -- used both for the real initial
+    // load (from _settings) and for the Reset-to-defaults button (from a fresh AppSettings()),
+    // which only touches the form fields, not _settings itself, so Cancel still discards it.
+    private void LoadFromSettings(AppSettings source)
     {
         foreach (LanguageItem item in _languageCombo.Items)
         {
-            if (item.Language == _settings.Language)
+            if (item.Language == source.Language)
             {
                 _languageCombo.SelectedItem = item;
                 break;
@@ -311,50 +326,54 @@ public sealed class SettingsForm : Form
         }
         _languageCombo.SelectedItem ??= _languageCombo.Items[0];
 
-        _outputKeyboardRadio.Checked = _settings.OutputMode == OutputMode.Keyboard;
-        _outputKeyboardMouseRadio.Checked = _settings.OutputMode == OutputMode.KeyboardMouse;
-        _outputControllerRadio.Checked = _settings.OutputMode == OutputMode.Controller;
-        _outputOscRadio.Checked = _settings.OutputMode == OutputMode.Osc;
+        _outputKeyboardRadio.Checked = source.OutputMode == OutputMode.Keyboard;
+        _outputKeyboardMouseRadio.Checked = source.OutputMode == OutputMode.KeyboardMouse;
+        _outputControllerRadio.Checked = source.OutputMode == OutputMode.Controller;
+        _outputOscRadio.Checked = source.OutputMode == OutputMode.Osc;
 
-        _strokeRightSlider.Value = Math.Clamp(_settings.MouseTurnStrokeRight, _strokeRightSlider.Minimum, _strokeRightSlider.Maximum);
+        _strokeRightSlider.Value = Math.Clamp(source.MouseTurnStrokeRight, _strokeRightSlider.Minimum, _strokeRightSlider.Maximum);
         _strokeRightValueLabel.Text = _strokeRightSlider.Value.ToString();
-        _strokeLeftSlider.Value = Math.Clamp(_settings.MouseTurnStrokeLeft, _strokeLeftSlider.Minimum, _strokeLeftSlider.Maximum);
+        _strokeLeftSlider.Value = Math.Clamp(source.MouseTurnStrokeLeft, _strokeLeftSlider.Minimum, _strokeLeftSlider.Maximum);
         _strokeLeftValueLabel.Text = _strokeLeftSlider.Value.ToString();
 
-        int presenceSteps = Math.Clamp(_settings.PresenceWeightThreshold / 100, _presenceSlider.Minimum, _presenceSlider.Maximum);
+        int presenceSteps = Math.Clamp(source.PresenceWeightThreshold / 100, _presenceSlider.Minimum, _presenceSlider.Maximum);
         _presenceSlider.Value = presenceSteps;
         _presenceValueLabel.Text = (presenceSteps * 100).ToString();
 
-        _sleepSecondsInput.Value = Math.Clamp(_settings.SleepSeconds, (int)_sleepSecondsInput.Minimum, (int)_sleepSecondsInput.Maximum);
-        _footstepThresholdInput.Value = Math.Clamp(_settings.FootstepThresholdPercent, (int)_footstepThresholdInput.Minimum, (int)_footstepThresholdInput.Maximum);
-        _dashPeriodInput.Value = Math.Clamp(_settings.DashPeriodMs, (int)_dashPeriodInput.Minimum, (int)_dashPeriodInput.Maximum);
-        _stepHoldInput.Value = Math.Clamp(_settings.StepHoldMs, (int)_stepHoldInput.Minimum, (int)_stepHoldInput.Maximum);
-        _turnSensitivitySlider.Value = Math.Clamp(_settings.TurnSensitivity, _turnSensitivitySlider.Minimum, _turnSensitivitySlider.Maximum);
-        _jumpSensitivitySlider.Value = Math.Clamp(_settings.JumpSensitivity, _jumpSensitivitySlider.Minimum, _jumpSensitivitySlider.Maximum);
-        _crouchSensitivitySlider.Value = Math.Clamp(_settings.CrouchSensitivity, _crouchSensitivitySlider.Minimum, _crouchSensitivitySlider.Maximum);
+        _sleepSecondsInput.Value = Math.Clamp(source.SleepSeconds, (int)_sleepSecondsInput.Minimum, (int)_sleepSecondsInput.Maximum);
+        _footstepThresholdInput.Value = Math.Clamp(source.FootstepThresholdPercent, (int)_footstepThresholdInput.Minimum, (int)_footstepThresholdInput.Maximum);
+        _dashPeriodInput.Value = Math.Clamp(source.DashPeriodMs, (int)_dashPeriodInput.Minimum, (int)_dashPeriodInput.Maximum);
+        _stepHoldInput.Value = Math.Clamp(source.StepHoldMs, (int)_stepHoldInput.Minimum, (int)_stepHoldInput.Maximum);
 
-        _crouchEnabledCheck.Checked = _settings.CrouchEnabled;
-        _jumpEnabledCheck.Checked = _settings.JumpEnabled;
-        _turnEnabledCheck.Checked = _settings.TurnEnabled;
-        _debugModeCheck.Checked = _settings.DebugMode;
-        _debugFolderInput.Text = _settings.DebugOutputFolder;
+        _turnSensitivitySlider.Value = Math.Clamp(source.TurnSensitivity, _turnSensitivitySlider.Minimum, _turnSensitivitySlider.Maximum);
+        _turnSensitivityValueLabel.Text = _turnSensitivitySlider.Value.ToString();
+        _jumpSensitivitySlider.Value = Math.Clamp(source.JumpSensitivity, _jumpSensitivitySlider.Minimum, _jumpSensitivitySlider.Maximum);
+        _jumpSensitivityValueLabel.Text = _jumpSensitivitySlider.Value.ToString();
+        _crouchSensitivitySlider.Value = Math.Clamp(source.CrouchSensitivity, _crouchSensitivitySlider.Minimum, _crouchSensitivitySlider.Maximum);
+        _crouchSensitivityValueLabel.Text = _crouchSensitivitySlider.Value.ToString();
 
-        _forwardKeyCombo.SelectedItem = _settings.ForwardKey;
-        _dashKeyCombo.SelectedItem = _settings.DashKey;
-        _dashModifierKeyCombo.SelectedItem = _settings.DashModifierKey;
-        _backwardKeyCombo.SelectedItem = _settings.BackwardKey;
-        _turnRightKeyCombo.SelectedItem = _settings.TurnRightKey;
-        _turnLeftKeyCombo.SelectedItem = _settings.TurnLeftKey;
-        _jumpKeyCombo.SelectedItem = _settings.JumpKey;
-        _crouchKeyCombo.SelectedItem = _settings.CrouchKey;
+        _crouchEnabledCheck.Checked = source.CrouchEnabled;
+        _jumpEnabledCheck.Checked = source.JumpEnabled;
+        _turnEnabledCheck.Checked = source.TurnEnabled;
+        _debugModeCheck.Checked = source.DebugMode;
+        _debugFolderInput.Text = source.DebugOutputFolder;
 
-        _controllerStrokeRightSlider.Value = Math.Clamp(_settings.ControllerTurnStrokeRight, _controllerStrokeRightSlider.Minimum, _controllerStrokeRightSlider.Maximum);
+        _forwardKeyCombo.SelectedItem = source.ForwardKey;
+        _dashKeyCombo.SelectedItem = source.DashKey;
+        _dashModifierKeyCombo.SelectedItem = source.DashModifierKey;
+        _backwardKeyCombo.SelectedItem = source.BackwardKey;
+        _turnRightKeyCombo.SelectedItem = source.TurnRightKey;
+        _turnLeftKeyCombo.SelectedItem = source.TurnLeftKey;
+        _jumpKeyCombo.SelectedItem = source.JumpKey;
+        _crouchKeyCombo.SelectedItem = source.CrouchKey;
+
+        _controllerStrokeRightSlider.Value = Math.Clamp(source.ControllerTurnStrokeRight, _controllerStrokeRightSlider.Minimum, _controllerStrokeRightSlider.Maximum);
         _controllerStrokeRightValueLabel.Text = _controllerStrokeRightSlider.Value.ToString();
-        _controllerStrokeLeftSlider.Value = Math.Clamp(_settings.ControllerTurnStrokeLeft, _controllerStrokeLeftSlider.Minimum, _controllerStrokeLeftSlider.Maximum);
+        _controllerStrokeLeftSlider.Value = Math.Clamp(source.ControllerTurnStrokeLeft, _controllerStrokeLeftSlider.Minimum, _controllerStrokeLeftSlider.Maximum);
         _controllerStrokeLeftValueLabel.Text = _controllerStrokeLeftSlider.Value.ToString();
-        _jumpButtonCombo.SelectedItem = _settings.JumpButton;
-        _crouchButtonCombo.SelectedItem = _settings.CrouchButton;
-        _dashButtonCombo.SelectedItem = _settings.DashButton;
+        _jumpButtonCombo.SelectedItem = source.JumpButton;
+        _crouchButtonCombo.SelectedItem = source.CrouchButton;
+        _dashButtonCombo.SelectedItem = source.DashButton;
     }
 
     private void Save()

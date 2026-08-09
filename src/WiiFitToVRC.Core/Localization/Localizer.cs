@@ -84,6 +84,7 @@ public static class Localizer
         ["Settings_Key_TurnLeft"] = ["Turn left (key mode)", "左回転(キーモード)", "左转(按键模式)", "左轉(按鍵模式)", "좌회전(키 모드)", "Tourner à gauche (touche)", "Links drehen (Taste)", "Gira a sinistra (tasto)"],
         ["Settings_Key_Jump"] = ["Jump", "ジャンプ", "跳跃", "跳躍", "점프", "Sauter", "Springen", "Salta"],
         ["Settings_Key_Crouch"] = ["Crouch", "しゃがみ", "蹲下", "蹲下", "웅크리기", "S'accroupir", "Ducken", "Accovacciati"],
+        ["Settings_ResetToDefaults"] = ["Defaults", "初期値", "默认值", "預設值", "기본값", "Par défaut", "Standard", "Predefiniti"],
         ["Settings_Save"] = ["Save", "保存", "保存", "儲存", "저장", "Enregistrer", "Speichern", "Salva"],
         ["Settings_Cancel"] = ["Cancel", "キャンセル", "取消", "取消", "취소", "Annuler", "Abbrechen", "Annulla"],
     };
