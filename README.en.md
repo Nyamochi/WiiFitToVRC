@@ -8,16 +8,18 @@ that into keyboard/mouse input, a virtual Xbox 360 controller, or VRChat's own O
 
 ## Quick and easy setup (no technical knowledge required)
 
-1. Click `WiiFitToVRC.exe` at the top of this repository to download it (no installation step).
-2. Double-click the downloaded file to run it.
-3. The app starts searching automatically as soon as it opens. Just press the **SYNC** button
+1. Turn on Bluetooth in Windows (if your PC has no built-in Bluetooth antenna, get a USB dongle
+   for it).
+2. Click `WiiFitToVRC.exe` at the top of this repository to download it (no installation step).
+3. Double-click the downloaded file to run it.
+4. The app starts searching automatically as soon as it opens. Just press the **SYNC** button
    inside the battery compartment of the balance board and it connects on its own -- no need to
    click the connect button. The plain **POWER** button can't be used for this due to a hardware
    limitation, so you'll need to press SYNC every time you connect.
-4. Calibration also starts automatically once connected. A "please place the board on the floor"
+5. Calibration also starts automatically once connected. A "please place the board on the floor"
    message appears, then calibration begins on its own 5 seconds later -- have the board on the
    floor with nothing on it by then.
-5. Once calibration finishes, step on the board and stand normally for a moment and you're ready
+6. Once calibration finishes, step on the board and stand normally for a moment and you're ready
    to go. Launch VRChat and shift your weight on the board to walk.
 
 Note: to confirm the board is connected properly, open Notepad and step on the board -- if it
