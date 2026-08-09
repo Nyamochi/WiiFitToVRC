@@ -12,7 +12,8 @@ that into keyboard/mouse input, a virtual Xbox 360 controller, or VRChat's own O
 2. Double-click the downloaded file to run it.
 3. The app starts searching automatically as soon as it opens. Just press the **SYNC** button
    inside the battery compartment of the balance board and it connects on its own -- no need to
-   click the connect button. Note: you'll need to press SYNC again each time you reconnect.
+   click the connect button. The plain **POWER** button can't be used for this due to a hardware
+   limitation, so you'll need to press SYNC every time you connect.
 4. Calibration also starts automatically once connected. A "please place the board on the floor"
    message appears, then calibration begins on its own 5 seconds later -- have the board on the
    floor with nothing on it by then.
