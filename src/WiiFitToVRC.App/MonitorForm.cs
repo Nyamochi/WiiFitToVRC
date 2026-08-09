@@ -389,8 +389,9 @@ public partial class MonitorForm : Form
 
         try
         {
-            string logPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "logs", "disconnect_log.txt");
-            File.AppendAllText(Path.GetFullPath(logPath), $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {reason}\n");
+            string folder = ResolveDebugFolder();
+            Directory.CreateDirectory(folder);
+            File.AppendAllText(Path.Combine(folder, "disconnect_log.txt"), $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {reason}\n");
         }
         catch (IOException) { }
 
@@ -413,9 +414,9 @@ public partial class MonitorForm : Form
         var lang = CurrentLanguage;
         if (_logWriter is null)
         {
-            string path = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "logs", $"session_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
-            path = Path.GetFullPath(path);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            string folder = ResolveDebugFolder();
+            Directory.CreateDirectory(folder);
+            string path = Path.Combine(folder, $"session_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
             // AutoFlush would force a synchronous disk write on every single HID report (up to
             // ~100/sec) and was stalling the read thread badly enough to freeze the app -- flush
             // in batches instead (see OnSensorsReported) and once more when recording stops.
@@ -439,6 +440,15 @@ public partial class MonitorForm : Form
             _labelCombo.Enabled = true;
             _recordStatusLabel.Text = Localizer.Get("Record_Stopped", lang);
         }
+    }
+
+    // A relative DebugOutputFolder is resolved against the exe's own folder (not the current
+    // working directory, which callers may have changed); an absolute path chosen via the
+    // settings dialog's Browse button is used as-is.
+    private string ResolveDebugFolder()
+    {
+        string folder = string.IsNullOrWhiteSpace(_settings.DebugOutputFolder) ? "debug" : _settings.DebugOutputFolder;
+        return Path.IsPathRooted(folder) ? folder : Path.Combine(AppContext.BaseDirectory, folder);
     }
 
     // Fires on the background HID thread (via InputController.Jumped) each time a jump is

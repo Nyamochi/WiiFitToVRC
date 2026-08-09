@@ -16,6 +16,10 @@ that into keyboard/mouse input, a virtual Xbox 360 controller, or VRChat's own O
    → step back on and wait) and you're ready to go. Launch VRChat and shift your weight on the
    board to walk.
 
+Note: to confirm the board is connected properly, open Notepad and step on the board -- if it
+types w/s/a/d, everything's working. If the game still doesn't respond (for example, in VR mode),
+try switching the output mode in Settings to VRChat OSC.
+
 See "Quick start" below for more detail, and the [docs](docs/) folder for a deeper explanation of
 each feature if something doesn't work as expected.
 

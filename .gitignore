@@ -3,6 +3,7 @@ obj/
 *.user
 .vs/
 logs/
+debug/
 
 # Runtime settings are user-tuned per machine/hardware -- ship code defaults, not a snapshot.
 settings.json

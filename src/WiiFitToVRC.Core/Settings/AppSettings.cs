@@ -77,6 +77,11 @@ public sealed class AppSettings
     /// window -- only useful for capturing gesture logs during tuning, so hidden by default.</summary>
     public bool DebugMode { get; set; }
 
+    /// <summary>Where recorded CSV logs and the disconnect log are written. A relative path is
+    /// resolved against the exe's own folder; an absolute path (chosen via the Browse button) is
+    /// used as-is. Defaults to a "debug" folder next to the exe.</summary>
+    public string DebugOutputFolder { get; set; } = "debug";
+
     public VirtualKey ForwardKey { get; set; } = VirtualKey.W;
     public VirtualKey DashKey { get; set; } = VirtualKey.W;
     public VirtualKey DashModifierKey { get; set; } = VirtualKey.Shift;

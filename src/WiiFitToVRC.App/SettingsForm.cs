@@ -15,7 +15,7 @@ public sealed class SettingsForm : Form
     // the longest Japanese label in this tab ("足踏み検知のしきい値" etc.) never runs into it.
     private const int ValueColumnX = 230;
 
-    private readonly TabControl _tabs = new() { Location = new Point(10, 10), Size = new Size(480, 547) };
+    private readonly TabControl _tabs = new() { Location = new Point(10, 10), Size = new Size(480, 571) };
     private readonly TabPage _generalTab = new();
     private readonly TabPage _keybindsTab = new();
     private readonly TabPage _controllerTab = new();
@@ -52,6 +52,9 @@ public sealed class SettingsForm : Form
     private readonly CheckBox _turnEnabledCheck = new() { Location = new Point(ValueColumnX, 457), AutoSize = true };
     private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 481), AutoSize = true };
 
+    private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 505), Size = new Size(180, 24) };
+    private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 504), Size = new Size(34, 24) };
+
     private readonly ComboBox _forwardKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _dashKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _dashModifierKeyCombo = MakeCombo<VirtualKey>();
@@ -70,8 +73,8 @@ public sealed class SettingsForm : Form
     private readonly ComboBox _crouchButtonCombo = MakeCombo<ControllerButton>();
     private readonly ComboBox _dashButtonCombo = MakeCombo<ControllerButton>();
 
-    private readonly Button _saveButton = new() { Location = new Point(300, 567), AutoSize = true };
-    private readonly Button _cancelButton = new() { Location = new Point(390, 567), AutoSize = true };
+    private readonly Button _saveButton = new() { Location = new Point(300, 591), AutoSize = true };
+    private readonly Button _cancelButton = new() { Location = new Point(390, 591), AutoSize = true };
 
     public bool SettingsChanged { get; private set; }
 
@@ -86,7 +89,7 @@ public sealed class SettingsForm : Form
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
-        ClientSize = new Size(500, 607);
+        ClientSize = new Size(500, 631);
         Text = Localizer.Get("Button_Settings", _uiLanguage);
 
         BuildLayout();
@@ -99,6 +102,22 @@ public sealed class SettingsForm : Form
         _controllerStrokeLeftSlider.ValueChanged += (_, _) => _controllerStrokeLeftValueLabel.Text = _controllerStrokeLeftSlider.Value.ToString();
         _saveButton.Click += (_, _) => Save();
         _cancelButton.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
+        _debugFolderBrowseButton.Click += (_, _) => BrowseDebugFolder();
+    }
+
+    private void BrowseDebugFolder()
+    {
+        string current = _debugFolderInput.Text;
+        string startPath = Path.IsPathRooted(current) ? current : Path.Combine(AppContext.BaseDirectory, current);
+
+        using var dialog = new FolderBrowserDialog
+        {
+            SelectedPath = Directory.Exists(startPath) ? startPath : AppContext.BaseDirectory,
+        };
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            _debugFolderInput.Text = dialog.SelectedPath;
+        }
     }
 
     // Items.AddRange, not DataSource -- a data-bound ComboBox auto-selects its first item as soon
@@ -143,6 +162,7 @@ public sealed class SettingsForm : Form
         var footstepLabel = new Label { Text = Localizer.Get("Settings_FootstepThreshold", _uiLanguage), Location = new Point(10, 309), AutoSize = true };
         var dashPeriodLabel = new Label { Text = Localizer.Get("Settings_DashPeriod", _uiLanguage), Location = new Point(10, 343), AutoSize = true };
         var stepHoldLabel = new Label { Text = Localizer.Get("Settings_StepHold", _uiLanguage), Location = new Point(10, 377), AutoSize = true };
+        var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 509), AutoSize = true };
 
         _outputKeyboardRadio.Text = Localizer.Get("Settings_OutputMode_Keyboard", _uiLanguage);
         _outputKeyboardMouseRadio.Text = Localizer.Get("Settings_OutputMode_KeyboardMouse", _uiLanguage);
@@ -152,6 +172,9 @@ public sealed class SettingsForm : Form
         _jumpEnabledCheck.Text = Localizer.Get("Settings_JumpEnabled", _uiLanguage);
         _turnEnabledCheck.Text = Localizer.Get("Settings_TurnEnabled", _uiLanguage);
         _debugModeCheck.Text = Localizer.Get("Settings_DebugMode", _uiLanguage);
+        // Plain "..." rather than a localized "Browse" label -- a universal enough convention to
+        // fit the button's fixed, deliberately compact width in every language.
+        _debugFolderBrowseButton.Text = "...";
 
         foreach (var (language, nativeName) in Localizer.SelectableLanguages)
         {
@@ -170,6 +193,7 @@ public sealed class SettingsForm : Form
             dashPeriodLabel, _dashPeriodInput,
             stepHoldLabel, _stepHoldInput,
             _crouchEnabledCheck, _jumpEnabledCheck, _turnEnabledCheck, _debugModeCheck,
+            debugFolderLabel, _debugFolderInput, _debugFolderBrowseButton,
         ]);
     }
 
@@ -265,6 +289,7 @@ public sealed class SettingsForm : Form
         _jumpEnabledCheck.Checked = _settings.JumpEnabled;
         _turnEnabledCheck.Checked = _settings.TurnEnabled;
         _debugModeCheck.Checked = _settings.DebugMode;
+        _debugFolderInput.Text = _settings.DebugOutputFolder;
 
         _forwardKeyCombo.SelectedItem = _settings.ForwardKey;
         _dashKeyCombo.SelectedItem = _settings.DashKey;
@@ -302,6 +327,7 @@ public sealed class SettingsForm : Form
         _settings.JumpEnabled = _jumpEnabledCheck.Checked;
         _settings.TurnEnabled = _turnEnabledCheck.Checked;
         _settings.DebugMode = _debugModeCheck.Checked;
+        _settings.DebugOutputFolder = string.IsNullOrWhiteSpace(_debugFolderInput.Text) ? "debug" : _debugFolderInput.Text.Trim();
 
         _settings.ForwardKey = (VirtualKey)_forwardKeyCombo.SelectedItem!;
         _settings.DashKey = (VirtualKey)_dashKeyCombo.SelectedItem!;
