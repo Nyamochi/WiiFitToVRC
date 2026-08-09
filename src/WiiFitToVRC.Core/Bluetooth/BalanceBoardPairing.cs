@@ -116,4 +116,41 @@ public static class BalanceBoardPairing
             }
         }
     }
+
+    /// <summary>
+    /// Erases any existing remembered/bonded profile for the board and pairs fresh via SYNC mode
+    /// only -- skips <see cref="PairAndInstall"/>'s remembered-profile fast path entirely. Manual
+    /// escape hatch for a stuck/broken stored bond that keeps failing to actually reconnect no
+    /// matter how many times the fast path nudges it (the app's "abort and use SYNC" button).
+    /// </summary>
+    public static PairingOutcome ForceSyncPairAndInstall(string nameContains = "Nintendo", CancellationToken cancellationToken = default)
+    {
+        using var btClient = new BluetoothClient();
+
+        var existing = btClient.DiscoverDevices(255, false, true, false);
+        foreach (var item in MatchDevices(existing, nameContains, d => d.DeviceName))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            BluetoothSecurity.RemoveDevice(item.DeviceAddress);
+            item.SetServiceState(BluetoothService.HumanInterfaceDevice, false);
+        }
+
+        BluetoothDeviceInfo? target = null;
+        while (target is null)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var discovered = btClient.DiscoverDevices(255, false, false, true);
+            target = MatchDevices(discovered, nameContains, d => d.DeviceName).FirstOrDefault();
+        }
+
+        try
+        {
+            target.SetServiceState(BluetoothService.HumanInterfaceDevice, true);
+            return new PairingOutcome(PairingResult.Success, target.DeviceAddress.ToString(), null);
+        }
+        catch (Exception ex)
+        {
+            return new PairingOutcome(PairingResult.Error, target.DeviceAddress.ToString(), ex.Message);
+        }
+    }
 }

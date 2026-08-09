@@ -39,6 +39,17 @@ Once paired this way, Windows treats it as a normal Bluetooth HID device, includ
 app/system restarts (the app's startup auto-connect just tries to open the HID device directly,
 without repeating the pairing dance, and falls back to the full flow only if that fails).
 
+### Escape hatch: a remembered bond that just won't reconnect
+
+Once the app reaches the "Bluetooth接続待機中(HID)" status (Bluetooth-level connection already
+confirmed, just waiting for the OS to expose the HID device node), the connect button changes to
+"中断してsync". Clicking it cancels the current attempt and immediately restarts through
+[`ForceSyncPairAndInstall`](../src/WiiFitToVRC.Core/Bluetooth/BalanceBoardPairing.cs), which erases
+the existing remembered/bonded profile first (`BluetoothSecurity.RemoveDevice` +
+`SetServiceState(..., false)`) and then only does SYNC-mode discovery -- the old default behavior,
+for the rare case where the stored bond itself is broken (not just mistimed) and no amount of
+re-nudging will ever bring it back.
+
 ## Reading sensor data (raw HID, no L2CAP)
 
 No raw L2CAP sockets or vendor SDKs are needed — the board exposes itself as a standard Windows HID
