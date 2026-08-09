@@ -14,7 +14,7 @@ public static class Localizer
     private static readonly Dictionary<string, string[]> Table = new()
     {
         ["Status_NotConnected"] = ["Not connected", "未接続", "未连接", "未連接", "연결 안 됨", "Non connecté", "Nicht verbunden", "Non connesso"],
-        ["Button_ConnectPrompt"] = ["Press the SYNC button, then connect", "SYNCボタンを押してから接続", "按下SYNC按钮后连接", "按下SYNC按鈕後連接", "SYNC 버튼을 누른 후 연결", "Appuyez sur SYNC puis connectez", "SYNC-Taste drücken, dann verbinden", "Premi SYNC, poi connetti"],
+        ["Button_ConnectPrompt"] = ["Search again", "再検索", "重新搜索", "重新搜尋", "다시 검색", "Rechercher à nouveau", "Erneut suchen", "Cerca di nuovo"],
         ["Button_ConnectAbort"] = ["Cancel", "接続中断", "中断连接", "中斷連接", "연결 중단", "Annuler", "Abbrechen", "Annulla"],
         ["Button_Connected"] = ["Connected", "接続済み", "已连接", "已連接", "연결됨", "Connecté", "Verbunden", "Connesso"],
         ["Button_Disconnect"] = ["Disconnect", "切断", "断开连接", "斷開連接", "연결 끊기", "Déconnecter", "Trennen", "Disconnetti"],
@@ -25,7 +25,7 @@ public static class Localizer
         ["Caption_CalibratedValues"] = ["Calibrated (%)", "キャリブレーション後(%)", "校准后(%)", "校準後(%)", "보정 후(%)", "Étalonné (%)", "Kalibriert (%)", "Calibrato (%)"],
         ["Button_RecordStart"] = ["Start recording", "記録開始", "开始记录", "開始記錄", "기록 시작", "Démarrer l'enregistrement", "Aufnahme starten", "Avvia registrazione"],
         ["Button_RecordStop"] = ["Stop recording", "記録停止", "停止记录", "停止記錄", "기록 중지", "Arrêter l'enregistrement", "Aufnahme stoppen", "Interrompi registrazione"],
-        ["Status_Pairing"] = ["Pairing (press the SYNC button)...", "ペアリング中(SYNCボタンを押してください)...", "配对中(请按下SYNC按钮)...", "配對中(請按下SYNC按鈕)...", "페어링 중(SYNC 버튼을 눌러주세요)...", "Appairage en cours (appuyez sur SYNC)...", "Kopplung läuft (SYNC-Taste drücken)...", "Associazione in corso (premi SYNC)..."],
+        ["Status_Pairing"] = ["Automatically searching (press the SYNC button)...", "自動で検索中です(SYNCボタンを押してください)...", "正在自动搜索(请按下SYNC按钮)...", "正在自動搜尋(請按下SYNC按鈕)...", "자동으로 검색 중입니다(SYNC 버튼을 눌러주세요)...", "Recherche automatique en cours (appuyez sur SYNC)...", "Automatische Suche läuft (SYNC-Taste drücken)...", "Ricerca automatica in corso (premi SYNC)..."],
         ["Status_HidConnecting"] = ["Connecting to device...", "HID接続試行中...", "正在连接设备...", "正在連接裝置...", "장치에 연결 중...", "Connexion à l'appareil...", "Verbindung zum Gerät wird hergestellt...", "Connessione al dispositivo..."],
         ["Status_HidTimeout"] = ["Connection timed out. The board may have disconnected again after pairing. Please press SYNC and try again.", "HID接続がタイムアウトしました。ペアリング後にボードが再び切断した可能性があります。もう一度SYNCボタンを押してからお試しください。", "连接超时。配对后设备可能再次断开。请再次按下SYNC按钮重试。", "連接逾時。配對後裝置可能再次斷開。請再次按下SYNC按鈕重試。", "연결이 시간 초과되었습니다. 페어링 후 보드 연결이 다시 끊어졌을 수 있습니다. SYNC 버튼을 다시 눌러 시도해 주세요.", "Délai de connexion dépassé. La planche s'est peut-être déconnectée après l'appairage. Appuyez à nouveau sur SYNC.", "Zeitüberschreitung bei der Verbindung. Das Board hat sich möglicherweise nach der Kopplung erneut getrennt. Bitte SYNC erneut drücken.", "Timeout della connessione. La board potrebbe essersi disconnessa di nuovo dopo l'associazione. Premi di nuovo SYNC e riprova."],
         ["Status_Aborting"] = ["Cancelling...", "中断中...", "正在中断...", "正在中斷...", "중단 중...", "Annulation...", "Wird abgebrochen...", "Annullamento..."],

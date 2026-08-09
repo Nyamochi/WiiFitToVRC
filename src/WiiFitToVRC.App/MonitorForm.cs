@@ -67,7 +67,19 @@ public partial class MonitorForm : Form
         _recordButton.Click += (_, _) => ToggleRecording();
         _calibrateButton.Click += async (_, _) => await CalibrateAsync();
         _settingsButton.Click += (_, _) => OpenSettings();
-        Load += async (_, _) => await TryAutoConnectAsync();
+        // The board's SYNC button and the PC are usually not next to each other, so requiring a
+        // click here before searching starts means an extra round trip just to press Connect --
+        // search automatically from launch instead. The button stays live throughout: it cancels
+        // an in-progress search (see OnConnectButtonClicked), and still starts a fresh one
+        // manually after a cancel or a later disconnect.
+        Load += async (_, _) =>
+        {
+            await TryAutoConnectAsync();
+            if (_device is null)
+            {
+                await StartConnectFlowAsync();
+            }
+        };
     }
 
     // Runs once at startup. If the board was already paired in a previous session, Windows may
@@ -174,6 +186,13 @@ public partial class MonitorForm : Form
             return;
         }
 
+        await StartConnectFlowAsync();
+    }
+
+    // Shared by the initial auto-search on launch and a manual click of the connect button once
+    // idle (after a cancel or a disconnect).
+    private async Task StartConnectFlowAsync()
+    {
         _connectCts = new CancellationTokenSource();
         try
         {
