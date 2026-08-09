@@ -18,8 +18,6 @@ Wii 밸런스 보드를 VRChat(또는 다른 Windows 애플리케이션)용 보�
 
 잘 작동하지 않을 때는 [docs](docs/) 폴더(영어)의 상세 설명을 참고하세요.
 
-개선점·수정 사항 문의는 제작자의 X로: [@nyamo_chi](https://x.com/nyamo_chi)
-
 ## 특징
 
 - **PIN 입력 없이 Bluetooth 페어링** — 원리는 [docs/BALANCE_BOARD.md](docs/BALANCE_BOARD.md)(영어)를 참고하세요.
@@ -112,3 +110,5 @@ docs/                      (현재는 영어만 지원)
 ## 라이선스
 
 이 프로젝트 자체 코드는 [MIT](LICENSE)입니다. 동봉된 `InTheHand.Net.Personal.dll`은 서드파티 라이브러리(32feet.NET)입니다 — 저작권 표기는 [reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt](reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt)를 참고하세요.
+
+개선점·수정 사항 문의는 제작자의 X로: [@nyamo_chi](https://x.com/nyamo_chi)

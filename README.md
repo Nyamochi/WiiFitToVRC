@@ -18,8 +18,6 @@ Wiiバランスボードを、VRChat(またはその他のWindowsアプリ)向�
 
 うまく動かないときは、各機能の詳しい説明([docs](docs/)フォルダ、英語)を参照してください。
 
-改善点・修正点のご連絡は製作者のXまで: [@nyamo_chi](https://x.com/nyamo_chi)
-
 ## 特徴
 
 - **PIN入力なしでBluetoothペアリング** — 仕組みは[docs/BALANCE_BOARD.md](docs/BALANCE_BOARD.md)(英語)を参照。
@@ -112,3 +110,5 @@ docs/                      (現時点では英語のみ)
 ## ライセンス
 
 このプロジェクト自体のコードは[MIT](LICENSE)です。同梱している`InTheHand.Net.Personal.dll`はサードパーティ製ライブラリ(32feet.NET)です — 帰属表示は[reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt](reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt)を参照してください。
+
+改善点・修正点のご連絡は製作者のXまで: [@nyamo_chi](https://x.com/nyamo_chi)

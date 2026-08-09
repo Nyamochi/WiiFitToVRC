@@ -18,8 +18,6 @@
 
 如果无法正常运作,可参考 [docs](docs/) 文件夹(英文)中各功能的详细说明。
 
-改进点·修正意见请联系制作者的 X:[@nyamo_chi](https://x.com/nyamo_chi)
-
 ## 特点
 
 - **无需输入 PIN 即可完成蓝牙配对** — 原理请参见 [docs/BALANCE_BOARD.md](docs/BALANCE_BOARD.md)(英文)。
@@ -112,3 +110,5 @@ docs/                      (目前仅提供英文版)
 ## 许可证
 
 本项目自身代码采用 [MIT](LICENSE) 许可证。附带的 `InTheHand.Net.Personal.dll` 是第三方库(32feet.NET)— 版权说明请参见 [reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt](reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt)。
+
+改进点·修正意见请联系制作者的 X:[@nyamo_chi](https://x.com/nyamo_chi)

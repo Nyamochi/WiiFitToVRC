@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Threading;
 using InTheHand.Net.Bluetooth;
 using InTheHand.Net.Sockets;
 
@@ -46,53 +47,73 @@ public static class BalanceBoardPairing
         return byName.Count > 0 ? byName : list.Where(d => BalanceBoardModelRegex.IsMatch(nameOf(d)));
     }
 
+    // How many quick remembered-profile nudges to try (spaced by RememberedNudgeIntervalMs) before
+    // yielding to a slower SYNC-mode scan pass and then looping back for another burst.
+    private const int RememberedNudgeAttempts = 8;
+    private const int RememberedNudgeIntervalMs = 300;
+
     public static PairingOutcome PairAndInstall(string nameContains = "Nintendo", CancellationToken cancellationToken = default)
     {
         using var btClient = new BluetoothClient();
 
-        // Fast path: if Windows already has a remembered (bonded) profile for the board from a
-        // previous SYNC pairing, re-asserting the HID service against that existing bond is
-        // enough -- Windows reconnects as soon as the board is powered on and in range, with no
-        // fresh SYNC-mode discovery needed. This used to be erased and re-paired from scratch on
-        // every connect (to avoid a stuck HID service registration), but that meant the plain
-        // power button could never be enough on its own -- SYNC was required every single time.
-        var remembered = btClient.DiscoverDevices(255, false, true, false);
-        var rememberedMatch = MatchDevices(remembered, nameContains, d => d.DeviceName).FirstOrDefault();
-        if (rememberedMatch is not null)
+        // The board is only connectable for a couple of seconds after its plain power button is
+        // pressed -- much shorter than a SYNC hold's window, and far shorter than a single SYNC-
+        // mode inquiry scan takes to run. A single SetServiceState call against a remembered
+        // (bonded) profile essentially never lands inside that brief window, so this repeatedly
+        // re-nudges it in quick succession instead, checking the Bluetooth link itself each time,
+        // interleaved with SYNC-mode scan passes -- indefinitely, since there's no way to know in
+        // advance which one (or when) will actually catch the board's window.
+        while (true)
         {
-            try
+            for (int i = 0; i < RememberedNudgeAttempts; i++)
             {
-                rememberedMatch.SetServiceState(BluetoothService.HumanInterfaceDevice, true);
-                return new PairingOutcome(PairingResult.Success, rememberedMatch.DeviceAddress.ToString(), null);
-            }
-            catch (Exception)
-            {
-                // The stored bond didn't take -- fall through to a fresh SYNC-mode pairing below.
-            }
-        }
+                cancellationToken.ThrowIfCancellationRequested();
 
-        // No usable existing profile -- fall back to discovering the board while it's actively in
-        // SYNC mode, same as a first-time pairing. Each DiscoverDevices() call only sees the board
-        // if it's actively in SYNC mode *during* that scan, so keep scanning with no attempt cap
-        // or timeout -- the caller runs this on a background thread and the user cancels via the
-        // UI whenever they like, so there's no reason to ever give up on our own.
-        BluetoothDeviceInfo? target = null;
-        while (target is null)
-        {
+                var remembered = btClient.DiscoverDevices(255, false, true, false);
+                var rememberedMatch = MatchDevices(remembered, nameContains, d => d.DeviceName).FirstOrDefault();
+                if (rememberedMatch is null)
+                {
+                    break; // nothing remembered at all -- go straight to SYNC-mode scanning below
+                }
+
+                try
+                {
+                    rememberedMatch.SetServiceState(BluetoothService.HumanInterfaceDevice, true);
+                }
+                catch (Exception)
+                {
+                    break; // stored bond is broken -- rely on the SYNC-mode scan below instead
+                }
+
+                Thread.Sleep(RememberedNudgeIntervalMs);
+                rememberedMatch.Refresh(); // Connected is cached at discovery time -- must refresh first
+                if (rememberedMatch.Connected)
+                {
+                    return new PairingOutcome(PairingResult.Success, rememberedMatch.DeviceAddress.ToString(), null);
+                }
+            }
+
+            // One SYNC-mode discovery pass -- if the board is actively in SYNC mode (or its
+            // power-on window happens to overlap this scan), it shows up here regardless of any
+            // remembered profile. No attempt cap or timeout on the outer loop -- the caller runs
+            // this on a background thread and the user cancels via the UI whenever they like.
             cancellationToken.ThrowIfCancellationRequested();
             var discovered = btClient.DiscoverDevices(255, false, false, true);
-            target = MatchDevices(discovered, nameContains, d => d.DeviceName).FirstOrDefault();
-        }
+            var target = MatchDevices(discovered, nameContains, d => d.DeviceName).FirstOrDefault();
+            if (target is null)
+            {
+                continue; // nothing found this cycle -- loop back and keep trying
+            }
 
-        try
-        {
-            target.SetServiceState(BluetoothService.HumanInterfaceDevice, true);
-
-            return new PairingOutcome(PairingResult.Success, target.DeviceAddress.ToString(), null);
-        }
-        catch (Exception ex)
-        {
-            return new PairingOutcome(PairingResult.Error, target.DeviceAddress.ToString(), ex.Message);
+            try
+            {
+                target.SetServiceState(BluetoothService.HumanInterfaceDevice, true);
+                return new PairingOutcome(PairingResult.Success, target.DeviceAddress.ToString(), null);
+            }
+            catch (Exception ex)
+            {
+                return new PairingOutcome(PairingResult.Error, target.DeviceAddress.ToString(), ex.Message);
+            }
         }
     }
 }

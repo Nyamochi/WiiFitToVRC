@@ -27,8 +27,6 @@ first enable OSC in VRChat itself, then try switching the output mode in Setting
 See the [docs](docs/) folder for a deeper explanation of each feature if something doesn't work as
 expected.
 
-For feedback or bug reports, contact the creator on X: [@nyamo_chi](https://x.com/nyamo_chi)
-
 ## Features
 
 - **Pairs with the balance board over Bluetooth with no PIN prompt** — see
@@ -137,3 +135,5 @@ All settings are edited from the in-app settings window (⚙ 設定) and persist
 [MIT](LICENSE) for this project's own code. The bundled `InTheHand.Net.Personal.dll` is a
 third-party library (32feet.NET) — see [reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt](reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt)
 for its own attribution.
+
+For feedback or bug reports, contact the creator on X: [@nyamo_chi](https://x.com/nyamo_chi)

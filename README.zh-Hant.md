@@ -18,8 +18,6 @@
 
 若無法正常運作,可參考 [docs](docs/) 資料夾(英文)中各功能的詳細說明。
 
-改善點·修正意見請聯絡製作者的 X:[@nyamo_chi](https://x.com/nyamo_chi)
-
 ## 特色
 
 - **無需輸入 PIN 即可完成藍牙配對** — 原理請參見 [docs/BALANCE_BOARD.md](docs/BALANCE_BOARD.md)(英文)。
@@ -112,3 +110,5 @@ docs/                      (目前僅提供英文版)
 ## 授權
 
 本專案自身程式碼採用 [MIT](LICENSE) 授權。附帶的 `InTheHand.Net.Personal.dll` 是第三方函式庫(32feet.NET)— 版權說明請參見 [reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt](reference/WiiBalanceWalker_v0.4/WiiBalanceWalker_v0.4/README.txt)。
+
+改善點·修正意見請聯絡製作者的 X:[@nyamo_chi](https://x.com/nyamo_chi)

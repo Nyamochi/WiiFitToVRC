@@ -11,24 +11,29 @@ not use a PIN**. Naively calling Windows' standard PIN/passkey authentication AP
 (`BluetoothAuthenticateDevice`/`BluetoothAuthenticateDeviceEx`) against it fails or hangs.
 
 The actual working sequence (see
-[`BalanceBoardPairing.cs`](../src/WiiFitToVRC.Core/Bluetooth/BalanceBoardPairing.cs)):
+[`BalanceBoardPairing.cs`](../src/WiiFitToVRC.Core/Bluetooth/BalanceBoardPairing.cs)) alternates
+between two strategies indefinitely, since there's no way to know in advance which one (or when)
+will actually catch the board's connectable window:
 
-1. Check whether Windows already has a *remembered* (bonded) device record matching the board from
-   an earlier SYNC pairing. If so, call `SetServiceState(BluetoothService.HumanInterfaceDevice,
-   true)` on it directly and stop there -- re-asserting the HID service against an existing bond
-   is enough for Windows to reconnect as soon as the board is powered on and in range, with no
-   SYNC button needed at all. (An earlier version of this code erased and re-paired from scratch
-   on every connect to dodge a stuck HID service registration, but that meant SYNC was required
-   every single time, even for a board Windows already knew about.)
-2. If no remembered record exists (first-ever pairing, or the stored bond didn't actually
-   reconnect), fall back to fresh SYNC-mode pairing: repeatedly call
-   `BluetoothClient.DiscoverDevices(255, false, false, true)` (via 32feet.NET's
-   `InTheHand.Net.Personal.dll`) until the board shows up in the SYNC-discoverable device list.
-   This can take several attempts since the discovery window and the SYNC button's active window
-   don't perfectly line up.
-3. Call `target.SetServiceState(BluetoothService.HumanInterfaceDevice, true)` on the discovered
-   device. That's it — no PIN exchange, no `PairRequest`. This alone gets Windows to install it as
-   an HID device, and it's now remembered for step 1 to use next time.
+1. **Remembered-profile burst**: if Windows already has a *remembered* (bonded) device record
+   matching the board from an earlier SYNC pairing, re-assert the HID service on it
+   (`SetServiceState(BluetoothService.HumanInterfaceDevice, true)`) and check
+   `BluetoothDeviceInfo.Connected` (after `Refresh()`, since it's cached at discovery time) a
+   short moment later. **A single attempt essentially never works**, though: the board is only
+   Bluetooth-connectable for roughly 2 seconds after its plain power button is pressed -- far
+   shorter than a discovery scan takes to run -- so this repeats the nudge-and-check up to 8 times,
+   300ms apart, before moving on. (An earlier version of this code erased and re-paired from
+   scratch on every connect, and only tried the nudge once, which meant SYNC was effectively
+   required every single time even for a board Windows already knew about, since a lone attempt
+   almost never landed inside that brief window.)
+2. **SYNC-mode scan**: one call to `BluetoothClient.DiscoverDevices(255, false, false, true)` (via
+   32feet.NET's `InTheHand.Net.Personal.dll`), which only sees the board if it's actively in SYNC
+   mode *during* that scan. If it shows up, call `SetServiceState(BluetoothService.HumanInterfaceDevice,
+   true)` on it -- that's it, no PIN exchange, no `PairRequest`. This alone gets Windows to install
+   it as an HID device, and remembers it for step 1 to use on future connects.
+
+If neither strategy finds the board, the whole cycle repeats from step 1, with no attempt cap or
+overall timeout -- the app just keeps trying until the board actually shows up or the user cancels.
 
 Once paired this way, Windows treats it as a normal Bluetooth HID device, including on future
 app/system restarts (the app's startup auto-connect just tries to open the HID device directly,
