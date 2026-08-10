@@ -126,6 +126,7 @@ All settings are edited from the in-app settings window (⚙ 設定) and persist
 | Output mode | Keyboard / Keyboard+Mouse / VRChat OSC / Virtual Controller (see [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md)) |
 | Language | UI language, or Auto to follow Windows |
 | Gesture sensitivity (Walk/Dash/Turn/Jump/Crouch/Stride) | Independent Weak-to-Strong sliders for how easily each one fires (Stride is Narrow-to-Wide instead; forward/backward isn't affected). The middle (default) keeps the original detection thresholds unchanged. For Dash/Turn/Jump/Crouch, dragging all the way to Weak (0) fully disables that gesture -- it never fires regardless of input — see [docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md) |
+| Turn mode | Switch the turn detection logic between Hold (lean left/right and hold it) and Footstep (alternate the diagonal panels, the default) |
 | Turn sensitivity | Mouse pixels-per-tick (keyboard+mouse mode) or stick deflection % (controller mode), separately for left/right |
 | Presence weight threshold | Calibrated total weight that counts as "someone is on the board" |
 | Sleep/wake seconds | How long presence must hold (both directions) before output locks/unlocks |

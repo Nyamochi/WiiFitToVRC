@@ -81,7 +81,12 @@ same signal is trusted normally, so turning around or walking backward still wor
 to follow an actual stop rather than happening mid-stride. This only protects **Forward**, not
 Dash, since Dash comes from the same front-corner pair rather than a competing one.
 
-## Turning: a diagonal footstep alternation
+## Turning: two selectable models
+
+Settings has a **Footstep / Hold** switch directly under the Turn sensitivity row (Footstep is the
+default). The two models are mutually exclusive, not simultaneous -- see below for why.
+
+### Footstep (default)
 
 Turning right by alternately stepping on the **back-right** and **front-left** panels (in either
 order) reads as a right turn; alternately stepping **front-right**/**back-left** reads as a left
@@ -97,22 +102,36 @@ Once confirmed it behaves exactly like a footstep -- it holds for **stride lengt
 last confirming step and gets refreshed by continuing to alternate, releasing back to Idle the same
 way stepping does once the alternation stops.
 
-**Turning enabled** in Settings turns this off entirely, not just its output: when disabled, any
-pending first step is dropped immediately, so a stale one can't pair up the instant it's
-re-enabled. No turn-equivalent output is sent in any output mode while disabled -- no turn keys, no
-mouse-look movement, no right-stick deflection, and no OSC `LookHorizontal` messages. **Gesture
-sensitivity: Turn** at 0 ("Weak") has the identical effect, so either one alone is enough to fully
-suppress turning.
-
 The 50% figure above is the value at the default **Gesture sensitivity: Turn** setting (see below)
 -- it scales as that setting moves away from its default, the same way Walk/Dash's thresholds do
 (lower percentage is easier to trigger, so the display direction is inverted -- 100 is
 "Strong"/easiest, 0 is "Weak" and fully disables turning).
 
-An earlier version of this model used a completely different approach: X (left-right weight) had to
-swing past a threshold and *stay* there continuously for 400ms. It was replaced outright (not kept
-as a second path alongside this one) after real gait logs showed it could false-trigger the
-*opposite* turn during this diagonal alternation's own large, brief X swings.
+### Hold
+
+X (left-right weight) has to swing past a threshold (**±40** at the default sensitivity) and *stay*
+past it continuously for a sustained stretch (**400ms**) before a turn is confirmed -- an ordinary
+step's natural left-right sway crosses that instantaneous threshold plenty, but flips side to side
+too quickly to ever hold it for the full duration, which is exactly what filters it out. Once
+confirmed, a turn only releases once X falls back under a lower bound (**±25**, hysteresis), and a
+confirmed turn always wins over stepping while it's active. The ±40/±25/400ms figures scale
+together with **Gesture sensitivity: Turn** the same way Footstep's threshold does.
+
+This was the original turn model; Footstep was added after real gait logs showed Hold could
+false-trigger the *opposite* turn during Footstep's own large, brief X swings when both ran
+simultaneously -- so rather than keep them layered, they became an either/or choice, and Footstep
+(the more reliable one against ordinary walking) became the default.
+
+### Both models
+
+**Turning enabled** in Settings turns whichever model is selected off entirely, not just its
+output: when disabled, any pending state (Footstep's first step, or Hold's in-progress/confirmed
+lean) is dropped immediately, so nothing stale carries over to when it's re-enabled, and switching
+between Footstep and Hold likewise drops the other model's state right away. No turn-equivalent
+output is sent in any output mode while disabled -- no turn keys, no mouse-look movement, no
+right-stick deflection, and no OSC `LookHorizontal` messages. **Gesture sensitivity: Turn** at 0
+("Weak") has the identical effect regardless of which model is selected, so either one alone is
+enough to fully suppress turning.
 
 ## Jump: rise, then rapid collapse
 

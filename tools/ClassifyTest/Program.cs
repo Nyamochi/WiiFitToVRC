@@ -3,13 +3,16 @@ using WiiFitToVRC.Core.Motion;
 
 if (args.Length == 0)
 {
-    Console.WriteLine("使い方: ClassifyTest <csvファイル...>");
+    Console.WriteLine("使い方: ClassifyTest [--hold] <csvファイル...>");
     return;
 }
 
-foreach (string path in args)
+bool footstepTurnMode = !args.Contains("--hold"); // Footstep is the default turn model, matching AppSettings
+string[] paths = args.Where(a => a != "--hold").ToArray();
+
+foreach (string path in paths)
 {
-    RunOneFile(path);
+    RunOneFile(path, footstepTurnMode);
     Console.WriteLine();
 }
 
@@ -21,7 +24,7 @@ foreach (string path in args)
 // per corner by the time real rows are processed.
 const double ReferenceWeight = 7100;
 
-static void RunOneFile(string path)
+static void RunOneFile(string path, bool footstepTurnMode)
 {
     var directionClassifier = new DirectionClassifier();
     var crouchDetector = new CrouchDetector();
@@ -47,7 +50,7 @@ static void RunOneFile(string path)
 
         if (!seeded)
         {
-            SeedReference(directionClassifier, unixMs);
+            SeedReference(directionClassifier, unixMs, footstepTurnMode);
             seeded = true;
         }
         var cal = new CalibratedReading
@@ -65,7 +68,7 @@ static void RunOneFile(string path)
 
         double y = DirectionClassifier.ComputeY(cal);
 
-        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 77, turnEnabled: true, turnSensitivity: 50);
+        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 77, turnEnabled: true, turnSensitivity: 50, footstepTurnMode);
         directionCounts[direction] = directionCounts.GetValueOrDefault(direction) + 1;
 
         if (crouchDetector.Update(y, unixMs, crouchSensitivity: 50))
@@ -90,7 +93,7 @@ static void RunOneFile(string path)
     Console.WriteLine($"  jump triggers: {jumpTriggers}");
 }
 
-static void SeedReference(DirectionClassifier directionClassifier, long realFirstUnixMs)
+static void SeedReference(DirectionClassifier directionClassifier, long realFirstUnixMs, bool footstepTurnMode)
 {
     var flatReading = new CalibratedReading
     {
@@ -108,6 +111,6 @@ static void SeedReference(DirectionClassifier directionClassifier, long realFirs
     for (int i = 5; i >= 1; i--)
     {
         long sampleMs = realFirstUnixMs - i * 5000 - 10000; // 5 samples, 5s apart, well clear of the real data
-        directionClassifier.Update(flatReading, sampleMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 77, turnEnabled: true, turnSensitivity: 50);
+        directionClassifier.Update(flatReading, sampleMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 77, turnEnabled: true, turnSensitivity: 50, footstepTurnMode);
     }
 }

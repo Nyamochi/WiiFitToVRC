@@ -66,6 +66,8 @@ public static class Localizer
         ["Settings_GestureSensitivity_Walk"] = ["Walk", "歩き", "行走", "行走", "걷기", "Marche", "Gehen", "Camminata"],
         ["Settings_GestureSensitivity_Dash"] = ["Dash", "ダッシュ", "冲刺", "衝刺", "대시", "Sprint", "Sprint", "Scatto"],
         ["Settings_GestureSensitivity_Turn"] = ["Turn", "旋回", "转向", "轉向", "회전", "Rotation", "Drehen", "Rotazione"],
+        ["Settings_TurnMode_Hold"] = ["Hold", "長押し", "长按", "長按", "길게 유지", "Maintien", "Halten", "Mantieni"],
+        ["Settings_TurnMode_Footstep"] = ["Footstep", "足踏み", "踏步", "踏步", "발걸음", "Pas alternés", "Schrittwechsel", "Passo"],
         ["Settings_GestureSensitivity_Jump"] = ["Jump", "ジャンプ", "跳跃", "跳躍", "점프", "Saut", "Sprung", "Salto"],
         ["Settings_GestureSensitivity_Crouch"] = ["Crouch", "しゃがみ", "下蹲", "蹲下", "웅크리기", "Accroupissement", "Ducken", "Accovacciamento"],
         ["Settings_GestureSensitivity_Stride"] = ["Stride", "歩幅", "步幅", "步幅", "보폭", "Longueur de foulée", "Schrittlänge", "Lunghezza del passo"],

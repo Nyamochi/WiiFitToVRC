@@ -32,6 +32,17 @@ public enum AppLanguage
     Italian,
 }
 
+/// <summary>Which turn-detection model DirectionClassifier uses. Hold: X (left-right weight) has
+/// to swing past a threshold and stay there continuously. Footstep: alternately stepping on the
+/// two diagonal panels (e.g. back-right/front-left for a right turn) confirms a turn on the second
+/// step -- added later since it turned out far less prone to firing during ordinary walking, and
+/// is the default.</summary>
+public enum TurnMode
+{
+    Hold,
+    Footstep,
+}
+
 public sealed class AppSettings
 {
     public AppLanguage Language { get; set; } = AppLanguage.Auto;
@@ -56,6 +67,9 @@ public sealed class AppSettings
     /// turn keys, right stick, or the OSC LookHorizontal axis) is ever sent in any output mode --
     /// forward/backward/dash keep working normally.</summary>
     public bool TurnEnabled { get; set; } = true;
+
+    /// <summary>Which turn-detection model is active -- see TurnMode. Footstep is the default.</summary>
+    public TurnMode TurnMode { get; set; } = TurnMode.Footstep;
 
     /// <summary>0-100, how easily each gesture fires individually (forward/backward/dash has its
     /// own separate footstep-threshold setting instead). 50 is neutral and reproduces the original

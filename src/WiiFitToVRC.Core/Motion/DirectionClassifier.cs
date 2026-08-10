@@ -16,19 +16,26 @@ namespace WiiFitToVRC.Core.Motion;
 /// short window is a step -- i.e. walking; the same pairing on the back corners is walking
 /// backward. A fast alternation is a dash instead of a walk.
 ///
-/// Turning is a diagonal footstep alternation: turning right by alternately stepping on the
-/// back-right and front-left panels (or turning left via front-right/back-left) makes those two
-/// *diagonal* corners swing between a high peak (over the turn threshold %, tunable via Gesture
-/// sensitivity: Turn) and a low trough, out of phase with each other -- structurally the same
-/// "alternate peak on two panels" shape as forward/backward stepping, just on the diagonal pair
-/// instead of the front or back pair. The turn confirms on the *second* step of the pair (i.e. it
-/// needs one full alternation, not just a single corner crossing the threshold), in either order
-/// (back-right-then-front-left or front-left-then-back-right for a right turn), and behaves
-/// exactly like a footstep afterward -- it holds for stepHoldMs and can be refreshed by further
-/// alternating steps, same as Forward/Backward/Dash. (An earlier sustained-lean model -- X had to
-/// swing to one side and stay there -- turned out to false-trigger the opposite turn during this
-/// diagonal alternation's own large X swings, and was replaced outright rather than kept alongside
-/// it.)
+/// Turning has two selectable models (Settings > Gesture sensitivity > Turn > Hold/Footstep;
+/// Footstep is the default):
+///
+/// - **Footstep** (TurnMode.Footstep): a diagonal footstep alternation. Turning right by
+///   alternately stepping on the back-right and front-left panels (or turning left via
+///   front-right/back-left) makes those two *diagonal* corners swing between a high peak (over the
+///   turn threshold %, tunable via Gesture sensitivity: Turn) and a low trough, out of phase with
+///   each other -- structurally the same "alternate peak on two panels" shape as forward/backward
+///   stepping, just on the diagonal pair instead of the front or back pair. The turn confirms on
+///   the *second* step of the pair (i.e. it needs one full alternation, not just a single corner
+///   crossing the threshold), in either order, and behaves exactly like a footstep afterward -- it
+///   holds for stepHoldMs and can be refreshed by further alternating steps, same as
+///   Forward/Backward/Dash. Added after an earlier version of Hold below turned out to
+///   false-trigger the opposite turn during this model's own large X swings, since the two used to
+///   run simultaneously; they're mutually exclusive now.
+/// - **Hold** (TurnMode.Hold): X (left-right weight) has to swing past a threshold and *stay*
+///   there continuously for a sustained stretch before it's confirmed -- an ordinary step's sway
+///   crosses the same instantaneous threshold plenty, but flips side to side too quickly to ever
+///   hold it for the full duration. Once confirmed, a turn releases only once X drops back under a
+///   lower bound (hysteresis), and it wins over stepping while active.
 ///
 /// Forward/Backward/Dash and Turn don't fall back into each other: leaning forward and holding it
 /// (without alternating feet) reads as Idle, not Forward.
@@ -37,10 +44,16 @@ public sealed class DirectionClassifier
 {
     private const long AlternationWindowMs = 900; // max gap between opposite-foot peaks to count as one walking step
 
-    // Diagonal-alternation turn model -- baseline (Gesture sensitivity = 50) peak threshold, as a
-    // plain percentage of total board weight on that single corner (not relative to a learned
-    // resting reference like the footstep detector below) -- scaled by GestureSensitivityScale.
+    // Footstep turn model -- baseline (Gesture sensitivity = 50) peak threshold, as a plain
+    // percentage of total board weight on that single corner (not relative to a learned resting
+    // reference like the footstep detector below) -- scaled by GestureSensitivityScale.
     private const double BaselineTurnDiagonalThresholdPct = 50;
+
+    // Hold turn model -- baseline (Gesture sensitivity = 50) values, scaled by
+    // GestureSensitivityScale before use.
+    private const double BaselineTurnEnterX = 40;   // X (left-right %) magnitude to start timing a turn candidate
+    private const double BaselineTurnExitX = 25;    // below this, a confirmed turn releases (hysteresis)
+    private const long BaselineTurnSustainMs = 400; // how long the lean must hold continuously before it's confirmed
 
     private enum Corner { None, Right, Left }
     private enum DiagonalCorner { None, TopRight, BottomRight, TopLeft, BottomLeft }
@@ -51,7 +64,7 @@ public sealed class DirectionClassifier
     private readonly CornerPeakTracker _bottomLeft = new();
     private readonly ReferenceWeightCalibrator _reference = new();
 
-    // Separate trackers for the diagonal turn model -- independent refractory/edge state from the
+    // Separate trackers for the Footstep turn model -- independent refractory/edge state from the
     // footstep trackers above, since they watch the same raw corners but against a different
     // (absolute, not reference-relative) threshold.
     private readonly CornerPeakTracker _diagTopRight = new();
@@ -67,8 +80,14 @@ public sealed class DirectionClassifier
     private DiagonalCorner _lastDiagonalEdge = DiagonalCorner.None;
     private long _lastDiagonalEdgeMs;
 
-    private Direction _steppingDirection = Direction.Idle; // Forward/Dash/Backward/Turn from a confirmed footstep
+    private Direction _steppingDirection = Direction.Idle; // Forward/Dash/Backward/Turn(Footstep) from a confirmed footstep
     private long _steppingUntilMs;
+
+    // Hold turn model state.
+    private Direction _turnCandidateSide = Direction.Idle;
+    private long _turnCandidateSinceMs = -1;
+    private bool _turnConfirmed;
+    private Direction _turnSide = Direction.Idle;
 
     public Direction Current { get; private set; } = Direction.Idle;
     public bool IsWeightCalibrated => _reference.IsCalibrated;
@@ -82,6 +101,8 @@ public sealed class DirectionClassifier
         _reference.Refreshed += () => WeightCalibrationRefreshed?.Invoke();
     }
 
+    public static double ComputeX(CalibratedReading cal) =>
+        (cal.PctTopRight + cal.PctBottomRight) - (cal.PctTopLeft + cal.PctBottomLeft);
     public static double ComputeY(CalibratedReading cal) =>
         (cal.PctTopRight + cal.PctTopLeft) - (cal.PctBottomRight + cal.PctBottomLeft);
 
@@ -93,17 +114,20 @@ public sealed class DirectionClassifier
     /// a walk -- configurable since gait cadence varies by user. 0 (the "dash sensitivity" slider's
     /// bottom end) fully disables dash: no interval is ever faster than a zero-length window, so it
     /// always falls back to a plain Forward/Backward step instead.</param>
-    /// <param name="stepHoldMs">How long a confirmed stepping direction (Forward/Backward/Dash/Turn)
-    /// persists after its last confirming peak -- configurable since how "sticky" a step should
-    /// feel is a matter of taste.</param>
-    /// <param name="turnEnabled">When false, turning is not tracked at all (any in-progress
-    /// diagonal-alternation state is dropped) and stepping is never blocked by it -- lets output
-    /// modes fully lock out left/right turning while leaving forward/backward/dash untouched.</param>
-    /// <param name="turnSensitivity">0-100, see GestureSensitivityScale -- scales the diagonal
-    /// footstep-alternation turn model's peak threshold (does not affect forward/backward/dash,
-    /// which has its own separate footstep-threshold setting). 0 fully disables turning, same as
+    /// <param name="stepHoldMs">How long a confirmed stepping direction (Forward/Backward/Dash, and
+    /// Turn in Footstep mode) persists after its last confirming peak -- configurable since how
+    /// "sticky" a step should feel is a matter of taste.</param>
+    /// <param name="turnEnabled">When false, turning is not tracked at all (any in-progress state
+    /// from either turn model is dropped) and stepping is never blocked by it -- lets output modes
+    /// fully lock out left/right turning while leaving forward/backward/dash untouched.</param>
+    /// <param name="turnSensitivity">0-100, see GestureSensitivityScale -- scales whichever turn
+    /// model (turnMode) is currently active (does not affect forward/backward/dash, which has its
+    /// own separate footstep-threshold setting). 0 fully disables turning, same as
     /// turnEnabled = false.</param>
-    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, bool turnEnabled, int turnSensitivity)
+    /// <param name="footstepTurnMode">True runs the Footstep turn model, false runs Hold -- see the
+    /// class doc comment. A plain bool (rather than AppSettings.TurnMode) so this class doesn't
+    /// need to reference the Settings namespace, matching every other primitive parameter here.</param>
+    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, bool turnEnabled, int turnSensitivity, bool footstepTurnMode)
     {
         bool trEdge = _topRight.Update(cal.TopRight, nowMs, _reference.ReferenceTopRight, footstepThresholdRatio);
         bool tlEdge = _topLeft.Update(cal.TopLeft, nowMs, _reference.ReferenceTopLeft, footstepThresholdRatio);
@@ -132,8 +156,10 @@ public sealed class DirectionClassifier
             HandleBackEdge(Corner.Left, nowMs, stepHoldMs);
         }
 
+        double x = ComputeX(cal);
         bool turnActive = turnEnabled && !GestureSensitivityScale.IsDisabled(turnSensitivity);
-        if (turnActive)
+
+        if (turnActive && footstepTurnMode)
         {
             double diagonalThresholdPct = BaselineTurnDiagonalThresholdPct * GestureSensitivityScale.ThresholdMultiplier(turnSensitivity);
             bool diagTrEdge = _diagTopRight.Update(cal.PctTopRight, nowMs, 1.0, diagonalThresholdPct);
@@ -159,16 +185,32 @@ public sealed class DirectionClassifier
         }
         else if (_lastDiagonalEdge != DiagonalCorner.None)
         {
-            // Drop any pending diagonal-alternation state immediately -- otherwise disabling
-            // turning mid-gesture could leave a stale first step that pairs up the instant it's
-            // re-enabled.
+            // Drop any pending Footstep-mode alternation state immediately -- whether because
+            // turning is off or Hold mode is selected instead -- otherwise a stale first step could
+            // pair up the instant Footstep mode is active again.
             _lastDiagonalEdge = DiagonalCorner.None;
         }
 
-        // Forward/Backward/Dash/Turn all require an actual confirmed footstep alternation -- see
-        // HandleFrontEdge/HandleBackEdge/HandleDiagonalEdge. Simply leaning and holding it (without
-        // alternating feet) does NOT count.
-        Current = nowMs <= _steppingUntilMs ? _steppingDirection : Direction.Idle;
+        if (turnActive && !footstepTurnMode)
+        {
+            double multiplier = GestureSensitivityScale.ThresholdMultiplier(turnSensitivity);
+            UpdateTurn(x, nowMs, BaselineTurnEnterX * multiplier, BaselineTurnExitX * multiplier, (long)(BaselineTurnSustainMs * multiplier));
+        }
+        else if (_turnConfirmed || _turnCandidateSinceMs >= 0)
+        {
+            // Drop any in-progress or confirmed Hold-mode lean immediately -- whether because
+            // turning is off or Footstep mode is selected instead -- otherwise a stale confirmation
+            // could never release, or reappear the instant Hold mode is active again.
+            _turnConfirmed = false;
+            _turnCandidateSide = Direction.Idle;
+            _turnCandidateSinceMs = -1;
+        }
+
+        // Forward/Backward/Dash/Turn(Footstep) all require an actual confirmed footstep
+        // alternation -- see HandleFrontEdge/HandleBackEdge/HandleDiagonalEdge. Simply leaning and
+        // holding it (without alternating feet) does NOT count there, but Turn(Hold) is exactly
+        // that sustained lean, and wins over stepping while confirmed (see UpdateTurn).
+        Current = _turnConfirmed ? _turnSide : nowMs <= _steppingUntilMs ? _steppingDirection : Direction.Idle;
 
         // Feed the weight reference only from genuinely quiet moments -- present, and nothing
         // currently detected -- so an active gesture can't pollute what "resting" looks like.
@@ -183,6 +225,47 @@ public sealed class DirectionClassifier
     /// <summary>Call when the sensor zero-point itself changes (a fresh SensorCalibration pass) --
     /// every reference value here is only meaningful relative to that offset.</summary>
     public void ResetWeightCalibration() => _reference.Reset();
+
+    private void UpdateTurn(double x, long nowMs, double enterX, double exitX, long sustainMs)
+    {
+        if (_turnConfirmed)
+        {
+            // Hysteresis: only release once the lean has fallen back under the lower bound, not
+            // the moment it dips below the (higher) entry bound.
+            bool stillLeaning = _turnSide == Direction.TurnRight ? x > exitX : x < -exitX;
+            if (!stillLeaning)
+            {
+                _turnConfirmed = false;
+                _turnCandidateSide = Direction.Idle;
+                _turnCandidateSinceMs = -1;
+            }
+            return;
+        }
+
+        Direction side = x > enterX ? Direction.TurnRight : x < -enterX ? Direction.TurnLeft : Direction.Idle;
+
+        if (side == Direction.Idle)
+        {
+            _turnCandidateSide = Direction.Idle;
+            _turnCandidateSinceMs = -1;
+            return;
+        }
+
+        if (_turnCandidateSide != side)
+        {
+            // A fresh lean, or the side flipped -- an ordinary step's left-right sway does this
+            // constantly, which is exactly what the sustain requirement below filters out.
+            _turnCandidateSide = side;
+            _turnCandidateSinceMs = nowMs;
+            return;
+        }
+
+        if (nowMs - _turnCandidateSinceMs >= sustainMs)
+        {
+            _turnConfirmed = true;
+            _turnSide = side;
+        }
+    }
 
     private void HandleFrontEdge(Corner corner, long nowMs, long dashPeriodMs, long stepHoldMs)
     {
