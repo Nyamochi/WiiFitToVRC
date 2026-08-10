@@ -40,6 +40,12 @@ expected.
 [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases) (a real kernel driver — this app cannot
 install it for you; download and install it yourself)
 
+## Caution
+
+Jumping is outside the Wii Balance Board's original hardware spec. Watch your surroundings for
+damage to the board or the floor, and if you weigh over 100kg (220lb), please don't jump on it --
+even a light jump is enough to register.
+
 ## Features
 
 - **Pairs with the balance board over Bluetooth with no PIN prompt** — see
@@ -62,12 +68,6 @@ install it for you; download and install it yourself)
   timing, all from the in-app settings window.
 - Localized UI: auto-detects the Windows display language, with English, Japanese, Simplified &
   Traditional Chinese, Korean, French, German, and Italian built in.
-
-## Caution
-
-Jumping is outside the Wii Balance Board's original hardware spec. Watch your surroundings for
-damage to the board or the floor, and if you weigh over 100kg (220lb), please don't jump on it --
-even a light jump is enough to register.
 
 ## Works with other games too
 
