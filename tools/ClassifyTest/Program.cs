@@ -13,6 +13,14 @@ foreach (string path in args)
     Console.WriteLine();
 }
 
+// These recordings are short single-gesture bursts with no ~25s calm-standing stretch, so
+// ReferenceWeightCalibrator (which needs one to learn a resting reference) never calibrates on
+// its own -- forward/backward footstep detection would never fire at all. Seed it instead with 5
+// synthetic flat samples (evenly split across the 4 corners, since we don't have this person's
+// real resting stance) well before the real data starts, so the reference reads ReferenceWeight
+// per corner by the time real rows are processed.
+const double ReferenceWeight = 7100;
+
 static void RunOneFile(string path)
 {
     var directionClassifier = new DirectionClassifier();
@@ -24,6 +32,7 @@ static void RunOneFile(string path)
     int jumpTriggers = 0;
     int totalSamples = 0;
     string? label = null;
+    bool seeded = false;
 
     foreach (string line in File.ReadLines(path).Skip(1))
     {
@@ -35,6 +44,12 @@ static void RunOneFile(string path)
 
         label ??= cols[1];
         long unixMs = long.Parse(cols[0]);
+
+        if (!seeded)
+        {
+            SeedReference(directionClassifier, unixMs);
+            seeded = true;
+        }
         var cal = new CalibratedReading
         {
             TopRight = int.Parse(cols[6]),
@@ -73,4 +88,26 @@ static void RunOneFile(string path)
     }
     Console.WriteLine($"  crouch: {crouchSamples} samples ({100.0 * crouchSamples / totalSamples:F1}%)");
     Console.WriteLine($"  jump triggers: {jumpTriggers}");
+}
+
+static void SeedReference(DirectionClassifier directionClassifier, long realFirstUnixMs)
+{
+    var flatReading = new CalibratedReading
+    {
+        TopRight = (int)(ReferenceWeight / 4),
+        BottomRight = (int)(ReferenceWeight / 4),
+        TopLeft = (int)(ReferenceWeight / 4),
+        BottomLeft = (int)(ReferenceWeight / 4),
+        Total = (int)ReferenceWeight,
+        PctTopRight = 25,
+        PctBottomRight = 25,
+        PctTopLeft = 25,
+        PctBottomLeft = 25,
+    };
+
+    for (int i = 5; i >= 1; i--)
+    {
+        long sampleMs = realFirstUnixMs - i * 5000 - 10000; // 5 samples, 5s apart, well clear of the real data
+        directionClassifier.Update(flatReading, sampleMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 77, turnEnabled: true, turnSensitivity: 50);
+    }
 }

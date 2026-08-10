@@ -4,11 +4,10 @@ All gesture detection works from the **calibrated** 4-corner reading (see
 [BALANCE_BOARD.md](BALANCE_BOARD.md)): `TopRight`, `TopLeft`, `BottomRight`, `BottomLeft` (each
 ≥ 0, zero-offset already removed) plus each corner's percentage share of the total.
 
-Two axes are derived from those percentages and used throughout:
+One axis is derived from those percentages and used throughout:
 
 ```
-X (left-right) = (TopRight% + BottomRight%) - (TopLeft% + BottomLeft%)   positive = weight toward the right
-Y (front-back) = (TopRight% + TopLeft%)     - (BottomRight% + BottomLeft%)  positive = weight toward the front
+Y (front-back) = (TopRight% + TopLeft%) - (BottomRight% + BottomLeft%)  positive = weight toward the front
 ```
 
 ## Presence: is anyone even on the board?
@@ -68,27 +67,52 @@ threshold %** of the weight reference (e.g. 120%) — a discrete "this foot just
 Leaning forward and holding that lean *without* alternating feet does **not** count as Forward —
 it reads as Idle. Only an actual confirmed footstep pair produces movement.
 
-## Turning: a sustained, deliberate lean
+### Forward is sticky against backward/turn noise mid-stride
 
-Turning uses a completely different, narrower model from stepping: X has to swing past **±40**
-and *stay* past it continuously for **400ms** before a turn is confirmed — an ordinary step's
-natural left-right sway crosses that instantaneous threshold plenty, but flips side to side too
-quickly to ever hold it for the full duration, which is exactly what filters it out. Once
-confirmed, a turn only releases once X falls back under a lower bound (**±25**, hysteresis), and a
-confirmed turn always wins over stepping while it's active. Once one side fires, the opposite side
-is blocked from firing for 500ms (rebound-cooldown), since the recoil of a hard weight shift can
-briefly nudge the other side past its own threshold too.
+A real forward footstep sometimes lands hard enough to also light up a corner that belongs to a
+*different* pair -- e.g. the back-right panel crossing its own footstep threshold, or (see Turning
+below) crossing the diagonal turn threshold -- even though nothing about the actual movement
+changed. If that happens while forward is still genuinely in progress (a front corner has been
+touched within the last `AlternationWindowMs`, 900ms -- long enough to span normal stride cadence,
+not just the much shorter stepHoldMs output-hold window), the competing Backward/TurnLeft/TurnRight
+confirmation is treated as noise from the same stride: the forward hold is simply refreshed instead
+of switching direction. Once forward actually stops (no front-corner touch for a real pause), the
+same signal is trusted normally, so turning around or walking backward still works -- it just has
+to follow an actual stop rather than happening mid-stride. This only protects **Forward**, not
+Dash, since Dash comes from the same front-corner pair rather than a competing one.
 
-**Turning enabled** in Settings turns this whole model off, not just its output: when disabled, no
-lean is ever tracked as a turn candidate (any in-progress lean is dropped immediately), so
-forward/backward/dash are never blocked by it either. No turn-equivalent output is sent in any
-output mode while disabled -- no turn keys, no mouse-look movement, no right-stick deflection, and
-no OSC `LookHorizontal` messages. **Gesture sensitivity: Turn** at 0 ("Weak") has the identical
-effect (any in-progress/confirmed turn is dropped and no new candidate can ever start), so either
-one alone is enough to fully suppress turning.
+## Turning: a diagonal footstep alternation
 
-The ±40/±25/400ms figures above are the values at the default **Gesture sensitivity: Turn**
-setting (see below) -- all three scale together as that setting moves away from its default.
+Turning right by alternately stepping on the **back-right** and **front-left** panels (in either
+order) reads as a right turn; alternately stepping **front-right**/**back-left** reads as a left
+turn. This is the same "watch a corner cross a threshold, pair it with the opposite corner's next
+crossing within `AlternationWindowMs`" alternation as forward/backward/dash above, just on the
+*diagonal* pair of corners instead of the front or back pair -- and unlike forward/backward, the
+threshold here is a plain percentage of total board weight on that one corner (**turn threshold
+%**, default 50%), not relative to a learned resting reference.
+
+A turn confirms on the **second** step of the pair: a single corner crossing 50% is never enough by
+itself, it just becomes the pending first step waiting for the diagonal partner's next crossing.
+Once confirmed it behaves exactly like a footstep -- it holds for **stride length (ms)** after its
+last confirming step and gets refreshed by continuing to alternate, releasing back to Idle the same
+way stepping does once the alternation stops.
+
+**Turning enabled** in Settings turns this off entirely, not just its output: when disabled, any
+pending first step is dropped immediately, so a stale one can't pair up the instant it's
+re-enabled. No turn-equivalent output is sent in any output mode while disabled -- no turn keys, no
+mouse-look movement, no right-stick deflection, and no OSC `LookHorizontal` messages. **Gesture
+sensitivity: Turn** at 0 ("Weak") has the identical effect, so either one alone is enough to fully
+suppress turning.
+
+The 50% figure above is the value at the default **Gesture sensitivity: Turn** setting (see below)
+-- it scales as that setting moves away from its default, the same way Walk/Dash's thresholds do
+(lower percentage is easier to trigger, so the display direction is inverted -- 100 is
+"Strong"/easiest, 0 is "Weak" and fully disables turning).
+
+An earlier version of this model used a completely different approach: X (left-right weight) had to
+swing past a threshold and *stay* there continuously for 400ms. It was replaced outright (not kept
+as a second path alongside this one) after real gait logs showed it could false-trigger the
+*opposite* turn during this diagonal alternation's own large, brief X swings.
 
 ## Jump: rise, then rapid collapse
 
