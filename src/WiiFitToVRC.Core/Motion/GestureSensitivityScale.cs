@@ -11,4 +11,10 @@ namespace WiiFitToVRC.Core.Motion;
 public static class GestureSensitivityScale
 {
     public static double ThresholdMultiplier(int sensitivity) => 1.0 - (sensitivity - 50) * 0.01;
+
+    /// <summary>0 is the bottom of the "Weak" end of the scale, but doesn't just make the gesture
+    /// harder to trigger -- it fully disables it, so callers should skip the detection logic
+    /// entirely (rather than just plugging a very large multiplier into it) to guarantee it can
+    /// never fire regardless of input.</summary>
+    public static bool IsDisabled(int sensitivity) => sensitivity <= 0;
 }

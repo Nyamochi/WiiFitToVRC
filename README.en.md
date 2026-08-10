@@ -29,6 +29,17 @@ first enable OSC in VRChat itself, then try switching the output mode in Setting
 See the [docs](docs/) folder for a deeper explanation of each feature if something doesn't work as
 expected.
 
+## Requirements
+
+- Windows 10/11
+- A Wii Balance Board (Bluetooth) — discontinued, but commonly found cheaply secondhand
+- A Bluetooth adapter that supports HID devices
+
+### Using the virtual controller (optional)
+
+[ViGEmBus](https://github.com/nefarius/ViGEmBus/releases) (a real kernel driver — this app cannot
+install it for you; download and install it yourself)
+
 ## Features
 
 - **Pairs with the balance board over Bluetooth with no PIN prompt** — see
@@ -42,15 +53,21 @@ expected.
 - **Four output modes**:
   - Keyboard (turning via Q/E)
   - Keyboard + mouse (turning via mouse-look — the default)
-  - Virtual Xbox 360 controller, for games that reject synthetic keyboard/mouse input (VRChat
-    included) — see [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md).
   - VRChat OSC input, for VR setups where the game's input focus is locked to the VR device and
     rejects synthetic input entirely, even the virtual controller — see
     [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md).
+  - Virtual controller, for games that reject synthetic keyboard/mouse input (VRChat
+    included) — see [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md).
 - Fully configurable keybinds/controller bindings, turn sensitivity, weight thresholds, and
   timing, all from the in-app settings window.
 - Localized UI: auto-detects the Windows display language, with English, Japanese, Simplified &
   Traditional Chinese, Korean, French, German, and Italian built in.
+
+## Caution
+
+Jumping is outside the Wii Balance Board's original hardware spec. Watch your surroundings for
+damage to the board or the floor, and if you weigh over 100kg (220lb), please don't jump on it --
+even a light jump is enough to register.
 
 ## Works with other games too
 
@@ -62,17 +79,6 @@ been tried with:
 - Resident Evil
 - Monster Hunter
 - Armored Core IV
-
-## Requirements
-
-- Windows 10/11
-- A Wii Balance Board (Bluetooth) — discontinued, but commonly found cheaply secondhand
-- A Bluetooth adapter that supports HID devices
-
-### Using the virtual controller (optional)
-
-[ViGEmBus](https://github.com/nefarius/ViGEmBus/releases) (a real kernel driver — this app cannot
-install it for you; download and install it yourself)
 
 ## Building from source
 
@@ -117,16 +123,12 @@ All settings are edited from the in-app settings window (⚙ 設定) and persist
 
 | Setting | What it does |
 |---|---|
-| Output mode | Keyboard / Keyboard+Mouse / Virtual Controller / VRChat OSC (see [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md)) |
+| Output mode | Keyboard / Keyboard+Mouse / VRChat OSC / Virtual Controller (see [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md)) |
 | Language | UI language, or Auto to follow Windows |
-| Gesture sensitivity (Turn/Jump/Crouch) | Independent Weak-to-Strong sliders for how easily each one fires (forward/backward/dash isn't affected). The middle (default) keeps the original detection thresholds unchanged |
+| Gesture sensitivity (Walk/Dash/Turn/Jump/Crouch/Stride) | Independent Weak-to-Strong sliders for how easily each one fires (Stride is Narrow-to-Wide instead; forward/backward isn't affected). The middle (default) keeps the original detection thresholds unchanged. For Dash/Turn/Jump/Crouch, dragging all the way to Weak (0) fully disables that gesture -- it never fires regardless of input — see [docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md) |
 | Turn sensitivity | Mouse pixels-per-tick (keyboard+mouse mode) or stick deflection % (controller mode), separately for left/right |
 | Presence weight threshold | Calibrated total weight that counts as "someone is on the board" |
 | Sleep/wake seconds | How long presence must hold (both directions) before output locks/unlocks |
-| Footstep threshold % | How far above the learned resting weight a corner must spike to count as a footstep — see [docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md) |
-| Dash detection (ms) | Footstep-to-footstep interval fast enough to count as a dash instead of a walk |
-| Stride length (ms) | How long a confirmed step persists after its last footstep before releasing back to Idle |
-| Crouch / Jump enabled | Toggle each gesture off entirely (no key output, no light) |
 | Turning enabled | When off, turning isn't detected at all, so no turn-equivalent output is ever sent in any output mode -- mouse, keyboard, controller, or OSC (forward/backward/dash are unaffected) |
 | Debug mode | Shows the raw CSV recording controls used to capture logs for `ClassifyTest` |
 | Keybinds tab | Per-action key (and the dash modifier key) for keyboard output modes |

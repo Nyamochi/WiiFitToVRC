@@ -56,8 +56,11 @@ threshold %** of the weight reference (e.g. 120%) — a discrete "this foot just
 - **Front-right then front-left** (or vice versa) within a short window (`AlternationWindowMs`,
   900ms) is a confirmed walking step → **Forward**. The same pairing on the back corners →
   **Backward**.
-- If the two landings are closer together than **dash detection (ms)** (default 300ms), it's a
-  **Dash** instead of a plain walk.
+- If the two landings are closer together than the dash period (default 300ms, tuned via
+  **Gesture sensitivity: Dash** in Settings), it's a **Dash** instead of a plain walk. At Dash
+  sensitivity 0 ("Weak"), the period is forced to 0ms -- no landing interval is ever shorter than
+  that, so Dash can never fire and every alternation reads as a plain Forward/Backward step
+  instead.
 - A confirmed direction persists for a short hold (**stride length (ms)**, default 77ms) after its
   last confirming landing; each new landing refreshes the hold, so continuous walking doesn't
   flicker back to Idle between steps.
@@ -80,7 +83,9 @@ briefly nudge the other side past its own threshold too.
 lean is ever tracked as a turn candidate (any in-progress lean is dropped immediately), so
 forward/backward/dash are never blocked by it either. No turn-equivalent output is sent in any
 output mode while disabled -- no turn keys, no mouse-look movement, no right-stick deflection, and
-no OSC `LookHorizontal` messages.
+no OSC `LookHorizontal` messages. **Gesture sensitivity: Turn** at 0 ("Weak") has the identical
+effect (any in-progress/confirmed turn is dropped and no new candidate can ever start), so either
+one alone is enough to fully suppress turning.
 
 The ±40/±25/400ms figures above are the values at the default **Gesture sensitivity: Turn**
 setting (see below) -- all three scale together as that setting moves away from its default.
@@ -95,7 +100,8 @@ near-zero weight (the moment the feet actually leave the board) within half a se
 never collapses that way, it wasn't a jump, and nothing fires. **Gesture sensitivity: Jump** scales
 how large that initial push-off spike must be (relative to the baseline) to arm; the
 collapse/settle shape that follows is left fixed, since it describes what a real jump looks like
-rather than how hard you have to move.
+rather than how hard you have to move. At sensitivity 0 ("Weak"), the spike can never arm at all --
+there's no separate "Jump enabled" toggle; this is the only way to disable jump.
 
 ## Crouch: slow and sustained, not a spike
 
@@ -106,19 +112,38 @@ jump's front-loading is a brief spike immediately followed by the airborne weigh
 above), so it can't sustain the hold; a real crouch settles in and stays there. Standing back up
 isn't rate-gated — any drop back below the lower threshold (`Y < 30`) ends the crouch immediately.
 These figures are likewise the defaults at **Gesture sensitivity: Crouch** = 50; the enter/exit Y
-thresholds and the hold duration all scale together with that setting.
+thresholds and the hold duration all scale together with that setting. At sensitivity 0 ("Weak"),
+crouch can never be entered, and immediately releases if it was already active when the setting
+changed -- there's no separate "Crouch enabled" toggle; this is the only way to disable crouch.
 
-## Gesture sensitivity: independent dials for turn/jump/crouch
+## Gesture sensitivity: independent dials for walk/dash/turn/jump/crouch/stride
 
-[`GestureSensitivityScale.cs`](../src/WiiFitToVRC.Core/Motion/GestureSensitivityScale.cs) turns
-each of the three **Gesture sensitivity** settings (Turn/Jump/Crouch, each 0-100, default 50, shown
-in Settings as a Weak-to-Strong slider with no numeric readout) into a multiplier applied to that
-gesture's thresholds: `1.0 - (sensitivity - 50) * 0.01`. 50 is neutral (multiplier exactly 1.0 --
-the original hardcoded values, unchanged), each point away from 50 is a 1% change, so 0 is 1.5x
-(thresholds/durations 50% larger, harder to trigger) and 100 is 0.5x (50% smaller, easier to
-trigger). The three settings are independent -- turning up Jump sensitivity doesn't touch Turn or
-Crouch -- and none of them affect forward/backward/dash, which has its own separate **Footstep
-threshold %** setting instead.
+Settings has six of these sliders, grouped under "Gesture sensitivity": **Walk**, **Dash**,
+**Turn**, **Jump**, **Crouch**, and **Stride**. Each is shown as a plain 0-100 percentage (Weak to
+Strong, except Stride which is Narrow to Wide), independent of the others -- turning up Jump
+doesn't touch Turn or Crouch. 50 is always the default/neutral position, reproducing the original
+hardcoded values unchanged.
+
+- **Turn/Jump/Crouch** feed directly into
+  [`GestureSensitivityScale.cs`](../src/WiiFitToVRC.Core/Motion/GestureSensitivityScale.cs), which
+  turns the 0-100 value into a multiplier applied to that gesture's thresholds:
+  `1.0 - (sensitivity - 50) * 0.01`. Each point away from 50 is a 1% change, so 100 is 0.5x
+  (thresholds/durations 50% smaller, easier to trigger -- "Strong") and moving toward 0 makes them
+  larger and harder to trigger -- but 0 itself isn't just "1.5x harder", it's a hard cutoff (see
+  `GestureSensitivityScale.IsDisabled`): each detector skips its trigger condition entirely at
+  sensitivity 0, so the gesture can never fire no matter how extreme the input is.
+- **Walk** and **Dash** scale the same way, but in the *opposite* raw-value direction (a *smaller*
+  footstep-threshold-% or dash-period-ms is what's easier to trigger), so the settings UI inverts
+  the display so 100 ("Strong") still means "easier" and 0 ("Weak") still means "harder", matching
+  the other four. Dash additionally hard-disables at 0 (see the Forward/backward/dash section
+  above); Walk does not have a hard-disable, since disabling it would also disable forward/backward
+  walking entirely.
+- **Stride** scales the stride-length hold duration; it isn't a Weak/Strong "how easily does this
+  fire" dial like the other five (nothing about stride makes a gesture more or less likely), so it
+  uses Narrow/Wide labels instead and has no disable behavior.
+
+None of the six affect forward/backward, which has its own separate **Footstep threshold %**
+raw value (mapped to the "Walk" slider) as described above.
 
 Crouch is also suppressed for 500ms after any forward/backward/turn/jump last fired, since those
 can transiently disturb the front-back balance enough to look like the start of a crouch.

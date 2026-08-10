@@ -52,9 +52,6 @@ public sealed class AppSettings
     /// must stay below it before output re-locks.</summary>
     public int SleepSeconds { get; set; } = 3;
 
-    public bool CrouchEnabled { get; set; } = true;
-    public bool JumpEnabled { get; set; } = true;
-
     /// <summary>When false, turning is not detected at all, so no equivalent output (mouse-look,
     /// turn keys, right stick, or the OSC LookHorizontal axis) is ever sent in any output mode --
     /// forward/backward/dash keep working normally.</summary>
@@ -62,7 +59,9 @@ public sealed class AppSettings
 
     /// <summary>0-100, how easily each gesture fires individually (forward/backward/dash has its
     /// own separate footstep-threshold setting instead). 50 is neutral and reproduces the original
-    /// hardcoded thresholds exactly; see GestureSensitivityScale for the exact scaling.</summary>
+    /// hardcoded thresholds exactly; see GestureSensitivityScale for the exact scaling. 0 fully
+    /// disables the gesture -- it never fires regardless of input, replacing what used to be a
+    /// separate enabled/disabled toggle.</summary>
     public int TurnSensitivity { get; set; } = 50;
     public int JumpSensitivity { get; set; } = 50;
     public int CrouchSensitivity { get; set; } = 50;

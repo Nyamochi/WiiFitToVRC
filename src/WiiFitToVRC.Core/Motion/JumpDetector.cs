@@ -33,7 +33,8 @@ public sealed class JumpDetector
 
     /// <param name="jumpSensitivity">0-100, see GestureSensitivityScale -- scales how large the
     /// push-off spike must be relative to the baseline weight to arm (does not affect
-    /// forward/backward).</param>
+    /// forward/backward). 0 fully disables jump: it can never arm, so the confirming key-press
+    /// event can never fire.</param>
     /// <returns>True exactly on the sample where a jump (push-off confirmed by the following
     /// airborne dip) is detected.</returns>
     public bool Update(int total, long nowMs, int jumpSensitivity)
@@ -41,6 +42,16 @@ public sealed class JumpDetector
         if (_baselineEma < 0)
         {
             _baselineEma = total;
+            return false;
+        }
+
+        if (GestureSensitivityScale.IsDisabled(jumpSensitivity))
+        {
+            // Interrupt any in-progress arm/landing immediately rather than letting it finish, so
+            // no key-press event can slip through after the setting is disabled. Baseline tracking
+            // continues so it doesn't drift stale while disabled.
+            _state = State.Idle;
+            _baselineEma += EmaAlpha * (total - _baselineEma);
             return false;
         }
 

@@ -36,6 +36,16 @@ public sealed class SettingsForm : Form
     private static int DisplayToRaw(int display, int rawMin, int rawMax) =>
         rawMin + (int)Math.Round(display * (rawMax - rawMin) / 100.0);
 
+    // Dash sensitivity 0 ("Weak") is a hard cutoff, not just the far end of the 200-400ms range --
+    // DirectionClassifier treats DashPeriodMs = 0 as an unreachable interval floor, so dash can
+    // never fire, matching turn/jump/crouch's sensitivity-0-fully-disables behavior. So 0 maps to
+    // the raw sentinel 0 instead of DashRawMax, both ways.
+    private static int DashDisplayToRaw(int display) =>
+        display <= 0 ? 0 : DisplayToRawInverted(display, DashRawMin, DashRawMax);
+
+    private static int DashRawToDisplay(int raw) =>
+        raw <= 0 ? 0 : Math.Clamp(RawToDisplayInverted(Math.Clamp(raw, DashRawMin, DashRawMax), DashRawMin, DashRawMax), 0, 100);
+
     // Fixed height -- the General tab has grown taller than comfortably fits on screen, so it
     // scrolls internally (see AutoScroll below) instead of the window growing without bound.
     private readonly TabControl _tabs = new() { Location = new Point(10, 10), Size = new Size(560, 480) };
@@ -43,12 +53,12 @@ public sealed class SettingsForm : Form
     private readonly TabPage _keybindsTab = new();
     private readonly TabPage _controllerTab = new();
 
-    // Keyboard = turn via Q/E, KeyboardMouse = turn via mouse-look, Controller = virtual gamepad,
-    // Osc = VRChat's own OSC input endpoint (for VR setups that lock out SendInput entirely).
+    // Keyboard = turn via Q/E, KeyboardMouse = turn via mouse-look, Osc = VRChat's own OSC input
+    // endpoint (for VR setups that lock out SendInput entirely), Controller = virtual gamepad.
     private readonly RadioButton _outputKeyboardRadio = new() { Location = new Point(ValueColumnX, 8), AutoSize = true };
     private readonly RadioButton _outputKeyboardMouseRadio = new() { Location = new Point(ValueColumnX, 31), AutoSize = true };
-    private readonly RadioButton _outputControllerRadio = new() { Location = new Point(ValueColumnX, 54), AutoSize = true };
-    private readonly RadioButton _outputOscRadio = new() { Location = new Point(ValueColumnX, 77), AutoSize = true };
+    private readonly RadioButton _outputOscRadio = new() { Location = new Point(ValueColumnX, 54), AutoSize = true };
+    private readonly RadioButton _outputControllerRadio = new() { Location = new Point(ValueColumnX, 77), AutoSize = true };
 
     // Wide enough for the longest entry, e.g. "简体中文 (Chinese Simplified)".
     private readonly ComboBox _languageCombo = new() { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(ValueColumnX, 109), Size = new Size(250, 24) };
@@ -102,15 +112,15 @@ public sealed class SettingsForm : Form
 
     private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 549), Size = new Size(70, 24) };
 
-    // Separate rows, not side by side -- the Japanese labels for these are long enough that two
-    // AutoSize checkboxes on one row ran into each other and got visually clipped.
-    private readonly CheckBox _crouchEnabledCheck = new() { Location = new Point(ValueColumnX, 583), AutoSize = true };
-    private readonly CheckBox _jumpEnabledCheck = new() { Location = new Point(ValueColumnX, 607), AutoSize = true };
-    private readonly CheckBox _turnEnabledCheck = new() { Location = new Point(ValueColumnX, 631), AutoSize = true };
-    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 655), AutoSize = true };
+    // Jump/crouch used to have their own enabled checkboxes here -- now redundant with their
+    // sensitivity sliders' "Weak" (0) end fully disabling them, so only turn's remains (it isn't
+    // covered by a slider position the same way, since turnEnabled and turnSensitivity are
+    // independent settings).
+    private readonly CheckBox _turnEnabledCheck = new() { Location = new Point(ValueColumnX, 583), AutoSize = true };
+    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 607), AutoSize = true };
 
-    private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 679), Size = new Size(180, 24) };
-    private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 678), Size = new Size(34, 24) };
+    private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 631), Size = new Size(180, 24) };
+    private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 630), Size = new Size(34, 24) };
 
     private readonly ComboBox _forwardKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _dashKeyCombo = MakeCombo<VirtualKey>();
@@ -241,14 +251,12 @@ public sealed class SettingsForm : Form
         var strokeLeftLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeLeft", _uiLanguage), Location = new Point(10, 473), AutoSize = true };
         var presenceLabel = new Label { Text = Localizer.Get("Settings_PresenceThreshold", _uiLanguage), Location = new Point(10, 513), AutoSize = true };
         var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 551), AutoSize = true };
-        var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 683), AutoSize = true };
+        var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 635), AutoSize = true };
 
         _outputKeyboardRadio.Text = Localizer.Get("Settings_OutputMode_Keyboard", _uiLanguage);
         _outputKeyboardMouseRadio.Text = Localizer.Get("Settings_OutputMode_KeyboardMouse", _uiLanguage);
         _outputControllerRadio.Text = Localizer.Get("Settings_OutputMode_Controller", _uiLanguage);
         _outputOscRadio.Text = Localizer.Get("Settings_OutputMode_Osc", _uiLanguage);
-        _crouchEnabledCheck.Text = Localizer.Get("Settings_CrouchEnabled", _uiLanguage);
-        _jumpEnabledCheck.Text = Localizer.Get("Settings_JumpEnabled", _uiLanguage);
         _turnEnabledCheck.Text = Localizer.Get("Settings_TurnEnabled", _uiLanguage);
         _debugModeCheck.Text = Localizer.Get("Settings_DebugMode", _uiLanguage);
         // Plain "..." rather than a localized "Browse" label -- a universal enough convention to
@@ -277,7 +285,7 @@ public sealed class SettingsForm : Form
         }
 
         _generalTab.Controls.AddRange([
-            outputModeLabel, _outputKeyboardRadio, _outputKeyboardMouseRadio, _outputControllerRadio, _outputOscRadio,
+            outputModeLabel, _outputKeyboardRadio, _outputKeyboardMouseRadio, _outputOscRadio, _outputControllerRadio,
             languageLabel, _languageCombo,
             gestureSensitivityGroupLabel,
             walkSensitivityLabel, _walkSensitivityWeakLabel, _walkSensitivitySlider, _walkSensitivityStrongLabel, _walkSensitivityValueLabel,
@@ -290,14 +298,14 @@ public sealed class SettingsForm : Form
             strokeLeftLabel, _strokeLeftSlider, _strokeLeftValueLabel,
             presenceLabel, _presenceSlider, _presenceValueLabel,
             sleepLabel, _sleepSecondsInput,
-            _crouchEnabledCheck, _jumpEnabledCheck, _turnEnabledCheck, _debugModeCheck,
+            _turnEnabledCheck, _debugModeCheck,
             debugFolderLabel, _debugFolderInput, _debugFolderBrowseButton,
         ]);
 
         // The tab's content now extends well past its fixed visible height -- scroll internally
         // (a vertical scrollbar appears automatically) rather than growing the window without bound.
         _generalTab.AutoScroll = true;
-        _generalTab.AutoScrollMinSize = new Size(0, 760);
+        _generalTab.AutoScrollMinSize = new Size(0, 712);
     }
 
     private void BuildKeybindsTab()
@@ -392,8 +400,7 @@ public sealed class SettingsForm : Form
         _walkSensitivitySlider.Value = Math.Clamp(RawToDisplayInverted(walkRaw, WalkRawMin, WalkRawMax), _walkSensitivitySlider.Minimum, _walkSensitivitySlider.Maximum);
         _walkSensitivityValueLabel.Text = _walkSensitivitySlider.Value.ToString();
 
-        int dashRaw = Math.Clamp(source.DashPeriodMs, DashRawMin, DashRawMax);
-        _dashSensitivitySlider.Value = Math.Clamp(RawToDisplayInverted(dashRaw, DashRawMin, DashRawMax), _dashSensitivitySlider.Minimum, _dashSensitivitySlider.Maximum);
+        _dashSensitivitySlider.Value = Math.Clamp(DashRawToDisplay(source.DashPeriodMs), _dashSensitivitySlider.Minimum, _dashSensitivitySlider.Maximum);
         _dashSensitivityValueLabel.Text = _dashSensitivitySlider.Value.ToString();
 
         int strideRaw = Math.Clamp(source.StepHoldMs, StrideRawMin, StrideRawMax);
@@ -407,8 +414,6 @@ public sealed class SettingsForm : Form
         _crouchSensitivitySlider.Value = Math.Clamp(source.CrouchSensitivity, _crouchSensitivitySlider.Minimum, _crouchSensitivitySlider.Maximum);
         _crouchSensitivityValueLabel.Text = _crouchSensitivitySlider.Value.ToString();
 
-        _crouchEnabledCheck.Checked = source.CrouchEnabled;
-        _jumpEnabledCheck.Checked = source.JumpEnabled;
         _turnEnabledCheck.Checked = source.TurnEnabled;
         _debugModeCheck.Checked = source.DebugMode;
         _debugFolderInput.Text = source.DebugOutputFolder;
@@ -443,13 +448,11 @@ public sealed class SettingsForm : Form
         _settings.PresenceWeightThreshold = _presenceSlider.Value * 100;
         _settings.SleepSeconds = (int)_sleepSecondsInput.Value;
         _settings.FootstepThresholdPercent = DisplayToRawInverted(_walkSensitivitySlider.Value, WalkRawMin, WalkRawMax);
-        _settings.DashPeriodMs = DisplayToRawInverted(_dashSensitivitySlider.Value, DashRawMin, DashRawMax);
+        _settings.DashPeriodMs = DashDisplayToRaw(_dashSensitivitySlider.Value);
         _settings.StepHoldMs = DisplayToRaw(_strideSlider.Value, StrideRawMin, StrideRawMax);
         _settings.TurnSensitivity = _turnSensitivitySlider.Value;
         _settings.JumpSensitivity = _jumpSensitivitySlider.Value;
         _settings.CrouchSensitivity = _crouchSensitivitySlider.Value;
-        _settings.CrouchEnabled = _crouchEnabledCheck.Checked;
-        _settings.JumpEnabled = _jumpEnabledCheck.Checked;
         _settings.TurnEnabled = _turnEnabledCheck.Checked;
         _settings.DebugMode = _debugModeCheck.Checked;
         _settings.DebugOutputFolder = string.IsNullOrWhiteSpace(_debugFolderInput.Text) ? "debug" : _debugFolderInput.Text.Trim();

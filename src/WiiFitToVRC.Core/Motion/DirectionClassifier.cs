@@ -77,7 +77,9 @@ public sealed class DirectionClassifier
     /// <param name="footstepThresholdRatio">e.g. 1.05 for "105% of the reference weight" --
     /// configurable since how far above resting weight a real footstep reads varies by user.</param>
     /// <param name="dashPeriodMs">Peak-to-peak interval fast enough to count as a dash instead of
-    /// a walk -- configurable since gait cadence varies by user.</param>
+    /// a walk -- configurable since gait cadence varies by user. 0 (the "dash sensitivity" slider's
+    /// bottom end) fully disables dash: no interval is ever faster than a zero-length window, so it
+    /// always falls back to a plain Forward/Backward step instead.</param>
     /// <param name="stepHoldMs">How long a confirmed stepping direction (Forward/Backward/Dash)
     /// persists after its last confirming peak -- configurable since how "sticky" a step should
     /// feel is a matter of taste.</param>
@@ -86,7 +88,8 @@ public sealed class DirectionClassifier
     /// left/right turning while leaving forward/backward/dash untouched.</param>
     /// <param name="turnSensitivity">0-100, see GestureSensitivityScale -- scales the turn
     /// entry/exit thresholds and sustain duration (does not affect forward/backward/dash, which
-    /// has its own separate footstep-threshold setting).</param>
+    /// has its own separate footstep-threshold setting). 0 fully disables turning, same as
+    /// turnEnabled = false.</param>
     public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, bool turnEnabled, int turnSensitivity)
     {
         bool trEdge = _topRight.Update(cal.TopRight, nowMs, _reference.ReferenceTopRight, footstepThresholdRatio);
@@ -117,7 +120,7 @@ public sealed class DirectionClassifier
             HandleBackEdge(Corner.Left, nowMs, stepHoldMs);
         }
 
-        if (turnEnabled)
+        if (turnEnabled && !GestureSensitivityScale.IsDisabled(turnSensitivity))
         {
             double multiplier = GestureSensitivityScale.ThresholdMultiplier(turnSensitivity);
             UpdateTurn(x, nowMs, BaselineTurnEnterX * multiplier, BaselineTurnExitX * multiplier, (long)(BaselineTurnSustainMs * multiplier));
