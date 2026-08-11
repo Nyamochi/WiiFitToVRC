@@ -128,7 +128,7 @@ public sealed class InputController : IDisposable
             _controller.Connect(); // no-op once already connected, or already failed once
         }
 
-        if (!_presence.Update(cal.Total, nowMs, _settings.PresenceWeightThreshold, _settings.SleepSeconds))
+        if (!_presence.Update(cal.Total, nowMs, _settings.EffectivePresenceWeightThreshold, _settings.EffectiveSleepSeconds))
         {
             // Nobody's on the board yet (or hasn't been long enough after stepping on/off) --
             // force everything back to Idle/released so key output and arrow lighting both go

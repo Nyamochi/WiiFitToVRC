@@ -54,6 +54,15 @@ public enum DashInputMode
     DoubleTap,
 }
 
+/// <summary>Standing (the original, tuned-by-default behavior) vs. Sitting (see AppSettings.
+/// EffectivePresenceWeightThreshold/EffectiveSleepSeconds for what it overrides). Toggled from a
+/// button on the main window, not the Settings dialog.</summary>
+public enum PostureMode
+{
+    Standing,
+    Sitting,
+}
+
 public sealed class AppSettings
 {
     public AppLanguage Language { get; set; } = AppLanguage.Auto;
@@ -73,13 +82,37 @@ public sealed class AppSettings
     public int TurnHoldMs { get; set; } = 1000;
 
     /// <summary>Calibrated total weight that must be exceeded before forward/backward/turn output
-    /// is allowed to fire (someone needs to actually be standing on the board).</summary>
+    /// is allowed to fire (someone needs to actually be standing on the board). Ignored while
+    /// PostureMode is Sitting -- see EffectivePresenceWeightThreshold.</summary>
     public int PresenceWeightThreshold { get; set; } = 3000;
 
     /// <summary>Shared timing (seconds) for the presence hysteresis in both directions: how long
     /// the board must stay above PresenceWeightThreshold before output unlocks, and how long it
-    /// must stay below it before output re-locks.</summary>
+    /// must stay below it before output re-locks. Ignored while PostureMode is Sitting -- see
+    /// EffectiveSleepSeconds.</summary>
     public int SleepSeconds { get; set; } = 3;
+
+    /// <summary>Toggled from the main window's Mode button (not the Settings dialog), and
+    /// persisted so it carries over between launches -- someone who always uses the board seated
+    /// shouldn't have to re-select it every session. Sitting only overrides
+    /// PresenceWeightThreshold/SleepSeconds (see the Effective* properties below); every other
+    /// setting still applies normally regardless of posture.</summary>
+    public PostureMode PostureMode { get; set; } = PostureMode.Standing;
+
+    // Someone seated only rests a fraction of their body weight on the board (the chair carries
+    // the rest), so the normal standing threshold -- calibrated against a full standing weight --
+    // would rarely if ever clear while sitting. And a seated session tends to be started/stopped
+    // in short, quick bursts, where the normal sleep/wake hysteresis delay just gets in the way.
+    // Hardcoded rather than separately tunable settings -- these two are the whole point of
+    // Sitting mode, not something to further configure.
+    private const int SittingPresenceWeightThreshold = 500;
+    private const int SittingSleepSeconds = 0;
+
+    public int EffectivePresenceWeightThreshold =>
+        PostureMode == PostureMode.Sitting ? SittingPresenceWeightThreshold : PresenceWeightThreshold;
+
+    public int EffectiveSleepSeconds =>
+        PostureMode == PostureMode.Sitting ? SittingSleepSeconds : SleepSeconds;
 
     /// <summary>Which turn-detection model is active -- see TurnMode. Footstep is the default.</summary>
     public TurnMode TurnMode { get; set; } = TurnMode.Footstep;

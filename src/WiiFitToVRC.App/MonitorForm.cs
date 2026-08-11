@@ -46,6 +46,17 @@ public partial class MonitorForm : Form
     private readonly Button _recordButton = new() { Location = new Point(160, 279), AutoSize = true, Enabled = false };
     private readonly Label _recordStatusLabel = new() { AutoSize = true, Location = new Point(270, 283) };
 
+    // Bottom-left, always visible (unlike the debug-only recording row above it) -- see
+    // AppSettings.PostureMode/EffectivePresenceWeightThreshold/EffectiveSleepSeconds. Both states
+    // stay visible at once as a radio pair, not a single button that relabels itself, so which
+    // posture is currently active is obvious at a glance. Isolated in its own Panel (same trick
+    // SettingsForm uses for its radio-button rows) so WinForms doesn't auto-group these with any
+    // other radio-button set that ends up directly on this form.
+    private readonly Label _postureModeCaption = new() { AutoSize = true, Location = new Point(10, 340) };
+    private readonly Panel _postureModePanel = new() { Location = new Point(10, 358), Size = new Size(340, 22), BorderStyle = BorderStyle.None };
+    private readonly RadioButton _postureModeStandingRadio = new() { Location = new Point(0, 0), AutoSize = true };
+    private readonly RadioButton _postureModeSittingRadio = new() { Location = new Point(110, 0), AutoSize = true };
+
     private BalanceBoardDevice? _device;
     private StreamWriter? _logWriter;
     private int _logRowCount;
@@ -72,6 +83,8 @@ public partial class MonitorForm : Form
         _recordButton.Click += (_, _) => ToggleRecording();
         _calibrateButton.Click += async (_, _) => await CalibrateAsync();
         _settingsButton.Click += (_, _) => OpenSettings();
+        _postureModeStandingRadio.CheckedChanged += (_, _) => { if (_postureModeStandingRadio.Checked) SetPostureMode(PostureMode.Standing); };
+        _postureModeSittingRadio.CheckedChanged += (_, _) => { if (_postureModeSittingRadio.Checked) SetPostureMode(PostureMode.Sitting); };
         // The board's SYNC button and the PC are usually not next to each other, so requiring a
         // click here before searching starts means an extra round trip just to press Connect --
         // search automatically from launch instead. The button stays live throughout: it cancels
@@ -112,13 +125,10 @@ public partial class MonitorForm : Form
             return;
         }
 
-        var lang = CurrentLanguage;
-        MessageBox.Show(
-            this,
-            Localizer.GetFormatted("Update_Available_Message", lang, RepositoryUrl),
-            Localizer.Get("Update_Available_Title", lang),
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Information);
+        using (var form = new UpdateAvailableForm(CurrentLanguage, RepositoryUrl))
+        {
+            form.ShowDialog(this);
+        }
 
         _settings.LastNotifiedUpdateSha = latest.Sha;
         _settings.Save();
@@ -357,6 +367,12 @@ public partial class MonitorForm : Form
         _recordButton.Visible = _settings.DebugMode;
         _recordStatusLabel.Visible = _settings.DebugMode;
 
+        _postureModePanel.Controls.AddRange([_postureModeStandingRadio, _postureModeSittingRadio]);
+        // CheckedChanged wiring (see the constructor) only fires SetPostureMode for the radio
+        // becoming checked, not the one becoming unchecked -- setting this one directly avoids
+        // firing it (and thus an extra redundant Save()) during initial layout.
+        (_settings.PostureMode == PostureMode.Sitting ? _postureModeSittingRadio : _postureModeStandingRadio).Checked = true;
+
         Controls.AddRange([
             _statusLabel, _connectButton, _calibrateButton, _settingsButton,
             _pressureCaption, _pressurePanel,
@@ -365,7 +381,14 @@ public partial class MonitorForm : Form
             _calibratedCaption, _calibratedLabel,
             _distanceCaption, _distanceLabel,
             _labelCombo, _recordButton, _recordStatusLabel,
+            _postureModeCaption, _postureModePanel,
         ]);
+    }
+
+    private void SetPostureMode(PostureMode mode)
+    {
+        _settings.PostureMode = mode;
+        _settings.Save();
     }
 
     /// <summary>Re-applies all static UI text for the current language -- called at startup and
@@ -392,6 +415,9 @@ public partial class MonitorForm : Form
         _valuesCaption.Text = Localizer.Get("Caption_RawValues", lang);
         _calibratedCaption.Text = Localizer.Get("Caption_CalibratedValues", lang);
         _distanceCaption.Text = Localizer.Get("Caption_DistanceTraveled", lang);
+        _postureModeCaption.Text = Localizer.Get("Caption_PostureMode", lang);
+        _postureModeStandingRadio.Text = Localizer.Get("PostureMode_Standing", lang);
+        _postureModeSittingRadio.Text = Localizer.Get("PostureMode_Sitting", lang);
         // Only re-stamps the placeholder zeros -- once a device is connected, UpdateUi refreshes
         // this with real (already-correctly-localized) values on every UI tick anyway.
         if (_device is null)
@@ -601,7 +627,7 @@ public partial class MonitorForm : Form
 
     private void UpdateUi(BalanceBoardSensors s, CalibratedReading? cal)
     {
-        _pressurePanel.SetValues(cal, _settings.PresenceWeightThreshold);
+        _pressurePanel.SetValues(cal, _settings.EffectivePresenceWeightThreshold);
 
         if (cal is not null)
         {

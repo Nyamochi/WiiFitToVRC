@@ -27,6 +27,9 @@ public static class Localizer
         ["Stat_WalkDistance"] = ["Walk {0:F1} m", "歩行 {0:F1} m", "行走 {0:F1} m", "行走 {0:F1} m", "걷기 {0:F1} m", "Marche {0:F1} m", "Gehen {0:F1} m", "Camminata {0:F1} m"],
         ["Stat_DashDistance"] = ["Dash {0:F1} m", "ダッシュ {0:F1} m", "冲刺 {0:F1} m", "衝刺 {0:F1} m", "대시 {0:F1} m", "Sprint {0:F1} m", "Sprint {0:F1} m", "Scatto {0:F1} m"],
         ["Stat_StepCount"] = ["{0} steps", "歩数 {0}歩", "步数 {0}步", "步數 {0}步", "걸음 수 {0}걸음", "{0} pas", "{0} Schritte", "{0} passi"],
+        ["Caption_PostureMode"] = ["Posture", "プレイ姿勢", "游玩姿势", "遊玩姿勢", "플레이 자세", "Posture de jeu", "Spielhaltung", "Postura di gioco"],
+        ["PostureMode_Standing"] = ["Standing", "立ち", "站立", "站立", "서 있기", "Debout", "Stehend", "In piedi"],
+        ["PostureMode_Sitting"] = ["Sitting", "座り", "坐姿", "坐姿", "앉기", "Assis", "Sitzend", "Seduto"],
         ["Button_RecordStart"] = ["Start recording", "記録開始", "开始记录", "開始記錄", "기록 시작", "Démarrer l'enregistrement", "Aufnahme starten", "Avvia registrazione"],
         ["Button_RecordStop"] = ["Stop recording", "記録停止", "停止记录", "停止記錄", "기록 중지", "Arrêter l'enregistrement", "Aufnahme stoppen", "Interrompi registrazione"],
         ["Status_Pairing"] = ["Automatically searching (press the SYNC button)...", "自動で検索中です(SYNCボタンを押してください)...", "正在自动搜索(请按下SYNC按钮)...", "正在自動搜尋(請按下SYNC按鈕)...", "자동으로 검색 중입니다(SYNC 버튼을 눌러주세요)...", "Recherche automatique en cours (appuyez sur SYNC)...", "Automatische Suche läuft (SYNC-Taste drücken)...", "Ricerca automatica in corso (premi SYNC)..."],
@@ -100,7 +103,7 @@ public static class Localizer
         ["Settings_Save"] = ["Save", "保存", "保存", "儲存", "저장", "Enregistrer", "Speichern", "Salva"],
         ["Settings_Cancel"] = ["Cancel", "キャンセル", "取消", "取消", "취소", "Annuler", "Abbrechen", "Annulla"],
         ["Update_Available_Title"] = ["Update available", "アップデート", "有可用更新", "有可用更新", "업데이트 사용 가능", "Mise à jour disponible", "Update verfügbar", "Aggiornamento disponibile"],
-        ["Update_Available_Message"] = ["A new version is available.\n{0}", "新しいバージョンが存在します。\n{0}", "有新版本可用。\n{0}", "有新版本可用。\n{0}", "새 버전이 있습니다.\n{0}", "Une nouvelle version est disponible.\n{0}", "Eine neue Version ist verfügbar.\n{0}", "È disponibile una nuova versione.\n{0}"],
+        ["Update_Available_Message"] = ["An app update is available.", "アプリのアップデートがあります", "有可用的应用更新", "有可用的應用程式更新", "앱 업데이트가 있습니다", "Une mise à jour de l'application est disponible.", "Es ist ein App-Update verfügbar.", "È disponibile un aggiornamento dell'app."],
     };
 
     private static readonly AppLanguage[] Order =
