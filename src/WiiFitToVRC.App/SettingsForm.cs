@@ -133,7 +133,7 @@ public sealed class SettingsForm : Form
     // A plain step count (1-10), not a Weak/Strong or Narrow/Wide dial -- no flanking qualitative
     // labels, just the slider and its raw value, same layout as the mouse-stroke/presence sliders
     // below.
-    private readonly TrackBar _continuationStepCountSlider = new() { Minimum = 1, Maximum = 10, Location = new Point(ValueColumnX, 485), Size = new Size(140, 40), TickFrequency = 1 };
+    private readonly TrackBar _continuationStepCountSlider = new() { Minimum = 1, Maximum = 15, Location = new Point(ValueColumnX, 485), Size = new Size(140, 40), TickFrequency = 1 };
     private readonly Label _continuationStepCountValueLabel = new() { Location = new Point(ValueColumnX + 150, 493), AutoSize = true };
 
     // Same isolated-Panel trick as _turnModePanel -- keeps this radio pair from joining the
@@ -142,20 +142,20 @@ public sealed class SettingsForm : Form
     private readonly RadioButton _dashInputModeComboKeyRadio = new() { Location = new Point(0, 0), AutoSize = true };
     private readonly RadioButton _dashInputModeDoubleTapRadio = new() { Location = new Point(110, 0), AutoSize = true };
 
-    // Turn speed's absolute value/range differs per output mode (mouse pixels-per-tick, OSC/
-    // controller 0-100%), and Keyboard mode has no speed concept at all (turning is a discrete Q/E
-    // key press). One physical slider is reused across the three speed-having modes -- its
-    // Minimum/Maximum/Value get reassigned by UpdateTurnSpeedControlForMode whenever the output
+    // Turn speed's absolute value/range differs per output mode (mouse pixels-per-tick, controller
+    // 0-100%), and Keyboard/Osc have no speed concept at all -- Keyboard turns via a discrete Q/E
+    // key press, and Osc turns via the plain LookLeft/LookRight buttons (see OscSender), which have
+    // no magnitude either, just held or not (its *duration* is still configurable, see
+    // _turnHoldSlider below). One physical slider is reused across the two speed-having modes --
+    // its Minimum/Maximum/Value get reassigned by UpdateTurnSpeedControlForMode whenever the output
     // mode radio changes, swapping in that mode's own staged value (see _mouseTurnSpeedValue /
-    // _oscTurnSpeedValue / _controllerTurnSpeedValue) -- and it's hidden entirely (in favor of
-    // _turnSpeedNoSettingLabel) for Keyboard mode. Left/right used to be independently tunable per
-    // mode; now one shared value drives both directions, matching how the other gesture sliders
-    // work.
+    // _controllerTurnSpeedValue) -- and it's hidden entirely (in favor of _turnSpeedNoSettingLabel)
+    // for Keyboard/Osc. Left/right used to be independently tunable per mode; now one shared value
+    // drives both directions, matching how the other gesture sliders work.
     private readonly TrackBar _turnSpeedSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 585), Size = new Size(180, 40), TickFrequency = 5 };
     private readonly Label _turnSpeedValueLabel = new() { Location = new Point(ValueColumnX + 190, 593), AutoSize = true };
     private readonly Label _turnSpeedNoSettingLabel = new() { Location = new Point(ValueColumnX, 593), AutoSize = true };
     private int _mouseTurnSpeedValue;
-    private int _oscTurnSpeedValue;
     private int _controllerTurnSpeedValue;
 
     // How long (ms) a single confirmed turn step's output is independently held for -- only meaningful
@@ -240,10 +240,6 @@ public sealed class SettingsForm : Form
             {
                 _mouseTurnSpeedValue = _turnSpeedSlider.Value;
             }
-            else if (_outputOscRadio.Checked)
-            {
-                _oscTurnSpeedValue = _turnSpeedSlider.Value;
-            }
             else if (_outputControllerRadio.Checked)
             {
                 _controllerTurnSpeedValue = _turnSpeedSlider.Value;
@@ -271,12 +267,13 @@ public sealed class SettingsForm : Form
         _debugFolderBrowseButton.Click += (_, _) => BrowseDebugFolder();
     }
 
-    // Keyboard mode has no turn-speed concept (Q/E is a discrete key press) -- hide the slider and
-    // show "No setting" instead. The other three modes each swap in their own staged value and
-    // range: mouse pixels-per-tick (1-50), OSC/controller 0-100%.
+    // Keyboard mode has no turn-speed concept (Q/E is a discrete key press), and neither does Osc
+    // (LookLeft/LookRight are plain buttons, no magnitude -- see OscSender) -- hide the slider and
+    // show "No setting" for both. KeyboardMouse and Controller each swap in their own staged value
+    // and range: mouse pixels-per-tick (1-50), controller stick deflection 10-100%.
     private void UpdateTurnSpeedControlForMode()
     {
-        if (_outputKeyboardRadio.Checked)
+        if (_outputKeyboardRadio.Checked || _outputOscRadio.Checked)
         {
             _turnSpeedSlider.Visible = false;
             _turnSpeedValueLabel.Visible = false;
@@ -288,13 +285,7 @@ public sealed class SettingsForm : Form
         _turnSpeedSlider.Visible = true;
         _turnSpeedValueLabel.Visible = true;
 
-        if (_outputOscRadio.Checked)
-        {
-            _turnSpeedSlider.Minimum = 1;
-            _turnSpeedSlider.Maximum = 100;
-            _turnSpeedSlider.Value = Math.Clamp(_oscTurnSpeedValue, 1, 100);
-        }
-        else if (_outputControllerRadio.Checked)
+        if (_outputControllerRadio.Checked)
         {
             _turnSpeedSlider.Minimum = 10;
             _turnSpeedSlider.Maximum = 100;
@@ -536,7 +527,6 @@ public sealed class SettingsForm : Form
         _outputOscRadio.Checked = source.OutputMode == OutputMode.Osc;
 
         _mouseTurnSpeedValue = source.MouseTurnSpeed;
-        _oscTurnSpeedValue = source.OscTurnSpeed;
         _controllerTurnSpeedValue = source.ControllerTurnSpeed;
         UpdateTurnSpeedControlForMode();
         UpdateTurnHoldRowVisibility();
@@ -605,7 +595,6 @@ public sealed class SettingsForm : Form
             : _outputKeyboardMouseRadio.Checked ? OutputMode.KeyboardMouse
             : OutputMode.Keyboard;
         _settings.MouseTurnSpeed = _mouseTurnSpeedValue;
-        _settings.OscTurnSpeed = _oscTurnSpeedValue;
         _settings.ControllerTurnSpeed = _controllerTurnSpeedValue;
         _settings.TurnHoldMs = DisplayToRaw(_turnHoldSlider.Value, TurnHoldRawMin, TurnHoldRawMax);
         _settings.PresenceWeightThreshold = _presenceSlider.Value * 100;

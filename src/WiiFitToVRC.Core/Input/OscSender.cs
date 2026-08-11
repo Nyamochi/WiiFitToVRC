@@ -19,7 +19,8 @@ public sealed class OscSender : IDisposable
 {
     public const string MoveVerticalAddress = "/input/Vertical";
     public const string MoveHorizontalAddress = "/input/Horizontal";
-    public const string LookHorizontalAddress = "/input/LookHorizontal";
+    public const string LookLeftAddress = "/input/LookLeft";
+    public const string LookRightAddress = "/input/LookRight";
     public const string JumpAddress = "/input/Jump";
     public const string RunAddress = "/input/Run";
 
@@ -31,7 +32,8 @@ public sealed class OscSender : IDisposable
 
     private double _lastVertical = double.NaN;
     private double _lastHorizontal = double.NaN;
-    private double _lastLook = double.NaN;
+    private bool? _lastLookLeft;
+    private bool? _lastLookRight;
     private bool? _lastJump;
     private bool? _lastRun;
 
@@ -41,8 +43,14 @@ public sealed class OscSender : IDisposable
         SendFloatIfChanged(MoveHorizontalAddress, horizontal, ref _lastHorizontal);
     }
 
-    public void SetLookAxis(double horizontal) =>
-        SendFloatIfChanged(LookHorizontalAddress, horizontal, ref _lastLook);
+    // Turning uses the discrete LookLeft/LookRight buttons, not the LookHorizontal float axis --
+    // VRChat's OSC input documentation lists LookHorizontal too, but it didn't reliably turn the
+    // character in practice even while the float value was visibly changing in VRChat's own OSC
+    // debug view; LookLeft/LookRight (smooth in Desktop, snap-turn in VR with Comfort Turning on)
+    // are the buttons an actual VR controller's turn input maps to.
+    public void SetLookLeft(bool pressed) => SendBoolIfChanged(LookLeftAddress, pressed, ref _lastLookLeft);
+
+    public void SetLookRight(bool pressed) => SendBoolIfChanged(LookRightAddress, pressed, ref _lastLookRight);
 
     public void SetJump(bool pressed) => SendBoolIfChanged(JumpAddress, pressed, ref _lastJump);
 

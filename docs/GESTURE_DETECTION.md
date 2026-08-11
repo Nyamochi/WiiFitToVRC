@@ -69,7 +69,7 @@ mechanism (front-corner, back-corner) as a streak count that resets once the gap
 mechanism's last corner touch exceeds **Walk/Dash continuation** (`DirectionClassifier.HoldMsForStreak`).
 Turn does *not* use this mechanism at all -- see the Footstep turn model below.
 
-- The first **Steps until continuation** confirming steps of a fresh sequence (default 5) each hold
+- The first **Steps until continuation** confirming steps of a fresh sequence (default 7) each hold
   for just **stride length (ms)** (default 70ms) -- a brief tap. This matters for someone who
   genuinely only wants to take a few steps: without it, those steps would hold the key down far
   longer than the steps themselves.
@@ -82,8 +82,8 @@ Turn does *not* use this mechanism at all -- see the Footstep turn model below.
   steps, keeping continuous walking/dashing held as one unbroken output for as long as the steps
   keep coming -- and stride length alone tunes the short coast *after* the sequence actually ends.
 
-**Steps until continuation** (Settings, directly under **Walk/Dash continuation**) is a plain 1-10
-step count, default 5 -- not a Weak/Strong or Narrow/Wide dial like the other Gesture sensitivity
+**Steps until continuation** (Settings, directly under **Walk/Dash continuation**) is a plain 1-15
+step count, default 7 -- not a Weak/Strong or Narrow/Wide dial like the other Gesture sensitivity
 sliders, since it's a count rather than a threshold.
 
 **Walk/Dash continuation** (Settings, directly under **Stride**) is a Narrow/Wide 0-100 slider like
@@ -187,7 +187,7 @@ turning, matching how Jump/Crouch sensitivity already work. When disabled, any p
 stale carries over to when sensitivity is raised again, and switching between Footstep and Hold
 likewise drops the other model's state right away. No turn-equivalent output is sent in any output
 mode while disabled -- no turn keys, no mouse-look movement, no right-stick deflection, and no OSC
-`LookHorizontal` messages.
+`LookLeft`/`LookRight` messages.
 
 ## Jump: rise, then rapid collapse
 
@@ -226,7 +226,7 @@ independent of the others -- turning up Jump doesn't touch Turn or Crouch. 50 is
 that's also the neutral value underneath, reproducing the original hardcoded thresholds unchanged,
 but **Turn** is the one exception: see the Footstep turn model above for why its default is
 displayed as 50 while the value actually applied underneath is stronger than neutral.
-**Steps until continuation** is a plain 1-10 count instead (default 5), described in "Forward/
+**Steps until continuation** is a plain 1-15 count instead (default 7), described in "Forward/
 Backward/Dash: the first few steps tap, later steps hold" above.
 
 - **Turn/Jump/Crouch** feed directly into
@@ -251,7 +251,7 @@ Backward/Dash: the first few steps tap, later steps hold" above.
   Narrow/Wide with no disable behavior, and independent of Stride even though its raw value is
   added on top of stride length for the long-hold duration.
 - **Steps until continuation** sets the streak count that Forward/Backward/Dash switch over at --
-  Turn doesn't use it at all, always holding for stride length alone regardless. A plain 1-10 count
+  Turn doesn't use it at all, always holding for stride length alone regardless. A plain 1-15 count
   rather than a Weak/Strong/Narrow/Wide dial, and has no disable behavior either.
 
 None of these eight affect forward/backward, which has its own separate **Footstep threshold %**

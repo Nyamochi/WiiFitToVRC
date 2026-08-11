@@ -63,12 +63,6 @@ public sealed class AppSettings
     /// active (OutputMode.KeyboardMouse only). One shared value for both directions.</summary>
     public int MouseTurnSpeed { get; set; } = 5;
 
-    /// <summary>Magnitude (0-100%) sent on VRChat's OSC LookHorizontal axis while turning
-    /// right/left is active (OutputMode.Osc only). One shared value for both directions. 50 is the
-    /// default -- half of the original hardcoded full-deflection (100%) behavior, which turned the
-    /// camera too fast.</summary>
-    public int OscTurnSpeed { get; set; } = 50;
-
     /// <summary>How long (ms) a single confirmed turn step's output is independently held for on
     /// OutputMode.Osc/Controller only -- see InputController.ResolveHeldTurnDirection. A confirmed
     /// turn step from DirectionClassifier only lasts StepHoldMs itself (tens of ms), which wasn't
@@ -142,10 +136,10 @@ public sealed class AppSettings
     /// <summary>How many confirming steps of a fresh forward/backward/dash sequence are just a
     /// brief tap (StepHoldMs alone) before HoldMsForStreak switches to the long, continuously-
     /// bridged hold (StepHoldMs + StepContinuationMs). Doesn't apply to Turn, which always holds
-    /// for StepHoldMs alone regardless of how many steps alternate. A plain step count (1-10), not
-    /// a Weak/Strong or Narrow/Wide dial like the other Gesture sensitivity sliders. 5 is the
+    /// for StepHoldMs alone regardless of how many steps alternate. A plain step count (1-15), not
+    /// a Weak/Strong or Narrow/Wide dial like the other Gesture sensitivity sliders. 7 is the
     /// default.</summary>
-    public int ContinuationStepCount { get; set; } = 5;
+    public int ContinuationStepCount { get; set; } = 7;
 
     /// <summary>Shows the raw-data recording controls (label picker, record button) on the main
     /// window -- only useful for capturing gesture logs during tuning, so hidden by default.</summary>

@@ -299,15 +299,10 @@ public sealed class InputController : IDisposable
         };
         _osc.SetMoveAxis(vertical, 0.0);
 
+        // LookLeft/LookRight are plain buttons (no magnitude) -- see OscSender.SetLookLeft.
         Direction turnDirection = ResolveHeldTurnDirection(direction, nowMs);
-        double magnitude = _settings.OscTurnSpeed / 100.0;
-        double look = turnDirection switch
-        {
-            Direction.TurnRight => magnitude,
-            Direction.TurnLeft => -magnitude,
-            _ => 0.0,
-        };
-        _osc.SetLookAxis(look);
+        _osc.SetLookLeft(turnDirection == Direction.TurnLeft);
+        _osc.SetLookRight(turnDirection == Direction.TurnRight);
 
         // Mirrors the keyboard Shift+W combo / controller sprint button via VRChat's own /input/Run.
         _osc.SetRun(direction == Direction.Dash);
@@ -431,7 +426,8 @@ public sealed class InputController : IDisposable
         else if (_settings.OutputMode == OutputMode.Osc)
         {
             _osc.SetMoveAxis(0, 0);
-            _osc.SetLookAxis(0);
+            _osc.SetLookLeft(false);
+            _osc.SetLookRight(false);
             _osc.SetRun(false);
         }
         else

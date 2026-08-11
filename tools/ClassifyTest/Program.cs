@@ -71,7 +71,7 @@ static void RunOneFile(string path, bool footstepTurnMode)
 
         double y = DirectionClassifier.ComputeY(cal);
 
-        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 70, stepContinuationMs: 900, continuationStepCount: 5, turnSensitivity: 60, footstepTurnMode);
+        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 70, stepContinuationMs: 900, continuationStepCount: 7, turnSensitivity: 60, footstepTurnMode);
         if (Environment.GetEnvironmentVariable("CLASSIFYTEST_TRACE") == "1" && direction != lastTraced)
         {
             Console.WriteLine($"    t={(unixMs - firstUnixMs) / 1000.0:F2}s -> {direction}");
@@ -119,6 +119,6 @@ static void SeedReference(DirectionClassifier directionClassifier, long realFirs
     for (int i = 5; i >= 1; i--)
     {
         long sampleMs = realFirstUnixMs - i * 5000 - 10000; // 5 samples, 5s apart, well clear of the real data
-        directionClassifier.Update(flatReading, sampleMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 70, stepContinuationMs: 900, continuationStepCount: 5, turnSensitivity: 60, footstepTurnMode);
+        directionClassifier.Update(flatReading, sampleMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 70, stepContinuationMs: 900, continuationStepCount: 7, turnSensitivity: 60, footstepTurnMode);
     }
 }

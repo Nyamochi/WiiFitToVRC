@@ -75,7 +75,11 @@ a local UDP message VRChat listens for directly, independent of window focus or 
 locking.
 
 - `/input/Vertical` / `/input/Horizontal` (float axes) carry forward/backward movement.
-- `/input/LookHorizontal` (float axis) carries turning.
+- `/input/LookLeft` / `/input/LookRight` (bool) carry turning. VRChat's OSC address list also
+  defines a `/input/LookHorizontal` float axis, but it didn't reliably turn the character in
+  practice even while the value was visibly changing in VRChat's own OSC debug view -- the
+  discrete LookLeft/LookRight buttons (the same ones an actual VR controller's turn input maps to)
+  work reliably instead.
 - `/input/Run` (bool) is set while dashing, and `/input/Jump` (bool) for jump.
 - Messages are sent to `127.0.0.1:9000`, VRChat's default local OSC receive port, and only when a
   value actually changes (not every sample), matching VRChat's own OSC address list exactly.
