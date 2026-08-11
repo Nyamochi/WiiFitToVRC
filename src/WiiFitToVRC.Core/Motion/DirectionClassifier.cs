@@ -84,9 +84,9 @@ public sealed class DirectionClassifier
     // be judged against the raw corner-touch timing, not against Current going back to Idle -- the
     // 1st step's own hold is far shorter than stepContinuationMs, so Current already reads Idle
     // again well before the 2nd real step of an ordinary walk arrives; resetting on that would mean
-    // the streak could never reach 2. See HoldMsForStreak: the 1st step of a sequence is a brief
-    // tap (in case that's all there is -- someone taking just one step), and only the 2nd step
-    // onward switches to a long, continuously-bridged hold.
+    // the streak could never reach 2. See HoldMsForStreak: the 1st and 2nd steps of a sequence are
+    // a brief tap each (in case that's all there is -- someone taking just one or two steps), and
+    // only the 3rd step onward switches to a long, continuously-bridged hold.
     private int _frontStreak;
     private int _backStreak;
     private int _diagonalStreak;
@@ -379,15 +379,15 @@ public sealed class DirectionClassifier
         _steppingUntilMs = nowMs + holdMs;
     }
 
-    // The 1st confirmed step of a fresh sequence (streak == 1) is just a brief tap -- stepHoldMs
-    // alone -- in case that's genuinely all there is (someone taking a single step). Only once a
-    // 2nd step confirms the sequence is actually continuing does it switch to a long, continuously-
-    // bridged hold: stepContinuationMs on top, comfortably spanning real stride cadence (several
-    // hundred ms between footsteps) so the key stays held instead of releasing and re-pressing
-    // between every subsequent step, plus stepHoldMs still as the short coast after the sequence's
-    // last step. Reused identically for Forward/Dash, Backward, and Footstep-mode Turn.
+    // The 1st and 2nd confirmed steps of a fresh sequence (streak < 3) are just a brief tap each --
+    // stepHoldMs alone -- in case that's genuinely all there is (someone taking one or two steps).
+    // Only once a 3rd step confirms the sequence is actually continuing does it switch to a long,
+    // continuously-bridged hold: stepContinuationMs on top, comfortably spanning real stride cadence
+    // (several hundred ms between footsteps) so the key stays held instead of releasing and
+    // re-pressing between every subsequent step, plus stepHoldMs still as the short coast after the
+    // sequence's last step. Reused identically for Forward/Dash, Backward, and Footstep-mode Turn.
     private static long HoldMsForStreak(int streak, long stepHoldMs, long stepContinuationMs) =>
-        streak >= 2 ? stepHoldMs + stepContinuationMs : stepHoldMs;
+        streak >= 3 ? stepHoldMs + stepContinuationMs : stepHoldMs;
 
     /// <summary>
     /// Watches one corner for the moment its value crosses thresholdRatio times a reference value

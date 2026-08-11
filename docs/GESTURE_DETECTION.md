@@ -61,25 +61,26 @@ threshold %** of the weight reference (e.g. 120%) — a discrete "this foot just
   that, so Dash can never fire and every alternation reads as a plain Forward/Backward step
   instead.
 
-### One step taps, two or more steps hold
+### The first two steps tap, the third and later steps hold
 
 A confirmed direction doesn't hold for the same duration every time -- it depends on whether this
-is an isolated single step or part of an ongoing sequence, tracked per mechanism (front-corner,
-back-corner, diagonal-corner) as a streak count that resets once the gap since that mechanism's
-last corner touch exceeds **Walk/Dash continuation** (`DirectionClassifier.HoldMsForStreak`):
+is an isolated one- or two-step sequence or a genuinely ongoing one, tracked per mechanism
+(front-corner, back-corner, diagonal-corner) as a streak count that resets once the gap since that
+mechanism's last corner touch exceeds **Walk/Dash continuation** (`DirectionClassifier.HoldMsForStreak`):
 
-- The **first** confirming step of a fresh sequence holds for just **stride length (ms)** (default
-  70ms) -- a brief tap. This matters for someone who genuinely only wants to take one step: without
-  it, a single step would hold the key down far longer than the step itself.
-- The **second and every subsequent** confirming step of the same ongoing sequence holds for
+- The **first and second** confirming steps of a fresh sequence each hold for just **stride length
+  (ms)** (default 70ms) -- a brief tap. This matters for someone who genuinely only wants to take
+  one or two steps: without it, those steps would hold the key down far longer than the steps
+  themselves.
+- The **third and every subsequent** confirming step of the same ongoing sequence holds for
   **stride length (ms) + Walk/Dash continuation** (default 70ms + 900ms). The continuation
   component is what actually matters here: ordinary stride cadence (several hundred ms between
   landings) is far slower than stride length alone, so holding for only stride length would release
-  and re-press the key between literally every step of a real walk. Once a second step confirms
-  that this is a real ongoing sequence (not just one deliberate step), the long hold takes over and
-  bridges the gaps between steps, keeping continuous walking/dashing/turning held as one unbroken
-  output for as long as the steps keep coming -- and stride length alone tunes the short coast
-  *after* the sequence actually ends.
+  and re-press the key between literally every step of a real walk. Once a third step confirms
+  that this is a real ongoing sequence (not just one or two deliberate steps), the long hold takes
+  over and bridges the gaps between steps, keeping continuous walking/dashing/turning held as one
+  unbroken output for as long as the steps keep coming -- and stride length alone tunes the short
+  coast *after* the sequence actually ends.
 
 **Walk/Dash continuation** (Settings, directly under **Stride**) is a Narrow/Wide 0-100 slider like
 Stride, backed by a 400-1400ms raw range (default 900ms at the 50% midpoint); its raw value is
@@ -138,10 +139,11 @@ threshold here is a plain percentage of total board weight on that one corner (*
 
 A turn confirms on the **second** step of the pair: a single corner crossing 50% is never enough by
 itself, it just becomes the pending first step waiting for the diagonal partner's next crossing.
-Once confirmed it behaves exactly like a footstep -- the same one-tap-then-hold streak mechanism
-described above applies here too (first confirming step taps for stride length alone, the second
-and later steps of the same alternating sequence hold for stride length + Walk/Dash continuation),
-releasing back to Idle the same way stepping does once the alternation stops.
+Once confirmed it behaves exactly like a footstep -- the same tap-then-hold streak mechanism
+described above applies here too (the first and second confirming steps tap for stride length
+alone, the third and later steps of the same alternating sequence hold for stride length +
+Walk/Dash continuation), releasing back to Idle the same way stepping does once the alternation
+stops.
 
 The 50% figure above is the value at the default **Gesture sensitivity: Turn** setting (see below)
 -- it scales as that setting moves away from its default, the same way Walk/Dash's thresholds do

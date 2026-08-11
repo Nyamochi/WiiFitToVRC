@@ -105,15 +105,15 @@ public sealed class AppSettings
     public DashInputMode DashInputMode { get; set; } = DashInputMode.ComboKey;
 
     /// <summary>How long (ms) a confirmed forward/backward/dash/footstep-turn direction is held
-    /// for -- by itself, the 1st step of a fresh sequence (in case that's genuinely all there is,
-    /// e.g. one deliberate single step), and the short coast after the *last* step of a longer
-    /// sequence. See StepContinuationMs for what keeps a longer sequence held continuously in
+    /// for -- by itself, the 1st and 2nd steps of a fresh sequence (in case that's genuinely all
+    /// there is, e.g. one or two deliberate steps), and the short coast after the *last* step of a
+    /// longer sequence. See StepContinuationMs for what keeps a longer sequence held continuously in
     /// between its steps -- this setting mostly just tunes how "sticky" a single step or the tail
     /// end feels. 70 is the default -- the midpoint of the "Stride" slider's 30-110ms range
     /// (displayed as 50%).</summary>
     public int StepHoldMs { get; set; } = 70;
 
-    /// <summary>Added on top of StepHoldMs (see DirectionClassifier.HoldMsForStreak) from the 2nd
+    /// <summary>Added on top of StepHoldMs (see DirectionClassifier.HoldMsForStreak) from the 3rd
     /// confirming step of a forward/backward/dash/footstep-turn sequence onward, and also how long
     /// a gap after any confirming step is still considered the same ongoing sequence. Needs to
     /// comfortably span real stride cadence (several hundred ms between footsteps) or continuous
