@@ -84,4 +84,19 @@ public sealed class ReferenceWeightCalibrator
         _lastSampleMs = -1;
         IsCalibrated = false;
     }
+
+    /// <summary>Seeds the reference directly from a single current reading instead of waiting for
+    /// a flat window -- used for AppSettings.PostureMode.Sitting (see DirectionClassifier.Update),
+    /// where a seated person's resting weight is light and inconsistent enough that the normal
+    /// ~20+ second "stand still" wait isn't worth it, or reliable to begin with.</summary>
+    public void CalibrateImmediately(CalibratedReading cal)
+    {
+        _window.Clear();
+        _lastSampleMs = -1;
+        ReferenceTopRight = cal.TopRight;
+        ReferenceTopLeft = cal.TopLeft;
+        ReferenceBottomRight = cal.BottomRight;
+        ReferenceBottomLeft = cal.BottomLeft;
+        IsCalibrated = true;
+    }
 }

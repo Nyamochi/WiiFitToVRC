@@ -141,7 +141,7 @@ public sealed class InputController : IDisposable
             return;
         }
 
-        var direction = _direction.Update(cal, nowMs, isPresent: true, _settings.FootstepThresholdPercent / 100.0, _settings.DashPeriodMs, _settings.StepHoldMs, _settings.StepContinuationMs, _settings.ContinuationStepCount, _settings.TurnSensitivity, _settings.TurnMode == TurnMode.Footstep);
+        var direction = _direction.Update(cal, nowMs, isPresent: true, _settings.FootstepThresholdPercent / 100.0, _settings.DashPeriodMs, _settings.StepHoldMs, _settings.StepContinuationMs, _settings.ContinuationStepCount, _settings.TurnSensitivity, _settings.TurnMode == TurnMode.Footstep, _settings.PostureMode == PostureMode.Sitting);
         ApplyDirection(direction, nowMs);
         ReleaseAndRepressDashKeyIfDue(nowMs);
 

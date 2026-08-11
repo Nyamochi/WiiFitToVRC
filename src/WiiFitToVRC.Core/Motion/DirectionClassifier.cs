@@ -160,7 +160,14 @@ public sealed class DirectionClassifier
     /// <param name="footstepTurnMode">True runs the Footstep turn model, false runs Hold -- see the
     /// class doc comment. A plain bool (rather than AppSettings.TurnMode) so this class doesn't
     /// need to reference the Settings namespace, matching every other primitive parameter here.</param>
-    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, long stepContinuationMs, int continuationStepCount, int turnSensitivity, bool footstepTurnMode)
+    /// <param name="instantWeightCalibration">True for AppSettings.PostureMode.Sitting -- see
+    /// ReferenceWeightCalibrator.CalibrateImmediately. Seeds the reference from a single reading
+    /// the moment presence is detected instead of the normal ~20+ second "stand still" wait, and
+    /// suspends the usual ongoing auto-refresh entirely for as long as this stays true (a seated
+    /// person's light, inconsistent resting weight isn't a good fit for that flatness-window
+    /// process either way). A plain bool rather than AppSettings.PostureMode, matching
+    /// footstepTurnMode above.</param>
+    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, long stepContinuationMs, int continuationStepCount, int turnSensitivity, bool footstepTurnMode, bool instantWeightCalibration)
     {
         bool trEdge = _topRight.Update(cal.TopRight, nowMs, _reference.ReferenceTopRight, footstepThresholdRatio);
         bool tlEdge = _topLeft.Update(cal.TopLeft, nowMs, _reference.ReferenceTopLeft, footstepThresholdRatio);
@@ -245,9 +252,19 @@ public sealed class DirectionClassifier
         // that sustained lean, and wins over stepping while confirmed (see UpdateTurn).
         Current = _turnConfirmed ? _turnSide : nowMs <= _steppingUntilMs ? _steppingDirection : Direction.Idle;
 
+        if (instantWeightCalibration)
+        {
+            // Sitting: skip the flat-window wait entirely -- seed once from whatever's there the
+            // moment presence is detected, then leave it alone for as long as sitting mode stays
+            // on (see the instantWeightCalibration doc comment above).
+            if (isPresent && !_reference.IsCalibrated)
+            {
+                _reference.CalibrateImmediately(cal);
+            }
+        }
         // Feed the weight reference only from genuinely quiet moments -- present, and nothing
         // currently detected -- so an active gesture can't pollute what "resting" looks like.
-        if (isPresent && Current == Direction.Idle)
+        else if (isPresent && Current == Direction.Idle)
         {
             _reference.Update(cal, nowMs);
         }

@@ -389,6 +389,12 @@ public partial class MonitorForm : Form
     {
         _settings.PostureMode = mode;
         _settings.Save();
+        // The old reference weight (whichever posture it was learned under) no longer applies to
+        // the new one -- standing and sitting put very different weight on the board. Resetting
+        // makes DirectionClassifier.Update re-establish it from scratch: instantly if the new mode
+        // is Sitting (see instantWeightCalibration), or via the normal ~20+ second "stand still"
+        // process if it's Standing.
+        _inputController.ResetWeightCalibration();
     }
 
     /// <summary>Re-applies all static UI text for the current language -- called at startup and
