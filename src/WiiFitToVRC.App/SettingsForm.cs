@@ -25,6 +25,13 @@ public sealed class SettingsForm : Form
     private const int StrideRawMin = 30, StrideRawMax = 110;
     private const int StepContinuationRawMin = 400, StepContinuationRawMax = 1400;
 
+    // Turn is fed directly into GestureSensitivityScale like Jump/Crouch, but its raw default
+    // (AppSettings.TurnSensitivity = 60) isn't the neutral 50 -- real-world testing found the
+    // neutral threshold too hard to trigger. Not inverted (higher raw = higher display = "strong",
+    // same direction as the raw value itself), just shifted +10 from a plain 0-100 range so that
+    // raw 60 lands at display 50, keeping every other slider's "50 is the default" convention.
+    private const int TurnRawMin = 10, TurnRawMax = 110;
+
     private static int RawToDisplayInverted(int raw, int rawMin, int rawMax) =>
         (int)Math.Round((rawMax - raw) * 100.0 / (rawMax - rawMin));
 
@@ -46,6 +53,15 @@ public sealed class SettingsForm : Form
 
     private static int DashRawToDisplay(int raw) =>
         raw <= 0 ? 0 : Math.Clamp(RawToDisplayInverted(Math.Clamp(raw, DashRawMin, DashRawMax), DashRawMin, DashRawMax), 0, 100);
+
+    // Turn sensitivity 0 ("Weak") is the same hard disable cutoff as Dash -- see
+    // GestureSensitivityScale.IsDisabled -- so 0 maps to the raw sentinel 0 instead of TurnRawMin,
+    // both ways, exactly like DashDisplayToRaw/DashRawToDisplay above.
+    private static int TurnDisplayToRaw(int display) =>
+        display <= 0 ? 0 : DisplayToRaw(display, TurnRawMin, TurnRawMax);
+
+    private static int TurnRawToDisplay(int raw) =>
+        raw <= 0 ? 0 : Math.Clamp(RawToDisplay(Math.Clamp(raw, TurnRawMin, TurnRawMax), TurnRawMin, TurnRawMax), 0, 100);
 
     // Fixed height -- the General tab has grown taller than comfortably fits on screen, so it
     // scrolls internally (see AutoScroll below) instead of the window growing without bound.
@@ -113,10 +129,10 @@ public sealed class SettingsForm : Form
     private readonly Label _stepContinuationWideLabel = new() { Location = new Point(ValueColumnX + 201, 453), AutoSize = true };
     private readonly Label _stepContinuationValueLabel = new() { Location = new Point(ValueColumnX + 255, 453), AutoSize = true };
 
-    // A plain step count (1-5), not a Weak/Strong or Narrow/Wide dial -- no flanking qualitative
+    // A plain step count (1-10), not a Weak/Strong or Narrow/Wide dial -- no flanking qualitative
     // labels, just the slider and its raw value, same layout as the mouse-stroke/presence sliders
     // below.
-    private readonly TrackBar _continuationStepCountSlider = new() { Minimum = 1, Maximum = 5, Location = new Point(ValueColumnX, 485), Size = new Size(140, 40), TickFrequency = 1 };
+    private readonly TrackBar _continuationStepCountSlider = new() { Minimum = 1, Maximum = 10, Location = new Point(ValueColumnX, 485), Size = new Size(140, 40), TickFrequency = 1 };
     private readonly Label _continuationStepCountValueLabel = new() { Location = new Point(ValueColumnX + 150, 493), AutoSize = true };
 
     // Same isolated-Panel trick as _turnModePanel -- keeps this radio pair from joining the
@@ -516,7 +532,7 @@ public sealed class SettingsForm : Form
         _continuationStepCountSlider.Value = Math.Clamp(source.ContinuationStepCount, _continuationStepCountSlider.Minimum, _continuationStepCountSlider.Maximum);
         _continuationStepCountValueLabel.Text = _continuationStepCountSlider.Value.ToString();
 
-        _turnSensitivitySlider.Value = Math.Clamp(source.TurnSensitivity, _turnSensitivitySlider.Minimum, _turnSensitivitySlider.Maximum);
+        _turnSensitivitySlider.Value = Math.Clamp(TurnRawToDisplay(source.TurnSensitivity), _turnSensitivitySlider.Minimum, _turnSensitivitySlider.Maximum);
         _turnSensitivityValueLabel.Text = _turnSensitivitySlider.Value.ToString();
         _jumpSensitivitySlider.Value = Math.Clamp(source.JumpSensitivity, _jumpSensitivitySlider.Minimum, _jumpSensitivitySlider.Maximum);
         _jumpSensitivityValueLabel.Text = _jumpSensitivitySlider.Value.ToString();
@@ -561,7 +577,7 @@ public sealed class SettingsForm : Form
         _settings.StepHoldMs = DisplayToRaw(_strideSlider.Value, StrideRawMin, StrideRawMax);
         _settings.StepContinuationMs = DisplayToRaw(_stepContinuationSlider.Value, StepContinuationRawMin, StepContinuationRawMax);
         _settings.ContinuationStepCount = _continuationStepCountSlider.Value;
-        _settings.TurnSensitivity = _turnSensitivitySlider.Value;
+        _settings.TurnSensitivity = TurnDisplayToRaw(_turnSensitivitySlider.Value);
         _settings.JumpSensitivity = _jumpSensitivitySlider.Value;
         _settings.CrouchSensitivity = _crouchSensitivitySlider.Value;
         _settings.TurnMode = _turnModeHoldRadio.Checked ? TurnMode.Hold : TurnMode.Footstep;

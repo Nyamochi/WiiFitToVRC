@@ -26,11 +26,12 @@ namespace WiiFitToVRC.Core.Motion;
 ///   each other -- structurally the same "alternate peak on two panels" shape as forward/backward
 ///   stepping, just on the diagonal pair instead of the front or back pair. The turn confirms on
 ///   the *second* step of the pair (i.e. it needs one full alternation, not just a single corner
-///   crossing the threshold), in either order, and behaves exactly like a footstep afterward -- it
-///   holds for stepHoldMs and can be refreshed by further alternating steps, same as
-///   Forward/Backward/Dash. Added after an earlier version of Hold below turned out to
-///   false-trigger the opposite turn during this model's own large X swings, since the two used to
-///   run simultaneously; they're mutually exclusive now.
+///   crossing the threshold), in either order, and always holds for stepHoldMs alone -- unlike
+///   Forward/Backward/Dash, Turn never escalates to a longer continuously-bridged hold no matter
+///   how many alternating steps follow, so turning always reads as one deliberate step at a time.
+///   Added after an earlier version of Hold below turned out to false-trigger the opposite turn
+///   during this model's own large X swings, since the two used to run simultaneously; they're
+///   mutually exclusive now.
 /// - **Hold** (TurnMode.Hold): X (left-right weight) has to swing past a threshold and *stay*
 ///   there continuously for a sustained stretch before it's confirmed -- an ordinary step's sway
 ///   crosses the same instantaneous threshold plenty, but flips side to side too quickly to ever
@@ -78,19 +79,19 @@ public sealed class DirectionClassifier
     private DiagonalCorner _lastDiagonalEdge = DiagonalCorner.None;
     private long _lastDiagonalEdgeMs;
 
-    // How many confirmed steps in a row the current front/back/diagonal sequence has had -- reset
-    // to 0 in Handle*Edge whenever the gap since that corner-pair's last touch exceeds
-    // stepContinuationMs (a real pause), so a fresh sequence always starts over at 1. This has to
-    // be judged against the raw corner-touch timing, not against Current going back to Idle -- the
-    // 1st step's own hold is far shorter than stepContinuationMs, so Current already reads Idle
-    // again well before the 2nd real step of an ordinary walk arrives; resetting on that would mean
-    // the streak could never grow. See HoldMsForStreak: the first (continuationStepCount - 1) steps
-    // of a sequence are a brief tap each (in case that's all there is -- someone taking just a few
-    // steps), and only the continuationStepCount-th step onward switches to a long,
-    // continuously-bridged hold.
+    // How many confirmed steps in a row the current front/back sequence has had -- reset to 0 in
+    // Handle*Edge whenever the gap since that corner-pair's last touch exceeds stepContinuationMs
+    // (a real pause), so a fresh sequence always starts over at 1. This has to be judged against
+    // the raw corner-touch timing, not against Current going back to Idle -- the 1st step's own
+    // hold is far shorter than stepContinuationMs, so Current already reads Idle again well before
+    // the 2nd real step of an ordinary walk arrives; resetting on that would mean the streak could
+    // never grow. See HoldMsForStreak: the first (continuationStepCount - 1) steps of a sequence
+    // are a brief tap each (in case that's all there is -- someone taking just a few steps), and
+    // only the continuationStepCount-th step onward switches to a long, continuously-bridged hold.
+    // Turn (HandleDiagonalEdge) doesn't have an equivalent streak -- every confirmed turn step
+    // holds for stepHoldMs alone, turning always being a deliberate one-step-at-a-time action.
     private int _frontStreak;
     private int _backStreak;
-    private int _diagonalStreak;
 
     private Direction _steppingDirection = Direction.Idle; // Forward/Dash/Backward/Turn(Footstep) from a confirmed footstep
     private long _steppingUntilMs;
@@ -131,15 +132,17 @@ public sealed class DirectionClassifier
     /// just this long (in case that's all there is), and the tail coast after the *last* step of a
     /// longer sequence too. Configurable since how "sticky" a step should feel is a matter of
     /// taste.</param>
-    /// <param name="stepContinuationMs">Added on top of stepHoldMs from the continuationStepCount-th
-    /// confirming step of a sequence onward, and also how long a gap between two steps is still
-    /// considered the same sequence in the first place -- see HoldMsForStreak. Needs to comfortably
-    /// span real stride cadence (several hundred ms between footsteps) or continuous walking would
-    /// release and re-press the key between every step.</param>
-    /// <param name="continuationStepCount">How many confirming steps of a fresh sequence are just a
-    /// brief stepHoldMs tap each before HoldMsForStreak switches to the long, continuously-bridged
-    /// hold -- see HoldMsForStreak. A plain step count (1-5), not a sensitivity-scaled
-    /// threshold.</param>
+    /// <param name="stepContinuationMs">For Forward/Backward/Dash, added on top of stepHoldMs from
+    /// the continuationStepCount-th confirming step of a sequence onward -- see HoldMsForStreak.
+    /// Also how long a gap between two steps (of any of the three mechanisms, Turn included) is
+    /// still considered the same sequence in the first place. Needs to comfortably span real stride
+    /// cadence (several hundred ms between footsteps) or continuous walking would release and
+    /// re-press the key between every step.</param>
+    /// <param name="continuationStepCount">Forward/Backward/Dash only -- how many confirming steps
+    /// of a fresh sequence are just a brief stepHoldMs tap each before HoldMsForStreak switches to
+    /// the long, continuously-bridged hold -- see HoldMsForStreak. Turn doesn't use this: every
+    /// confirmed turn step holds for stepHoldMs alone, regardless of how many alternate in a row. A
+    /// plain step count (1-10), not a sensitivity-scaled threshold.</param>
     /// <param name="turnSensitivity">0-100, see GestureSensitivityScale -- scales whichever turn
     /// model (turnMode) is currently active (does not affect forward/backward/dash, which has its
     /// own separate footstep-threshold setting). 0 fully disables turning -- any in-progress state
@@ -191,19 +194,19 @@ public sealed class DirectionClassifier
             bool diagBlEdge = _diagBottomLeft.Update(cal.PctBottomLeft, nowMs, 1.0, diagonalThresholdPct);
             if (diagTrEdge)
             {
-                HandleDiagonalEdge(DiagonalCorner.TopRight, nowMs, stepHoldMs, stepContinuationMs, continuationStepCount);
+                HandleDiagonalEdge(DiagonalCorner.TopRight, nowMs, stepHoldMs, stepContinuationMs);
             }
             if (diagTlEdge)
             {
-                HandleDiagonalEdge(DiagonalCorner.TopLeft, nowMs, stepHoldMs, stepContinuationMs, continuationStepCount);
+                HandleDiagonalEdge(DiagonalCorner.TopLeft, nowMs, stepHoldMs, stepContinuationMs);
             }
             if (diagBrEdge)
             {
-                HandleDiagonalEdge(DiagonalCorner.BottomRight, nowMs, stepHoldMs, stepContinuationMs, continuationStepCount);
+                HandleDiagonalEdge(DiagonalCorner.BottomRight, nowMs, stepHoldMs, stepContinuationMs);
             }
             if (diagBlEdge)
             {
-                HandleDiagonalEdge(DiagonalCorner.BottomLeft, nowMs, stepHoldMs, stepContinuationMs, continuationStepCount);
+                HandleDiagonalEdge(DiagonalCorner.BottomLeft, nowMs, stepHoldMs, stepContinuationMs);
             }
         }
         else if (_lastDiagonalEdge != DiagonalCorner.None)
@@ -335,14 +338,12 @@ public sealed class DirectionClassifier
     // Confirms a turn on the *second* step of a diagonal pair -- back-right paired with front-left
     // (either order) is a right turn, front-right paired with back-left (either order) is a left
     // turn. A single corner crossing the threshold is never enough by itself; it just becomes the
-    // pending "first step" for the next one to potentially pair with.
-    private void HandleDiagonalEdge(DiagonalCorner corner, long nowMs, long stepHoldMs, long stepContinuationMs, int continuationStepCount)
+    // pending "first step" for the next one to potentially pair with. Unlike Forward/Backward,
+    // Turn never escalates to the long continuously-bridged hold no matter how many alternating
+    // steps follow -- every confirmed turn step holds for stepHoldMs alone, so turning always reads
+    // as a deliberate one-step-at-a-time action instead of coasting between steps.
+    private void HandleDiagonalEdge(DiagonalCorner corner, long nowMs, long stepHoldMs, long stepContinuationMs)
     {
-        if (_lastDiagonalEdge != DiagonalCorner.None && nowMs - _lastDiagonalEdgeMs > stepContinuationMs)
-        {
-            _diagonalStreak = 0;
-        }
-
         if (_lastDiagonalEdge != DiagonalCorner.None && nowMs - _lastDiagonalEdgeMs <= stepContinuationMs)
         {
             Direction? confirmed = (_lastDiagonalEdge, corner) switch
@@ -353,8 +354,7 @@ public sealed class DirectionClassifier
             };
             if (confirmed is { } direction)
             {
-                _diagonalStreak++;
-                ConfirmCompetingStep(direction, nowMs, HoldMsForStreak(_diagonalStreak, stepHoldMs, stepContinuationMs, continuationStepCount), stepContinuationMs);
+                ConfirmCompetingStep(direction, nowMs, stepHoldMs, stepContinuationMs);
             }
         }
 

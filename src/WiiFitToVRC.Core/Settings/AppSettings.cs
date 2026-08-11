@@ -81,14 +81,23 @@ public sealed class AppSettings
     /// <summary>Which turn-detection model is active -- see TurnMode. Footstep is the default.</summary>
     public TurnMode TurnMode { get; set; } = TurnMode.Footstep;
 
-    /// <summary>0-100, how easily each gesture fires individually (forward/backward/dash has its
-    /// own separate footstep-threshold setting instead). 50 is neutral and reproduces the original
-    /// hardcoded thresholds exactly; see GestureSensitivityScale for the exact scaling. 0 fully
-    /// disables the gesture -- it never fires regardless of input, replacing what used to be a
-    /// separate enabled/disabled toggle.</summary>
-    public int TurnSensitivity { get; set; } = 50;
+    /// <summary>Fed directly into GestureSensitivityScale (0-100, how easily each gesture fires
+    /// individually; forward/backward/dash has its own separate footstep-threshold setting
+    /// instead). 50 is neutral and reproduces the original hardcoded thresholds exactly; see
+    /// GestureSensitivityScale for the exact scaling. 0 fully disables the gesture -- it never
+    /// fires regardless of input, replacing what used to be a separate enabled/disabled
+    /// toggle.</summary>
     public int JumpSensitivity { get; set; } = 50;
     public int CrouchSensitivity { get; set; } = 50;
+
+    /// <summary>Also fed directly into GestureSensitivityScale like Jump/Crouch above, but unlike
+    /// them the *default* isn't the neutral 50 -- real-world testing found the neutral threshold
+    /// too hard to trigger, so 60 (a 10% easier-to-trigger multiplier) is the actual default here.
+    /// The Settings UI hides this behind its own raw/display split (see SettingsForm's
+    /// TurnRawMin/TurnRawMax) so the slider still shows a plain 50 at that default, matching every
+    /// other Gesture sensitivity slider's neutral-looks-like-50 convention -- this field always
+    /// holds the raw value GestureSensitivityScale actually sees, not the display percentage.</summary>
+    public int TurnSensitivity { get; set; } = 60;
 
     /// <summary>How far above a corner's reference resting weight (see ReferenceWeightCalibrator)
     /// it must rise to count as a footstep for forward/backward detection, as a percentage
@@ -121,12 +130,13 @@ public sealed class AppSettings
     /// continuation" slider's 400-1400ms range (displayed as 50%).</summary>
     public int StepContinuationMs { get; set; } = 900;
 
-    /// <summary>How many confirming steps of a fresh forward/backward/dash/footstep-turn sequence
-    /// are just a brief tap (StepHoldMs alone) before HoldMsForStreak switches to the long,
-    /// continuously-bridged hold (StepHoldMs + StepContinuationMs). A plain step count (1-5), not a
-    /// Weak/Strong or Narrow/Wide dial like the other Gesture sensitivity sliders. 3 is the
+    /// <summary>How many confirming steps of a fresh forward/backward/dash sequence are just a
+    /// brief tap (StepHoldMs alone) before HoldMsForStreak switches to the long, continuously-
+    /// bridged hold (StepHoldMs + StepContinuationMs). Doesn't apply to Turn, which always holds
+    /// for StepHoldMs alone regardless of how many steps alternate. A plain step count (1-10), not
+    /// a Weak/Strong or Narrow/Wide dial like the other Gesture sensitivity sliders. 5 is the
     /// default.</summary>
-    public int ContinuationStepCount { get; set; } = 3;
+    public int ContinuationStepCount { get; set; } = 5;
 
     /// <summary>Shows the raw-data recording controls (label picker, record button) on the main
     /// window -- only useful for capturing gesture logs during tuning, so hidden by default.</summary>
