@@ -31,6 +31,7 @@ static void RunOneFile(string path, bool footstepTurnMode)
     var jumpDetector = new JumpDetector();
 
     var directionCounts = new Dictionary<Direction, int>();
+    var stepGapsByDirection = new Dictionary<Direction, List<long>>();
     int crouchSamples = 0;
     int jumpTriggers = 0;
     int totalSamples = 0;
@@ -38,6 +39,16 @@ static void RunOneFile(string path, bool footstepTurnMode)
     bool seeded = false;
     long firstUnixMs = 0;
     Direction lastTraced = Direction.Idle;
+
+    directionClassifier.StepPaired += (direction, gapMs) =>
+    {
+        if (!stepGapsByDirection.TryGetValue(direction, out var gaps))
+        {
+            gaps = [];
+            stepGapsByDirection[direction] = gaps;
+        }
+        gaps.Add(gapMs);
+    };
 
     foreach (string line in File.ReadLines(path).Skip(1))
     {
@@ -71,7 +82,7 @@ static void RunOneFile(string path, bool footstepTurnMode)
 
         double y = DirectionClassifier.ComputeY(cal);
 
-        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 70, stepContinuationMs: 900, continuationStepCount: 7, turnSensitivity: 60, footstepTurnMode);
+        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 70, stepContinuationMs: 800, continuationStepCount: 7, turnSensitivity: 60, footstepTurnMode);
         if (Environment.GetEnvironmentVariable("CLASSIFYTEST_TRACE") == "1" && direction != lastTraced)
         {
             Console.WriteLine($"    t={(unixMs - firstUnixMs) / 1000.0:F2}s -> {direction}");
@@ -99,6 +110,13 @@ static void RunOneFile(string path, bool footstepTurnMode)
     }
     Console.WriteLine($"  crouch: {crouchSamples} samples ({100.0 * crouchSamples / totalSamples:F1}%)");
     Console.WriteLine($"  jump triggers: {jumpTriggers}");
+
+    foreach (var (direction, gaps) in stepGapsByDirection.OrderByDescending(kv => kv.Value.Count))
+    {
+        gaps.Sort();
+        long p95 = gaps[(int)Math.Min(gaps.Count - 1, Math.Ceiling(gaps.Count * 0.95) - 1)];
+        Console.WriteLine($"  {direction,-12} step gaps: n={gaps.Count,4} min={gaps[0],4}ms p95={p95,4}ms max={gaps[^1],4}ms");
+    }
 }
 
 static void SeedReference(DirectionClassifier directionClassifier, long realFirstUnixMs, bool footstepTurnMode)
@@ -119,6 +137,6 @@ static void SeedReference(DirectionClassifier directionClassifier, long realFirs
     for (int i = 5; i >= 1; i--)
     {
         long sampleMs = realFirstUnixMs - i * 5000 - 10000; // 5 samples, 5s apart, well clear of the real data
-        directionClassifier.Update(flatReading, sampleMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 70, stepContinuationMs: 900, continuationStepCount: 7, turnSensitivity: 60, footstepTurnMode);
+        directionClassifier.Update(flatReading, sampleMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 70, stepContinuationMs: 800, continuationStepCount: 7, turnSensitivity: 60, footstepTurnMode);
     }
 }

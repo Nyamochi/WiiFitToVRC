@@ -53,7 +53,7 @@ threshold %** of the weight reference (e.g. 120%) — a discrete "this foot just
   least slightly forward); a landing on a **back** corner only counts while `Y ≤ 0`. This keeps a
   step from being attributed to the wrong direction.
 - **Front-right then front-left** (or vice versa) within a short window (**Walk/Dash continuation**,
-  default 900ms) is a confirmed walking step → **Forward**. The same pairing on the back corners →
+  default 800ms) is a confirmed walking step → **Forward**. The same pairing on the back corners →
   **Backward**.
 - If the two landings are closer together than the dash period (default 300ms, tuned via
   **Gesture sensitivity: Dash** in Settings), it's a **Dash** instead of a plain walk. At Dash
@@ -74,7 +74,7 @@ Turn does *not* use this mechanism at all -- see the Footstep turn model below.
   genuinely only wants to take a few steps: without it, those steps would hold the key down far
   longer than the steps themselves.
 - Every confirming step from **Steps until continuation** onward holds for **stride length (ms) +
-  Walk/Dash continuation** (default 70ms + 900ms). The continuation component is what actually
+  Walk/Dash continuation** (default 70ms + 800ms). The continuation component is what actually
   matters here: ordinary stride cadence (several hundred ms between landings) is far slower than
   stride length alone, so holding for only stride length would release and re-press the key between
   literally every step of a real walk. Once enough steps confirm that this is a real ongoing
@@ -87,7 +87,9 @@ step count, default 7 -- not a Weak/Strong or Narrow/Wide dial like the other Ge
 sliders, since it's a count rather than a threshold.
 
 **Walk/Dash continuation** (Settings, directly under **Stride**) is a Narrow/Wide 0-100 slider like
-Stride, backed by a 400-1400ms raw range (default 900ms at the 50% midpoint); its raw value is
+Stride, backed by a 400-1400ms raw range (default 800ms, displayed at 40% rather than the usual
+50% midpoint -- this default was tuned from real gait logs rather than picked to land at the
+range's center; see AppSettings.StepContinuationMs). Its raw value is
 added on top of stride length to form the long-hold duration described above, and independently
 sets how long a gap is still considered part of the same sequence for the alternation pairing (of
 Forward/Backward *and* Turn, see below) and, for Forward/Backward/Dash only, the streak reset.
@@ -117,7 +119,7 @@ A real forward footstep sometimes lands hard enough to also light up a corner th
 *different* pair -- e.g. the back-right panel crossing its own footstep threshold, or (see Turning
 below) crossing the diagonal turn threshold -- even though nothing about the actual movement
 changed. If that happens while forward is still genuinely in progress (a front corner has been
-touched within the last **Walk/Dash continuation** window, default 900ms -- long enough to span
+touched within the last **Walk/Dash continuation** window, default 800ms -- long enough to span
 normal stride cadence, not just the much shorter stride-length output-hold window), the competing
 Backward/TurnLeft/TurnRight
 confirmation is treated as noise from the same stride: the forward hold is simply refreshed instead

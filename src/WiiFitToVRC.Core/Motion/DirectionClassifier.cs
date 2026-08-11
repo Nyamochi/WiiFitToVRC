@@ -109,6 +109,13 @@ public sealed class DirectionClassifier
     /// ReferenceWeightCalibrator.Refreshed).</summary>
     public event Action? WeightCalibrationRefreshed;
 
+    /// <summary>Fires every time a Forward/Backward/Dash/Footstep-turn step is confirmed (i.e. a
+    /// pairing succeeds in Handle*Edge), with the confirmed direction and the raw gap (ms) since
+    /// that mechanism's previous corner touch. Diagnostic only -- tuning stepContinuationMs (the
+    /// gap tolerance) needs to know real inter-step gaps from actual gait, which isn't otherwise
+    /// observable from the outside since Current only reflects the smoothed/held output.</summary>
+    public event Action<Direction, long>? StepPaired;
+
     public DirectionClassifier()
     {
         _reference.Refreshed += () => WeightCalibrationRefreshed?.Invoke();
@@ -312,6 +319,7 @@ public sealed class DirectionClassifier
             _steppingDirection = interval < dashPeriodMs ? Direction.Dash : Direction.Forward;
             _frontStreak++;
             _steppingUntilMs = nowMs + HoldMsForStreak(_frontStreak, stepHoldMs, stepContinuationMs, continuationStepCount);
+            StepPaired?.Invoke(_steppingDirection, interval);
         }
 
         _lastFrontEdge = corner;
@@ -327,8 +335,10 @@ public sealed class DirectionClassifier
 
         if (_lastBackEdge != Corner.None && _lastBackEdge != corner && nowMs - _lastBackEdgeMs <= stepContinuationMs)
         {
+            long interval = nowMs - _lastBackEdgeMs;
             _backStreak++;
             ConfirmCompetingStep(Direction.Backward, nowMs, HoldMsForStreak(_backStreak, stepHoldMs, stepContinuationMs, continuationStepCount), stepContinuationMs);
+            StepPaired?.Invoke(Direction.Backward, interval);
         }
 
         _lastBackEdge = corner;
@@ -355,6 +365,7 @@ public sealed class DirectionClassifier
             if (confirmed is { } direction)
             {
                 ConfirmCompetingStep(direction, nowMs, stepHoldMs, stepContinuationMs);
+                StepPaired?.Invoke(direction, nowMs - _lastDiagonalEdgeMs);
             }
         }
 

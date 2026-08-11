@@ -127,11 +127,18 @@ public sealed class AppSettings
     /// <summary>Added on top of StepHoldMs (see DirectionClassifier.HoldMsForStreak) from the
     /// ContinuationStepCount-th confirming step of a forward/backward/dash/footstep-turn sequence
     /// onward, and also how long a gap after any confirming step is still considered the same
-    /// ongoing sequence. Needs to comfortably span real stride cadence (several hundred ms between
-    /// footsteps) or continuous walking/dashing would release and re-press the key between every
-    /// step instead of staying held. 900 is the default -- the midpoint of the "Walk/Dash
-    /// continuation" slider's 400-1400ms range (displayed as 50%).</summary>
-    public int StepContinuationMs { get; set; } = 900;
+    /// ongoing sequence -- including the tail coast after a sequence's genuinely last step, which
+    /// shares this same value (there's no way to tell "another step is coming" from "that was the
+    /// last one" in advance). Needs to comfortably span real stride cadence (several hundred ms
+    /// between footsteps) or continuous walking/dashing would release and re-press the key between
+    /// every step instead of staying held, but the tail coast is wasted lag once the sequence
+    /// actually stops, so it shouldn't be any longer than that margin requires either. 800 is the
+    /// default -- real gait logs showed observed inter-step gaps topping out at 765ms (p95 well
+    /// under that), so 800 keeps a real but modest margin above the worst case actually seen while
+    /// trimming stop-lag versus a larger value. Within the "Walk/Dash continuation" slider's
+    /// 400-1400ms range (displayed as 40%, not the usual 50% -- this default was tuned from real
+    /// data rather than picked to land at the range's midpoint).</summary>
+    public int StepContinuationMs { get; set; } = 800;
 
     /// <summary>How many confirming steps of a fresh forward/backward/dash sequence are just a
     /// brief tap (StepHoldMs alone) before HoldMsForStreak switches to the long, continuously-
