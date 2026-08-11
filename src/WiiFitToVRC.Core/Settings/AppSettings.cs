@@ -104,14 +104,23 @@ public sealed class AppSettings
     /// DashInputMode. ComboKey is the default.</summary>
     public DashInputMode DashInputMode { get; set; } = DashInputMode.ComboKey;
 
-    /// <summary>Extra coast (ms) added on top of the fixed alternation window when a confirmed
-    /// forward/backward/dash/footstep-turn direction persists after its last confirming step
-    /// before releasing back to Idle -- see DirectionClassifier.StepBridgeMs. Small changes here
-    /// mostly just tune how long the *tail* lingers after a real walk/dash/turn actually stops; the
-    /// alternation window itself (not this) is what keeps output held continuously between the
-    /// individual steps of an ongoing one. 70 is the default -- the midpoint of the "Stride"
-    /// slider's 30-110ms range (displayed as 50%).</summary>
+    /// <summary>How long (ms) a confirmed forward/backward/dash/footstep-turn direction is held
+    /// for -- by itself, the 1st step of a fresh sequence (in case that's genuinely all there is,
+    /// e.g. one deliberate single step), and the short coast after the *last* step of a longer
+    /// sequence. See StepContinuationMs for what keeps a longer sequence held continuously in
+    /// between its steps -- this setting mostly just tunes how "sticky" a single step or the tail
+    /// end feels. 70 is the default -- the midpoint of the "Stride" slider's 30-110ms range
+    /// (displayed as 50%).</summary>
     public int StepHoldMs { get; set; } = 70;
+
+    /// <summary>Added on top of StepHoldMs (see DirectionClassifier.HoldMsForStreak) from the 2nd
+    /// confirming step of a forward/backward/dash/footstep-turn sequence onward, and also how long
+    /// a gap after any confirming step is still considered the same ongoing sequence. Needs to
+    /// comfortably span real stride cadence (several hundred ms between footsteps) or continuous
+    /// walking/dashing would release and re-press the key between every step instead of staying
+    /// held. 900 is the default -- the midpoint of the "Walk/Dash continuation" slider's
+    /// 400-1400ms range (displayed as 50%).</summary>
+    public int StepContinuationMs { get; set; } = 900;
 
     /// <summary>Shows the raw-data recording controls (label picker, record button) on the main
     /// window -- only useful for capturing gesture logs during tuning, so hidden by default.</summary>
