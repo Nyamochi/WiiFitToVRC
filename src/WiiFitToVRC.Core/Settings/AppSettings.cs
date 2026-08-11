@@ -69,6 +69,15 @@ public sealed class AppSettings
     /// camera too fast.</summary>
     public int OscTurnSpeed { get; set; } = 50;
 
+    /// <summary>How long (ms) a single confirmed turn step's output is independently held for on
+    /// OutputMode.Osc/Controller only -- see InputController.ResolveHeldTurnDirection. A confirmed
+    /// turn step from DirectionClassifier only lasts StepHoldMs itself (tens of ms), which wasn't
+    /// reliably long enough for VRChat's OSC input (or, for consistency, the virtual controller) to
+    /// register a turn -- unlike the mouse-look/keyboard paths, which don't need this. Provisional
+    /// default of 1000ms (a full second) -- long enough to register, short enough to still feel
+    /// responsive; may need further tuning.</summary>
+    public int TurnHoldMs { get; set; } = 1000;
+
     /// <summary>Calibrated total weight that must be exceeded before forward/backward/turn output
     /// is allowed to fire (someone needs to actually be standing on the board).</summary>
     public int PresenceWeightThreshold { get; set; } = 3000;

@@ -60,6 +60,7 @@ public static class Localizer
         ["Settings_DashInputMode_DoubleTap"] = ["Double-tap key", "キー2度押し", "按键连按两次", "按鍵連按兩次", "키 두 번 누르기", "Double-appui", "Doppeltippen", "Doppio tocco"],
         ["Settings_TurnSpeed"] = ["Turn speed", "旋回の速さ", "转向速度", "轉向速度", "회전 속도", "Vitesse de rotation", "Drehgeschwindigkeit", "Velocità di rotazione"],
         ["Settings_NoSetting"] = ["No setting", "設定なし", "无设置项", "無設定項", "설정 없음", "Aucun réglage", "Keine Einstellung", "Nessuna impostazione"],
+        ["Settings_TurnHold"] = ["Turn length", "旋回の長さ", "转向长度", "轉向長度", "회전 길이", "Durée de rotation", "Drehdauer", "Durata di rotazione"],
         ["Settings_PresenceThreshold"] = ["Presence weight threshold", "反応する荷重のしきい値", "触发所需的重量阈值", "觸發所需的重量閾值", "반응 임계 하중", "Seuil de poids de présence", "Anwesenheits-Gewichtsschwelle", "Soglia di peso di presenza"],
         ["Settings_SleepSeconds"] = ["Seconds until sleep/wake", "スリープ・復帰までの秒数", "休眠/唤醒所需秒数", "休眠/喚醒所需秒數", "잠자기/깨우기까지 초", "Secondes avant veille/réveil", "Sekunden bis Ruhe/Aufwachen", "Secondi prima di sospensione/risveglio"],
         ["Settings_GestureSensitivity_Group"] = ["Gesture sensitivity", "反応のしやすさ", "反应灵敏度", "反應靈敏度", "반응 민감도", "Sensibilité des gestes", "Gesten-Empfindlichkeit", "Sensibilità dei gesti"],

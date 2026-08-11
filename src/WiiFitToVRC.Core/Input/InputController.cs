@@ -51,6 +51,16 @@ public sealed class InputController : IDisposable
     private bool _dashDoubleTapStarted;
     private long _dashTapReleaseAtMs = -1;
 
+    // OSC and Controller output only (see ResolveHeldTurnDirection): which turn direction is
+    // currently guaranteed to keep being asserted, and until when. A single confirmed turn step
+    // from DirectionClassifier only lasts StepHoldMs itself (tens of ms), which wasn't reliably
+    // long enough for VRChat's OSC input -- or, for consistency, the virtual controller -- to
+    // register a turn; this independently holds the output at TurnHoldMs regardless of how long
+    // the underlying Direction actually stays TurnRight/TurnLeft, the same "hold it for a real,
+    // visible duration" reasoning as TapHoldMs above. Mouse-look and keyboard Q/E don't need this.
+    private Direction _turnHoldDirection = Direction.Idle;
+    private long _turnHoldReleaseAtMs = -1;
+
     public Direction LastDirection => _lastAppliedDirection;
     public bool IsCrouching => _lastCrouching;
     public bool IsPresent => _presence.IsPresent;
@@ -127,11 +137,11 @@ public sealed class InputController : IDisposable
     {
         if (_settings.OutputMode == OutputMode.Controller)
         {
-            ApplyDirectionController(direction);
+            ApplyDirectionController(direction, nowMs);
         }
         else if (_settings.OutputMode == OutputMode.Osc)
         {
-            ApplyDirectionOsc(direction);
+            ApplyDirectionOsc(direction, nowMs);
         }
         else
         {
@@ -249,8 +259,9 @@ public sealed class InputController : IDisposable
 
     // Unlike the keyboard path, sticks/buttons are absolute state set fresh every sample, so
     // there's no separate "release the old direction" step -- moving the stick to a new position
-    // (or back to center) already replaces whatever it held before.
-    private void ApplyDirectionController(Direction direction)
+    // (or back to center) already replaces whatever it held before, except the turn axis, which
+    // goes through ResolveHeldTurnDirection for its own guaranteed-minimum-duration hold.
+    private void ApplyDirectionController(Direction direction, long nowMs)
     {
         double moveY = direction switch
         {
@@ -261,7 +272,8 @@ public sealed class InputController : IDisposable
         };
         _controller.SetLeftStick(0, moveY);
 
-        double turnX = direction switch
+        Direction turnDirection = ResolveHeldTurnDirection(direction, nowMs);
+        double turnX = turnDirection switch
         {
             Direction.TurnRight => _settings.ControllerTurnSpeed / 100.0,
             Direction.TurnLeft => -_settings.ControllerTurnSpeed / 100.0,
@@ -274,8 +286,9 @@ public sealed class InputController : IDisposable
     }
 
     // Like the controller path, OSC axes/buttons are absolute state resent fresh every sample --
-    // no separate "release the old direction" step needed.
-    private void ApplyDirectionOsc(Direction direction)
+    // no separate "release the old direction" step needed, except LookHorizontal (turn), which
+    // goes through ResolveHeldTurnDirection for its own guaranteed-minimum-duration hold.
+    private void ApplyDirectionOsc(Direction direction, long nowMs)
     {
         double vertical = direction switch
         {
@@ -286,17 +299,45 @@ public sealed class InputController : IDisposable
         };
         _osc.SetMoveAxis(vertical, 0.0);
 
-        double oscTurnMagnitude = _settings.OscTurnSpeed / 100.0;
-        double look = direction switch
+        Direction turnDirection = ResolveHeldTurnDirection(direction, nowMs);
+        double magnitude = _settings.OscTurnSpeed / 100.0;
+        double look = turnDirection switch
         {
-            Direction.TurnRight => oscTurnMagnitude,
-            Direction.TurnLeft => -oscTurnMagnitude,
+            Direction.TurnRight => magnitude,
+            Direction.TurnLeft => -magnitude,
             _ => 0.0,
         };
         _osc.SetLookAxis(look);
 
         // Mirrors the keyboard Shift+W combo / controller sprint button via VRChat's own /input/Run.
         _osc.SetRun(direction == Direction.Dash);
+    }
+
+    // OSC and Controller output only -- a single confirmed turn step from DirectionClassifier only
+    // lasts StepHoldMs itself (tens of ms), which wasn't reliably long enough for either output to
+    // register a turn. Returns whichever turn direction should actually be asserted this sample:
+    // a fresh turn step (re)starts a TurnHoldMs guarantee; once started, that direction keeps being
+    // returned -- even after the real Direction reverts to Idle -- until TurnHoldMs elapses.
+    private Direction ResolveHeldTurnDirection(Direction direction, long nowMs)
+    {
+        bool isTurning = direction is Direction.TurnRight or Direction.TurnLeft;
+        if (isTurning && direction != _turnHoldDirection)
+        {
+            _turnHoldDirection = direction;
+            _turnHoldReleaseAtMs = nowMs + _settings.TurnHoldMs;
+            return direction;
+        }
+        if (!isTurning && _turnHoldDirection != Direction.Idle)
+        {
+            if (nowMs >= _turnHoldReleaseAtMs)
+            {
+                _turnHoldDirection = Direction.Idle;
+                _turnHoldReleaseAtMs = -1;
+                return Direction.Idle;
+            }
+            return _turnHoldDirection; // still within the guaranteed hold -- keep reporting it
+        }
+        return _turnHoldDirection; // same turn continuing (already held), or genuinely Idle
     }
 
     // Crouch/stand share one toggle binding in the target game, so each transition (crouch
@@ -397,6 +438,11 @@ public sealed class InputController : IDisposable
         {
             ReleaseDirectionKeys(_lastAppliedDirection);
         }
+
+        // Emergency cleanup (disconnect/presence lost) -- drop any in-progress guaranteed turn
+        // hold immediately rather than letting it resurface a stale direction later.
+        _turnHoldDirection = Direction.Idle;
+        _turnHoldReleaseAtMs = -1;
 
         // If a crouch tap is still physically down (mid-press), finish it now instead of doubling
         // up with a fresh tap below -- that would send an extra, unwanted press.

@@ -24,6 +24,7 @@ public sealed class SettingsForm : Form
     private const int DashRawMin = 200, DashRawMax = 400;
     private const int StrideRawMin = 30, StrideRawMax = 110;
     private const int StepContinuationRawMin = 400, StepContinuationRawMax = 1400;
+    private const int TurnHoldRawMin = 500, TurnHoldRawMax = 1500;
 
     // Turn is fed directly into GestureSensitivityScale like Jump/Crouch, but its raw default
     // (AppSettings.TurnSensitivity = 60) isn't the neutral 50 -- real-world testing found the
@@ -157,20 +158,32 @@ public sealed class SettingsForm : Form
     private int _oscTurnSpeedValue;
     private int _controllerTurnSpeedValue;
 
+    // How long (ms) a single confirmed turn step's output is independently held for -- only meaningful
+    // for Osc/Controller (see InputController.ResolveHeldTurnDirection); Keyboard/KeyboardMouse turn
+    // via a discrete Q/E press or a one-shot mouse-look delta, neither of which needs this, so the
+    // whole row (name label included, hence it being a field rather than a BuildGeneralTab-local
+    // like most other row labels) is hidden entirely for those two modes -- see
+    // UpdateTurnHoldRowVisibility.
+    private readonly Label _turnHoldLabel = new() { Location = new Point(10, 633), AutoSize = true };
+    private readonly TrackBar _turnHoldSlider = new() { Minimum = 0, Maximum = 100, Location = new Point(ValueColumnX + 55, 625), Size = new Size(140, 40), TickFrequency = 10 };
+    private readonly Label _turnHoldNarrowLabel = new() { Location = new Point(ValueColumnX, 633), AutoSize = true };
+    private readonly Label _turnHoldWideLabel = new() { Location = new Point(ValueColumnX + 201, 633), AutoSize = true };
+    private readonly Label _turnHoldValueLabel = new() { Location = new Point(ValueColumnX + 255, 633), AutoSize = true };
+
     // 1000-10000 in steps of 100 -- a plain TrackBar steps by 1 per dragged unit, so the control
     // itself covers 10-100 (hundreds of weight) and the real value is *100.
-    private readonly TrackBar _presenceSlider = new() { Minimum = 10, Maximum = 100, Location = new Point(ValueColumnX, 625), Size = new Size(180, 40), TickFrequency = 10 };
-    private readonly Label _presenceValueLabel = new() { Location = new Point(ValueColumnX + 190, 633), AutoSize = true };
+    private readonly TrackBar _presenceSlider = new() { Minimum = 10, Maximum = 100, Location = new Point(ValueColumnX, 665), Size = new Size(180, 40), TickFrequency = 10 };
+    private readonly Label _presenceValueLabel = new() { Location = new Point(ValueColumnX + 190, 673), AutoSize = true };
 
-    private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 669), Size = new Size(70, 24) };
+    private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 709), Size = new Size(70, 24) };
 
     // Jump/crouch/turn all disable via their own sensitivity slider's "Weak" (0) end now -- see
     // GestureSensitivityScale.IsDisabled -- so none of the three need a separate enabled checkbox
     // any more.
-    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 703), AutoSize = true };
+    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 743), AutoSize = true };
 
-    private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 727), Size = new Size(180, 24) };
-    private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 726), Size = new Size(34, 24) };
+    private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 767), Size = new Size(180, 24) };
+    private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 766), Size = new Size(34, 24) };
 
     private readonly ComboBox _forwardKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _dashKeyCombo = MakeCombo<VirtualKey>();
@@ -236,10 +249,11 @@ public sealed class SettingsForm : Form
                 _controllerTurnSpeedValue = _turnSpeedSlider.Value;
             }
         };
-        _outputKeyboardRadio.CheckedChanged += (_, _) => UpdateTurnSpeedControlForMode();
-        _outputKeyboardMouseRadio.CheckedChanged += (_, _) => UpdateTurnSpeedControlForMode();
-        _outputOscRadio.CheckedChanged += (_, _) => UpdateTurnSpeedControlForMode();
-        _outputControllerRadio.CheckedChanged += (_, _) => UpdateTurnSpeedControlForMode();
+        _outputKeyboardRadio.CheckedChanged += (_, _) => { UpdateTurnSpeedControlForMode(); UpdateTurnHoldRowVisibility(); };
+        _outputKeyboardMouseRadio.CheckedChanged += (_, _) => { UpdateTurnSpeedControlForMode(); UpdateTurnHoldRowVisibility(); };
+        _outputOscRadio.CheckedChanged += (_, _) => { UpdateTurnSpeedControlForMode(); UpdateTurnHoldRowVisibility(); };
+        _outputControllerRadio.CheckedChanged += (_, _) => { UpdateTurnSpeedControlForMode(); UpdateTurnHoldRowVisibility(); };
+        _turnHoldSlider.ValueChanged += (_, _) => _turnHoldValueLabel.Text = _turnHoldSlider.Value.ToString();
         _presenceSlider.ValueChanged += (_, _) => _presenceValueLabel.Text = (_presenceSlider.Value * 100).ToString();
         _walkSensitivitySlider.ValueChanged += (_, _) => _walkSensitivityValueLabel.Text = _walkSensitivitySlider.Value.ToString();
         _dashSensitivitySlider.ValueChanged += (_, _) => _dashSensitivityValueLabel.Text = _dashSensitivitySlider.Value.ToString();
@@ -293,6 +307,20 @@ public sealed class SettingsForm : Form
             _turnSpeedSlider.Value = Math.Clamp(_mouseTurnSpeedValue, 1, 50);
         }
         _turnSpeedValueLabel.Text = _turnSpeedSlider.Value.ToString();
+    }
+
+    // Turn hold length is only meaningful for Osc/Controller -- Keyboard/KeyboardMouse turn via a
+    // discrete Q/E press or a one-shot mouse-look delta, neither of which uses it -- so the whole
+    // row (including its own name label) is hidden entirely rather than showing a "No setting"
+    // placeholder like _turnSpeedNoSettingLabel does; there's nothing to point at for those modes.
+    private void UpdateTurnHoldRowVisibility()
+    {
+        bool visible = _outputOscRadio.Checked || _outputControllerRadio.Checked;
+        _turnHoldLabel.Visible = visible;
+        _turnHoldSlider.Visible = visible;
+        _turnHoldNarrowLabel.Visible = visible;
+        _turnHoldWideLabel.Visible = visible;
+        _turnHoldValueLabel.Visible = visible;
     }
 
     private void BrowseDebugFolder()
@@ -359,15 +387,16 @@ public sealed class SettingsForm : Form
         var continuationStepCountLabel = new Label { Text = "  " + Localizer.Get("Settings_GestureSensitivity_ContinuationStepCount", _uiLanguage), Location = new Point(10, 493), AutoSize = true };
         var dashInputModeLabel = new Label { Text = Localizer.Get("Settings_DashInputMode", _uiLanguage), Location = new Point(10, 553), AutoSize = true };
         var turnSpeedLabel = new Label { Text = Localizer.Get("Settings_TurnSpeed", _uiLanguage), Location = new Point(10, 593), AutoSize = true };
-        var presenceLabel = new Label { Text = Localizer.Get("Settings_PresenceThreshold", _uiLanguage), Location = new Point(10, 633), AutoSize = true };
-        var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 671), AutoSize = true };
-        var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 731), AutoSize = true };
+        var presenceLabel = new Label { Text = Localizer.Get("Settings_PresenceThreshold", _uiLanguage), Location = new Point(10, 673), AutoSize = true };
+        var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 711), AutoSize = true };
+        var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 771), AutoSize = true };
 
         _outputKeyboardRadio.Text = Localizer.Get("Settings_OutputMode_Keyboard", _uiLanguage);
         _outputKeyboardMouseRadio.Text = Localizer.Get("Settings_OutputMode_KeyboardMouse", _uiLanguage);
         _outputControllerRadio.Text = Localizer.Get("Settings_OutputMode_Controller", _uiLanguage);
         _outputOscRadio.Text = Localizer.Get("Settings_OutputMode_Osc", _uiLanguage);
         _turnSpeedNoSettingLabel.Text = Localizer.Get("Settings_NoSetting", _uiLanguage);
+        _turnHoldLabel.Text = Localizer.Get("Settings_TurnHold", _uiLanguage);
         _turnModeHoldRadio.Text = Localizer.Get("Settings_TurnMode_Hold", _uiLanguage);
         _turnModeFootstepRadio.Text = Localizer.Get("Settings_TurnMode_Footstep", _uiLanguage);
         _dashInputModeComboKeyRadio.Text = Localizer.Get("Settings_DashInputMode_ComboKey", _uiLanguage);
@@ -393,6 +422,8 @@ public sealed class SettingsForm : Form
         _strideWideLabel.Text = Localizer.Get("Settings_GestureSensitivity_Wide", _uiLanguage);
         _stepContinuationNarrowLabel.Text = Localizer.Get("Settings_GestureSensitivity_Narrow", _uiLanguage);
         _stepContinuationWideLabel.Text = Localizer.Get("Settings_GestureSensitivity_Wide", _uiLanguage);
+        _turnHoldNarrowLabel.Text = Localizer.Get("Settings_GestureSensitivity_Narrow", _uiLanguage);
+        _turnHoldWideLabel.Text = Localizer.Get("Settings_GestureSensitivity_Wide", _uiLanguage);
 
         foreach (var (language, nativeName) in Localizer.SelectableLanguages)
         {
@@ -418,6 +449,7 @@ public sealed class SettingsForm : Form
             continuationStepCountLabel, _continuationStepCountSlider, _continuationStepCountValueLabel,
             dashInputModeLabel, _dashInputModePanel,
             turnSpeedLabel, _turnSpeedSlider, _turnSpeedValueLabel, _turnSpeedNoSettingLabel,
+            _turnHoldLabel, _turnHoldSlider, _turnHoldNarrowLabel, _turnHoldWideLabel, _turnHoldValueLabel,
             presenceLabel, _presenceSlider, _presenceValueLabel,
             sleepLabel, _sleepSecondsInput,
             _debugModeCheck,
@@ -427,7 +459,7 @@ public sealed class SettingsForm : Form
         // The tab's content now extends well past its fixed visible height -- scroll internally
         // (a vertical scrollbar appears automatically) rather than growing the window without bound.
         _generalTab.AutoScroll = true;
-        _generalTab.AutoScrollMinSize = new Size(0, 808);
+        _generalTab.AutoScrollMinSize = new Size(0, 848);
     }
 
     private void BuildKeybindsTab()
@@ -507,6 +539,11 @@ public sealed class SettingsForm : Form
         _oscTurnSpeedValue = source.OscTurnSpeed;
         _controllerTurnSpeedValue = source.ControllerTurnSpeed;
         UpdateTurnSpeedControlForMode();
+        UpdateTurnHoldRowVisibility();
+
+        int turnHoldRaw = Math.Clamp(source.TurnHoldMs, TurnHoldRawMin, TurnHoldRawMax);
+        _turnHoldSlider.Value = Math.Clamp(RawToDisplay(turnHoldRaw, TurnHoldRawMin, TurnHoldRawMax), _turnHoldSlider.Minimum, _turnHoldSlider.Maximum);
+        _turnHoldValueLabel.Text = _turnHoldSlider.Value.ToString();
 
         int presenceSteps = Math.Clamp(source.PresenceWeightThreshold / 100, _presenceSlider.Minimum, _presenceSlider.Maximum);
         _presenceSlider.Value = presenceSteps;
@@ -570,6 +607,7 @@ public sealed class SettingsForm : Form
         _settings.MouseTurnSpeed = _mouseTurnSpeedValue;
         _settings.OscTurnSpeed = _oscTurnSpeedValue;
         _settings.ControllerTurnSpeed = _controllerTurnSpeedValue;
+        _settings.TurnHoldMs = DisplayToRaw(_turnHoldSlider.Value, TurnHoldRawMin, TurnHoldRawMax);
         _settings.PresenceWeightThreshold = _presenceSlider.Value * 100;
         _settings.SleepSeconds = (int)_sleepSecondsInput.Value;
         _settings.FootstepThresholdPercent = DisplayToRawInverted(_walkSensitivitySlider.Value, WalkRawMin, WalkRawMax);

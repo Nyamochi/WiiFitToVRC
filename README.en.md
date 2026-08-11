@@ -137,6 +137,7 @@ All settings are edited from the in-app settings window (⚙ 設定) and persist
 | Turn mode | Switch the turn detection logic between Hold (lean left/right and hold it) and Footstep (alternate the diagonal panels, the default) |
 | Dash input method | Switch how keyboard/keyboard+mouse modes send Dash between Combo key (modifier + forward key, the default) and Double-tap key (tap the forward key once, then hold it) |
 | Turn speed | Its absolute value differs per output mode, so the slider's range/value swaps automatically every time you switch the output mode radio -- one shared value for both directions. Hidden (shows "No setting") when Keyboard (Q/E) mode is selected |
+| Turn length | On OSC/Virtual Controller output only, how long a single turn step's output actually stays asserted (default 1 second, Narrow-to-Wide). VRChat's OSC input (and, for consistency, the virtual controller) didn't reliably register a too-brief turn pulse -- this stretches it out. One shared value for both output modes; the row itself is hidden entirely on Keyboard/Keyboard+Mouse |
 | Presence weight threshold | Calibrated total weight that counts as "someone is on the board" |
 | Sleep/wake seconds | How long presence must hold (both directions) before output locks/unlocks |
 | Debug mode | Shows the raw CSV recording controls used to capture logs for `ClassifyTest` |
