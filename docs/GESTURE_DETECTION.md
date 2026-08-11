@@ -60,12 +60,35 @@ threshold %** of the weight reference (e.g. 120%) — a discrete "this foot just
   sensitivity 0 ("Weak"), the period is forced to 0ms -- no landing interval is ever shorter than
   that, so Dash can never fire and every alternation reads as a plain Forward/Backward step
   instead.
-- A confirmed direction persists for a short hold (**stride length (ms)**, default 77ms) after its
-  last confirming landing; each new landing refreshes the hold, so continuous walking doesn't
-  flicker back to Idle between steps.
+- A confirmed direction persists until `AlternationWindowMs` (900ms) plus **stride length (ms)**
+  (default 70ms) past its last confirming landing before releasing to Idle -- see
+  `DirectionClassifier.StepBridgeMs`. The 900ms component is what actually matters for continuity:
+  ordinary stride cadence (several hundred ms between landings) is far slower than stride length
+  alone, so using just stride length here would release and re-press the key between literally
+  every step of a real walk; reusing the same window HandleFrontEdge/HandleBackEdge/
+  HandleDiagonalEdge already use to decide "is this still the same sequence" keeps continuous
+  walking/dashing/turning held as one unbroken output for as long as the steps keep coming, and
+  only lets a genuinely isolated single step release afterward (rather than being held forever).
+  Stride length itself just tunes the short coast *after* the sequence actually ends.
 
 Leaning forward and holding that lean *without* alternating feet does **not** count as Forward —
 it reads as Idle. Only an actual confirmed footstep pair produces movement.
+
+### Dash input method: combo key or double-tap
+
+Keyboard and keyboard+mouse output modes have a **Dash input method** switch (Settings, above the
+mouse sensitivity rows): **Combo key** (the default) holds the forward key plus a modifier (e.g.
+Shift+W); **Double-tap key** instead taps the forward key once and then holds it, for games whose
+sprint binding is "double-tap forward" rather than a modifier key. The tap uses the same
+`ForwardKey` binding from the Keybinds tab, not the separate Dash key/modifier bindings (which only
+apply in Combo key mode).
+
+The double-tap only happens once per Dash *episode* -- the moment Direction first becomes Dash, not
+on every sample or every step of a continuing dash. It presses the forward key, waits
+`TapHoldMs` (60ms, the same constant used for the jump/crouch tap pulse), then releases and
+immediately re-presses it, holding from there on for as long as Dash keeps being confirmed (the
+same continuous-hold mechanism described above). Controller and OSC output modes are unaffected by
+this setting -- they always use the dash button / OSC `Run` regardless.
 
 ### Forward is sticky against backward/turn noise mid-stride
 

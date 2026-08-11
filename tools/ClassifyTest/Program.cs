@@ -36,6 +36,8 @@ static void RunOneFile(string path, bool footstepTurnMode)
     int totalSamples = 0;
     string? label = null;
     bool seeded = false;
+    long firstUnixMs = 0;
+    Direction lastTraced = Direction.Idle;
 
     foreach (string line in File.ReadLines(path).Skip(1))
     {
@@ -52,6 +54,7 @@ static void RunOneFile(string path, bool footstepTurnMode)
         {
             SeedReference(directionClassifier, unixMs, footstepTurnMode);
             seeded = true;
+            firstUnixMs = unixMs;
         }
         var cal = new CalibratedReading
         {
@@ -68,7 +71,12 @@ static void RunOneFile(string path, bool footstepTurnMode)
 
         double y = DirectionClassifier.ComputeY(cal);
 
-        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 77, turnEnabled: true, turnSensitivity: 50, footstepTurnMode);
+        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 70, turnEnabled: true, turnSensitivity: 50, footstepTurnMode);
+        if (Environment.GetEnvironmentVariable("CLASSIFYTEST_TRACE") == "1" && direction != lastTraced)
+        {
+            Console.WriteLine($"    t={(unixMs - firstUnixMs) / 1000.0:F2}s -> {direction}");
+            lastTraced = direction;
+        }
         directionCounts[direction] = directionCounts.GetValueOrDefault(direction) + 1;
 
         if (crouchDetector.Update(y, unixMs, crouchSensitivity: 50))
@@ -111,6 +119,6 @@ static void SeedReference(DirectionClassifier directionClassifier, long realFirs
     for (int i = 5; i >= 1; i--)
     {
         long sampleMs = realFirstUnixMs - i * 5000 - 10000; // 5 samples, 5s apart, well clear of the real data
-        directionClassifier.Update(flatReading, sampleMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 77, turnEnabled: true, turnSensitivity: 50, footstepTurnMode);
+        directionClassifier.Update(flatReading, sampleMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 70, turnEnabled: true, turnSensitivity: 50, footstepTurnMode);
     }
 }

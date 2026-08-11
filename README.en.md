@@ -29,6 +29,14 @@ first enable OSC in VRChat itself, then try switching the output mode in Setting
 See the [docs](docs/) folder for a deeper explanation of each feature if something doesn't work as
 expected.
 
+## What it can do
+
+- Walk
+- Dash
+- Turn left/right
+- Jump
+- Crouch
+
 ## Requirements
 
 - Windows 10/11
@@ -43,8 +51,19 @@ install it for you; download and install it yourself)
 ## Caution
 
 Jumping is outside the Wii Balance Board's original hardware spec. Watch your surroundings for
-damage to the board or the floor, and if you weigh over 100kg (220lb), please don't jump on it --
-even a light jump is enough to register.
+damage to the board or the floor, and **if you weigh over 100kg (220lb), please don't jump on
+it** -- even a light jump is enough to register.
+
+## Works with other games too
+
+The app's output is plain keyboard WASD (or mouse) input, so as long as a game accepts WASD
+movement, this app works with it too, whether or not that game officially supports it. Games it's
+been tried with:
+
+- Death Stranding
+- Resident Evil
+- Monster Hunter
+- Armored Core IV
 
 ## Features
 
@@ -68,17 +87,6 @@ even a light jump is enough to register.
   timing, all from the in-app settings window.
 - Localized UI: auto-detects the Windows display language, with English, Japanese, Simplified &
   Traditional Chinese, Korean, French, German, and Italian built in.
-
-## Works with other games too
-
-The app's output is plain keyboard WASD (or mouse) input, so as long as a game accepts WASD
-movement, this app works with it too, whether or not that game officially supports it. Games it's
-been tried with:
-
-- Death Stranding
-- Resident Evil
-- Monster Hunter
-- Armored Core IV
 
 ## Building from source
 
@@ -127,6 +135,7 @@ All settings are edited from the in-app settings window (⚙ 設定) and persist
 | Language | UI language, or Auto to follow Windows |
 | Gesture sensitivity (Walk/Dash/Turn/Jump/Crouch/Stride) | Independent Weak-to-Strong sliders for how easily each one fires (Stride is Narrow-to-Wide instead; forward/backward isn't affected). The middle (default) keeps the original detection thresholds unchanged. For Dash/Turn/Jump/Crouch, dragging all the way to Weak (0) fully disables that gesture -- it never fires regardless of input — see [docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md) |
 | Turn mode | Switch the turn detection logic between Hold (lean left/right and hold it) and Footstep (alternate the diagonal panels, the default) |
+| Dash input method | Switch how keyboard/keyboard+mouse modes send Dash between Combo key (modifier + forward key, the default) and Double-tap key (tap the forward key once, then hold it) |
 | Turn sensitivity | Mouse pixels-per-tick (keyboard+mouse mode) or stick deflection % (controller mode), separately for left/right |
 | Presence weight threshold | Calibrated total weight that counts as "someone is on the board" |
 | Sleep/wake seconds | How long presence must hold (both directions) before output locks/unlocks |

@@ -273,7 +273,7 @@ public sealed class DirectionClassifier
         {
             long interval = nowMs - _lastFrontEdgeMs;
             _steppingDirection = interval < dashPeriodMs ? Direction.Dash : Direction.Forward;
-            _steppingUntilMs = nowMs + stepHoldMs;
+            _steppingUntilMs = nowMs + StepBridgeMs(stepHoldMs);
         }
 
         _lastFrontEdge = corner;
@@ -330,13 +330,25 @@ public sealed class DirectionClassifier
         bool forwardStillGoing = _steppingDirection == Direction.Forward && nowMs - _lastFrontEdgeMs <= AlternationWindowMs;
         if (forwardStillGoing)
         {
-            _steppingUntilMs = nowMs + stepHoldMs;
+            _steppingUntilMs = nowMs + StepBridgeMs(stepHoldMs);
             return;
         }
 
         _steppingDirection = direction;
-        _steppingUntilMs = nowMs + stepHoldMs;
+        _steppingUntilMs = nowMs + StepBridgeMs(stepHoldMs);
     }
+
+    // A confirming step keeps output held until this far past it -- long enough (AlternationWindowMs)
+    // to reach the *next* step of an ongoing walk/dash/backward/footstep-turn without a gap, plus
+    // stepHoldMs as a short coast afterward. Using just stepHoldMs alone (a few tens of ms) here
+    // would release and re-press the key between every single step even during continuous walking,
+    // since real stride cadence is far slower than that -- AlternationWindowMs is the same window
+    // HandleFrontEdge/HandleBackEdge/HandleDiagonalEdge already use to decide whether the next step
+    // still counts as part of the same sequence, so reusing it here keeps "does this still count as
+    // one continuous action" consistent everywhere. A genuinely isolated single step still reads as
+    // one discrete press-then-release -- it just releases after this whole window instead of
+    // instantly, rather than flickering off and on for every step of a real walk.
+    private static long StepBridgeMs(long stepHoldMs) => AlternationWindowMs + stepHoldMs;
 
     /// <summary>
     /// Watches one corner for the moment its value crosses thresholdRatio times a reference value

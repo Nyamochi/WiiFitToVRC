@@ -88,7 +88,7 @@ public sealed class SettingsForm : Form
     // Isolated in their own Panel, not added straight to the tab like everything else here --
     // WinForms auto-groups same-parent RadioButtons into one mutually-exclusive set, and without
     // this they'd fight with the output-mode radios above for which one is checked.
-    private readonly Panel _turnModePanel = new() { Location = new Point(ValueColumnX, 285), Size = new Size(340, 24), BorderStyle = BorderStyle.None };
+    private readonly Panel _turnModePanel = new() { Location = new Point(ValueColumnX, 294), Size = new Size(340, 24), BorderStyle = BorderStyle.None };
     private readonly RadioButton _turnModeHoldRadio = new() { Location = new Point(0, 0), AutoSize = true };
     private readonly RadioButton _turnModeFootstepRadio = new() { Location = new Point(110, 0), AutoSize = true };
 
@@ -107,27 +107,33 @@ public sealed class SettingsForm : Form
     private readonly Label _strideWideLabel = new() { Location = new Point(ValueColumnX + 201, 413), AutoSize = true };
     private readonly Label _strideValueLabel = new() { Location = new Point(ValueColumnX + 255, 413), AutoSize = true };
 
-    private readonly TrackBar _strokeRightSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 465), Size = new Size(180, 40), TickFrequency = 5 };
-    private readonly Label _strokeRightValueLabel = new() { Location = new Point(ValueColumnX + 190, 473), AutoSize = true };
-    private readonly TrackBar _strokeLeftSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 505), Size = new Size(180, 40), TickFrequency = 5 };
-    private readonly Label _strokeLeftValueLabel = new() { Location = new Point(ValueColumnX + 190, 513), AutoSize = true };
+    // Same isolated-Panel trick as _turnModePanel -- keeps this radio pair from joining the
+    // output-mode / turn-mode mutually-exclusive groups.
+    private readonly Panel _dashInputModePanel = new() { Location = new Point(ValueColumnX, 465), Size = new Size(340, 24), BorderStyle = BorderStyle.None };
+    private readonly RadioButton _dashInputModeComboKeyRadio = new() { Location = new Point(0, 0), AutoSize = true };
+    private readonly RadioButton _dashInputModeDoubleTapRadio = new() { Location = new Point(110, 0), AutoSize = true };
+
+    private readonly TrackBar _strokeRightSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 505), Size = new Size(180, 40), TickFrequency = 5 };
+    private readonly Label _strokeRightValueLabel = new() { Location = new Point(ValueColumnX + 190, 513), AutoSize = true };
+    private readonly TrackBar _strokeLeftSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 545), Size = new Size(180, 40), TickFrequency = 5 };
+    private readonly Label _strokeLeftValueLabel = new() { Location = new Point(ValueColumnX + 190, 553), AutoSize = true };
 
     // 1000-10000 in steps of 100 -- a plain TrackBar steps by 1 per dragged unit, so the control
     // itself covers 10-100 (hundreds of weight) and the real value is *100.
-    private readonly TrackBar _presenceSlider = new() { Minimum = 10, Maximum = 100, Location = new Point(ValueColumnX, 545), Size = new Size(180, 40), TickFrequency = 10 };
-    private readonly Label _presenceValueLabel = new() { Location = new Point(ValueColumnX + 190, 553), AutoSize = true };
+    private readonly TrackBar _presenceSlider = new() { Minimum = 10, Maximum = 100, Location = new Point(ValueColumnX, 585), Size = new Size(180, 40), TickFrequency = 10 };
+    private readonly Label _presenceValueLabel = new() { Location = new Point(ValueColumnX + 190, 593), AutoSize = true };
 
-    private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 589), Size = new Size(70, 24) };
+    private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 629), Size = new Size(70, 24) };
 
     // Jump/crouch used to have their own enabled checkboxes here -- now redundant with their
     // sensitivity sliders' "Weak" (0) end fully disabling them, so only turn's remains (it isn't
     // covered by a slider position the same way, since turnEnabled and turnSensitivity are
     // independent settings).
-    private readonly CheckBox _turnEnabledCheck = new() { Location = new Point(ValueColumnX, 623), AutoSize = true };
-    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 647), AutoSize = true };
+    private readonly CheckBox _turnEnabledCheck = new() { Location = new Point(ValueColumnX, 663), AutoSize = true };
+    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 687), AutoSize = true };
 
-    private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 671), Size = new Size(180, 24) };
-    private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 670), Size = new Size(34, 24) };
+    private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 711), Size = new Size(180, 24) };
+    private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 710), Size = new Size(34, 24) };
 
     private readonly ComboBox _forwardKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _dashKeyCombo = MakeCombo<VirtualKey>();
@@ -254,11 +260,12 @@ public sealed class SettingsForm : Form
         var jumpSensitivityLabel = new Label { Text = "  " + Localizer.Get("Settings_GestureSensitivity_Jump", _uiLanguage), Location = new Point(10, 333), AutoSize = true };
         var crouchSensitivityLabel = new Label { Text = "  " + Localizer.Get("Settings_GestureSensitivity_Crouch", _uiLanguage), Location = new Point(10, 373), AutoSize = true };
         var strideLabel = new Label { Text = "  " + Localizer.Get("Settings_GestureSensitivity_Stride", _uiLanguage), Location = new Point(10, 413), AutoSize = true };
-        var strokeRightLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeRight", _uiLanguage), Location = new Point(10, 473), AutoSize = true };
-        var strokeLeftLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeLeft", _uiLanguage), Location = new Point(10, 513), AutoSize = true };
-        var presenceLabel = new Label { Text = Localizer.Get("Settings_PresenceThreshold", _uiLanguage), Location = new Point(10, 553), AutoSize = true };
-        var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 591), AutoSize = true };
-        var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 675), AutoSize = true };
+        var dashInputModeLabel = new Label { Text = Localizer.Get("Settings_DashInputMode", _uiLanguage), Location = new Point(10, 473), AutoSize = true };
+        var strokeRightLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeRight", _uiLanguage), Location = new Point(10, 513), AutoSize = true };
+        var strokeLeftLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeLeft", _uiLanguage), Location = new Point(10, 553), AutoSize = true };
+        var presenceLabel = new Label { Text = Localizer.Get("Settings_PresenceThreshold", _uiLanguage), Location = new Point(10, 593), AutoSize = true };
+        var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 631), AutoSize = true };
+        var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 715), AutoSize = true };
 
         _outputKeyboardRadio.Text = Localizer.Get("Settings_OutputMode_Keyboard", _uiLanguage);
         _outputKeyboardMouseRadio.Text = Localizer.Get("Settings_OutputMode_KeyboardMouse", _uiLanguage);
@@ -267,6 +274,8 @@ public sealed class SettingsForm : Form
         _turnEnabledCheck.Text = Localizer.Get("Settings_TurnEnabled", _uiLanguage);
         _turnModeHoldRadio.Text = Localizer.Get("Settings_TurnMode_Hold", _uiLanguage);
         _turnModeFootstepRadio.Text = Localizer.Get("Settings_TurnMode_Footstep", _uiLanguage);
+        _dashInputModeComboKeyRadio.Text = Localizer.Get("Settings_DashInputMode_ComboKey", _uiLanguage);
+        _dashInputModeDoubleTapRadio.Text = Localizer.Get("Settings_DashInputMode_DoubleTap", _uiLanguage);
         _debugModeCheck.Text = Localizer.Get("Settings_DebugMode", _uiLanguage);
         // Plain "..." rather than a localized "Browse" label -- a universal enough convention to
         // fit the button's fixed, deliberately compact width in every language.
@@ -294,6 +303,7 @@ public sealed class SettingsForm : Form
         }
 
         _turnModePanel.Controls.AddRange([_turnModeHoldRadio, _turnModeFootstepRadio]);
+        _dashInputModePanel.Controls.AddRange([_dashInputModeComboKeyRadio, _dashInputModeDoubleTapRadio]);
 
         _generalTab.Controls.AddRange([
             outputModeLabel, _outputKeyboardRadio, _outputKeyboardMouseRadio, _outputOscRadio, _outputControllerRadio,
@@ -306,6 +316,7 @@ public sealed class SettingsForm : Form
             jumpSensitivityLabel, _jumpSensitivityWeakLabel, _jumpSensitivitySlider, _jumpSensitivityStrongLabel, _jumpSensitivityValueLabel,
             crouchSensitivityLabel, _crouchSensitivityWeakLabel, _crouchSensitivitySlider, _crouchSensitivityStrongLabel, _crouchSensitivityValueLabel,
             strideLabel, _strideNarrowLabel, _strideSlider, _strideWideLabel, _strideValueLabel,
+            dashInputModeLabel, _dashInputModePanel,
             strokeRightLabel, _strokeRightSlider, _strokeRightValueLabel,
             strokeLeftLabel, _strokeLeftSlider, _strokeLeftValueLabel,
             presenceLabel, _presenceSlider, _presenceValueLabel,
@@ -317,7 +328,7 @@ public sealed class SettingsForm : Form
         // The tab's content now extends well past its fixed visible height -- scroll internally
         // (a vertical scrollbar appears automatically) rather than growing the window without bound.
         _generalTab.AutoScroll = true;
-        _generalTab.AutoScrollMinSize = new Size(0, 752);
+        _generalTab.AutoScrollMinSize = new Size(0, 792);
     }
 
     private void BuildKeybindsTab()
@@ -429,6 +440,8 @@ public sealed class SettingsForm : Form
         _turnEnabledCheck.Checked = source.TurnEnabled;
         _turnModeHoldRadio.Checked = source.TurnMode == TurnMode.Hold;
         _turnModeFootstepRadio.Checked = source.TurnMode == TurnMode.Footstep;
+        _dashInputModeComboKeyRadio.Checked = source.DashInputMode == DashInputMode.ComboKey;
+        _dashInputModeDoubleTapRadio.Checked = source.DashInputMode == DashInputMode.DoubleTap;
         _debugModeCheck.Checked = source.DebugMode;
         _debugFolderInput.Text = source.DebugOutputFolder;
 
@@ -469,6 +482,7 @@ public sealed class SettingsForm : Form
         _settings.CrouchSensitivity = _crouchSensitivitySlider.Value;
         _settings.TurnEnabled = _turnEnabledCheck.Checked;
         _settings.TurnMode = _turnModeHoldRadio.Checked ? TurnMode.Hold : TurnMode.Footstep;
+        _settings.DashInputMode = _dashInputModeDoubleTapRadio.Checked ? DashInputMode.DoubleTap : DashInputMode.ComboKey;
         _settings.DebugMode = _debugModeCheck.Checked;
         _settings.DebugOutputFolder = string.IsNullOrWhiteSpace(_debugFolderInput.Text) ? "debug" : _debugFolderInput.Text.Trim();
 

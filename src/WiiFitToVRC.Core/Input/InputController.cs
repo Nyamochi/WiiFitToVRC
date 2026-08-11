@@ -43,6 +43,14 @@ public sealed class InputController : IDisposable
     private long _jumpReleaseAtMs = -1;
     private long _crouchReleaseAtMs = -1;
 
+    // DashInputMode.DoubleTap state: true once the initial tap of the current Dash episode has
+    // been sent, so later samples (Update() is called at HID report rate, far more often than
+    // direction actually changes) don't restart the tap sequence every time. _dashTapReleaseAtMs
+    // schedules the brief release+re-press that turns the initial press into a real double-tap --
+    // see ReleaseAndRepressDashKeyIfDue.
+    private bool _dashDoubleTapStarted;
+    private long _dashTapReleaseAtMs = -1;
+
     public Direction LastDirection => _lastAppliedDirection;
     public bool IsCrouching => _lastCrouching;
     public bool IsPresent => _presence.IsPresent;
@@ -90,7 +98,8 @@ public sealed class InputController : IDisposable
         }
 
         var direction = _direction.Update(cal, nowMs, isPresent: true, _settings.FootstepThresholdPercent / 100.0, _settings.DashPeriodMs, _settings.StepHoldMs, _settings.TurnEnabled, _settings.TurnSensitivity, _settings.TurnMode == TurnMode.Footstep);
-        ApplyDirection(direction);
+        ApplyDirection(direction, nowMs);
+        ReleaseAndRepressDashKeyIfDue(nowMs);
 
         bool jumped = _jump.Update(cal.Total, nowMs, _settings.JumpSensitivity);
         if (jumped)
@@ -114,7 +123,7 @@ public sealed class InputController : IDisposable
         ReleaseTapIfDue(isJump: false, nowMs);
     }
 
-    private void ApplyDirection(Direction direction)
+    private void ApplyDirection(Direction direction, long nowMs)
     {
         if (_settings.OutputMode == OutputMode.Controller)
         {
@@ -130,13 +139,13 @@ public sealed class InputController : IDisposable
             {
                 ReleaseDirectionKeys(_lastAppliedDirection);
             }
-            ApplyDirectionKeyboard(direction);
+            ApplyDirectionKeyboard(direction, nowMs);
         }
 
         _lastAppliedDirection = direction;
     }
 
-    private void ApplyDirectionKeyboard(Direction direction)
+    private void ApplyDirectionKeyboard(Direction direction, long nowMs)
     {
         switch (direction)
         {
@@ -144,8 +153,25 @@ public sealed class InputController : IDisposable
                 KeySender.KeyDown(_settings.ForwardKey);
                 break;
             case Direction.Dash:
-                KeySender.KeyDown(_settings.DashModifierKey);
-                KeySender.KeyDown(_settings.DashKey);
+                if (_settings.DashInputMode == DashInputMode.DoubleTap)
+                {
+                    if (!_dashDoubleTapStarted)
+                    {
+                        // First sample of this Dash episode: press the forward key (the "single
+                        // press") and schedule the brief release+re-press below that reads as a
+                        // genuine double-tap to the target game. Later samples while Dash stays
+                        // active fall through here doing nothing further -- the key just stays
+                        // held, same as any other continuous direction.
+                        KeySender.KeyDown(_settings.ForwardKey);
+                        _dashTapReleaseAtMs = nowMs + TapHoldMs;
+                        _dashDoubleTapStarted = true;
+                    }
+                }
+                else
+                {
+                    KeySender.KeyDown(_settings.DashModifierKey);
+                    KeySender.KeyDown(_settings.DashKey);
+                }
                 break;
             case Direction.Backward:
                 KeySender.KeyDown(_settings.BackwardKey);
@@ -181,8 +207,17 @@ public sealed class InputController : IDisposable
                 KeySender.KeyUp(_settings.ForwardKey);
                 break;
             case Direction.Dash:
-                KeySender.KeyUp(_settings.DashKey);
-                KeySender.KeyUp(_settings.DashModifierKey);
+                if (_settings.DashInputMode == DashInputMode.DoubleTap)
+                {
+                    KeySender.KeyUp(_settings.ForwardKey);
+                    _dashDoubleTapStarted = false;
+                    _dashTapReleaseAtMs = -1;
+                }
+                else
+                {
+                    KeySender.KeyUp(_settings.DashKey);
+                    KeySender.KeyUp(_settings.DashModifierKey);
+                }
                 break;
             case Direction.Backward:
                 KeySender.KeyUp(_settings.BackwardKey);
@@ -194,6 +229,22 @@ public sealed class InputController : IDisposable
                 KeySender.KeyUp(_settings.TurnLeftKey);
                 break;
         }
+    }
+
+    // DashInputMode.DoubleTap only: fires once, TapHoldMs after the initial press, turning it into
+    // an actual double-tap by releasing and immediately re-pressing (and holding, for as long as
+    // Dash stays active) the forward key. Driven off the existing per-sample loop, same reasoning
+    // as ReleaseTapIfDue -- a real, visible release is needed for the target game to see two
+    // separate presses rather than one continuous hold.
+    private void ReleaseAndRepressDashKeyIfDue(long nowMs)
+    {
+        if (_dashTapReleaseAtMs < 0 || nowMs < _dashTapReleaseAtMs)
+        {
+            return;
+        }
+        KeySender.KeyUp(_settings.ForwardKey);
+        KeySender.KeyDown(_settings.ForwardKey);
+        _dashTapReleaseAtMs = -1;
     }
 
     // Unlike the keyboard path, sticks/buttons are absolute state set fresh every sample, so

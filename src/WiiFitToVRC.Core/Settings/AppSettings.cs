@@ -43,6 +43,17 @@ public enum TurnMode
     Footstep,
 }
 
+/// <summary>How the keyboard/keyboard+mouse output modes send Dash (Controller/Osc are unaffected
+/// -- they always use the dash button / OSC Run regardless of this setting). ComboKey holds the
+/// forward key plus a modifier (e.g. Shift+W) -- the original behavior, and the default. DoubleTap
+/// instead taps the forward key once and then holds it, matching games whose sprint binding is
+/// "double-tap forward" rather than a modifier.</summary>
+public enum DashInputMode
+{
+    ComboKey,
+    DoubleTap,
+}
+
 public sealed class AppSettings
 {
     public AppLanguage Language { get; set; } = AppLanguage.Auto;
@@ -89,9 +100,18 @@ public sealed class AppSettings
     /// a dash ("ダッシュ判定") instead of an ordinary walk.</summary>
     public int DashPeriodMs { get; set; } = 300;
 
-    /// <summary>How long a confirmed forward/backward/dash direction persists (ms) after its last
-    /// confirming footstep before releasing back to Idle.</summary>
-    public int StepHoldMs { get; set; } = 77;
+    /// <summary>Which key sequence keyboard/keyboard+mouse output modes send for Dash -- see
+    /// DashInputMode. ComboKey is the default.</summary>
+    public DashInputMode DashInputMode { get; set; } = DashInputMode.ComboKey;
+
+    /// <summary>Extra coast (ms) added on top of the fixed alternation window when a confirmed
+    /// forward/backward/dash/footstep-turn direction persists after its last confirming step
+    /// before releasing back to Idle -- see DirectionClassifier.StepBridgeMs. Small changes here
+    /// mostly just tune how long the *tail* lingers after a real walk/dash/turn actually stops; the
+    /// alternation window itself (not this) is what keeps output held continuously between the
+    /// individual steps of an ongoing one. 70 is the default -- the midpoint of the "Stride"
+    /// slider's 30-110ms range (displayed as 50%).</summary>
+    public int StepHoldMs { get; set; } = 70;
 
     /// <summary>Shows the raw-data recording controls (label picker, record button) on the main
     /// window -- only useful for capturing gesture logs during tuning, so hidden by default.</summary>
