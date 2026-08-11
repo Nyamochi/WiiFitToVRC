@@ -24,6 +24,10 @@ public partial class MonitorForm : Form
     private readonly PressurePanel _pressurePanel = new();
     private readonly Label _valuesLabel = new() { AutoSize = true, Font = new Font("Consolas", 10) };
 
+    // Session-only odometer (see InputController.WalkDistanceMeters/DashDistanceMeters/StepCount)
+    // -- never persisted, just tallied from launch to exit.
+    private readonly Label _distanceLabel = new() { AutoSize = true, Font = new Font("Consolas", 10) };
+
     private readonly Label _arrowUp = MakeArrow("▲");
     private readonly Label _arrowDown = MakeArrow("▼");
     private readonly Label _arrowLeft = MakeArrow("◀");
@@ -261,6 +265,7 @@ public partial class MonitorForm : Form
     private Label _directionCaption = null!;
     private Label _valuesCaption = null!;
     private Label _calibratedCaption = null!;
+    private Label _distanceCaption = null!;
 
     private void BuildLayout()
     {
@@ -293,6 +298,17 @@ public partial class MonitorForm : Form
         _calibratedLabel.Location = new Point(430, rowY + 100);
         _calibratedCaption = new Label { AutoSize = true, Location = new Point(430, rowY + 83) };
 
+        // Bottom-right, below the calibrated-values block -- session odometer, see
+        // InputController.WalkDistanceMeters/DashDistanceMeters/StepCount. Only actually refreshed
+        // once sensor reports start flowing in (see UpdateUi); the placeholder zeros here are just
+        // so the row doesn't look broken/blank before a device connects.
+        _distanceCaption = new Label { AutoSize = true, Location = new Point(430, 285) };
+        _distanceLabel.Location = new Point(430, 305);
+        _distanceLabel.Text =
+            Localizer.GetFormatted("Stat_WalkDistance", CurrentLanguage, 0.0) + "\n" +
+            Localizer.GetFormatted("Stat_DashDistance", CurrentLanguage, 0.0) + "\n\n" +
+            Localizer.GetFormatted("Stat_StepCount", CurrentLanguage, 0);
+
         _labelCombo.Location = new Point(10, rowY + 220);
         _recordButton.Location = new Point(160, rowY + 219);
         _recordStatusLabel.Location = new Point(270, rowY + 223);
@@ -309,6 +325,7 @@ public partial class MonitorForm : Form
             _directionCaption, _arrowUp, _arrowDown, _arrowLeft, _arrowRight, _jumpLight, _crouchLight, _dashLight,
             _valuesCaption, _valuesLabel,
             _calibratedCaption, _calibratedLabel,
+            _distanceCaption, _distanceLabel,
             _labelCombo, _recordButton, _recordStatusLabel,
         ]);
     }
@@ -336,6 +353,16 @@ public partial class MonitorForm : Form
         _directionCaption.Text = Localizer.Get("Caption_DetectedDirection", lang);
         _valuesCaption.Text = Localizer.Get("Caption_RawValues", lang);
         _calibratedCaption.Text = Localizer.Get("Caption_CalibratedValues", lang);
+        _distanceCaption.Text = Localizer.Get("Caption_DistanceTraveled", lang);
+        // Only re-stamps the placeholder zeros -- once a device is connected, UpdateUi refreshes
+        // this with real (already-correctly-localized) values on every UI tick anyway.
+        if (_device is null)
+        {
+            _distanceLabel.Text =
+                Localizer.GetFormatted("Stat_WalkDistance", lang, 0.0) + "\n" +
+                Localizer.GetFormatted("Stat_DashDistance", lang, 0.0) + "\n\n" +
+                Localizer.GetFormatted("Stat_StepCount", lang, 0);
+        }
         _recordButton.Text = _logWriter is null ? Localizer.Get("Button_RecordStart", lang) : Localizer.Get("Button_RecordStop", lang);
     }
 
@@ -556,6 +583,12 @@ public partial class MonitorForm : Form
 
         _valuesLabel.Text =
             $"TR: {s.TopRight,6}\nBR: {s.BottomRight,6}\nTL: {s.TopLeft,6}\nBL: {s.BottomLeft,6}\n合計: {total,6}";
+
+        var lang = CurrentLanguage;
+        _distanceLabel.Text =
+            Localizer.GetFormatted("Stat_WalkDistance", lang, _inputController.WalkDistanceMeters) + "\n" +
+            Localizer.GetFormatted("Stat_DashDistance", lang, _inputController.DashDistanceMeters) + "\n\n" +
+            Localizer.GetFormatted("Stat_StepCount", lang, _inputController.StepCount);
 
         var direction = _inputController.LastDirection;
         SetArrowLit(_arrowUp, direction is Direction.Forward or Direction.Dash);

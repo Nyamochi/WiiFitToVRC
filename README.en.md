@@ -85,6 +85,8 @@ been tried with:
     included) — see [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md).
 - Fully configurable keybinds/controller bindings, turn speed, weight thresholds, and
   timing, all from the in-app settings window.
+- Live distance traveled (Walk/Dash, in meters) and step count in the bottom-right of the main
+  window -- tallied from launch to exit, not saved.
 - Localized UI: auto-detects the Windows display language, with English, Japanese, Simplified &
   Traditional Chinese, Korean, French, German, and Italian built in.
 

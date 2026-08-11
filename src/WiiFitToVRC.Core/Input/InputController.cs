@@ -61,12 +61,25 @@ public sealed class InputController : IDisposable
     private Direction _turnHoldDirection = Direction.Idle;
     private long _turnHoldReleaseAtMs = -1;
 
+    // Distance/step tally, driven by DirectionClassifier.StepPaired (fires once per confirmed
+    // Forward/Backward/Dash/Turn step -- filtered here to Forward/Dash only, i.e. front-corner
+    // spikes, per the caller's request). In-memory only, no persistence: starts at 0 on launch and
+    // is never saved to or restored from settings.json, by design -- this is a session odometer,
+    // not a lifetime one.
+    private const double DistancePerStepMeters = 0.4;
+    private double _walkDistanceMeters;
+    private double _dashDistanceMeters;
+    private int _stepCount;
+
     public Direction LastDirection => _lastAppliedDirection;
     public bool IsCrouching => _lastCrouching;
     public bool IsPresent => _presence.IsPresent;
     public bool IsWeightCalibrated => _direction.IsWeightCalibrated;
     public bool IsControllerAvailable => _controller.IsAvailable;
     public string? ControllerUnavailableReason => _controller.UnavailableReason;
+    public double WalkDistanceMeters => _walkDistanceMeters;
+    public double DashDistanceMeters => _dashDistanceMeters;
+    public int StepCount => _stepCount;
 
     /// <summary>Fires on the calling (background HID) thread each time a jump is detected.</summary>
     public event Action? Jumped;
@@ -80,6 +93,25 @@ public sealed class InputController : IDisposable
     {
         _settings = settings;
         _direction.WeightCalibrationRefreshed += () => WeightCalibrationRefreshed?.Invoke();
+        _direction.StepPaired += OnStepPaired;
+    }
+
+    // Only Forward/Dash count -- both come from the front-corner pairing mechanism ("front panel
+    // spike"), unlike Backward (back corners) and Turn (diagonal corners), which this tally
+    // deliberately excludes.
+    private void OnStepPaired(Direction direction, long intervalMs)
+    {
+        switch (direction)
+        {
+            case Direction.Forward:
+                _walkDistanceMeters += DistancePerStepMeters;
+                _stepCount++;
+                break;
+            case Direction.Dash:
+                _dashDistanceMeters += DistancePerStepMeters;
+                _stepCount++;
+                break;
+        }
     }
 
     public void Update(BalanceBoardSensors raw, CalibratedReading? cal, long nowMs)
