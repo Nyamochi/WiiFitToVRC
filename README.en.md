@@ -83,7 +83,7 @@ been tried with:
     [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md).
   - Virtual controller, for games that reject synthetic keyboard/mouse input (VRChat
     included) — see [docs/VRCHAT_INPUT.md](docs/VRCHAT_INPUT.md).
-- Fully configurable keybinds/controller bindings, turn sensitivity, weight thresholds, and
+- Fully configurable keybinds/controller bindings, turn speed, weight thresholds, and
   timing, all from the in-app settings window.
 - Localized UI: auto-detects the Windows display language, with English, Japanese, Simplified &
   Traditional Chinese, Korean, French, German, and Italian built in.
@@ -136,13 +136,12 @@ All settings are edited from the in-app settings window (⚙ 設定) and persist
 | Gesture sensitivity (Walk/Dash/Turn/Jump/Crouch/Stride/Walk-Dash continuation/Steps until continuation) | Independent Weak-to-Strong sliders for how easily each one fires (Stride and Walk/Dash continuation are Narrow-to-Wide instead, and Steps until continuation is a plain 1-5 step count, default 3; forward/backward isn't affected). The middle (default) keeps the original detection thresholds unchanged. For Dash/Turn/Jump/Crouch, dragging all the way to Weak (0) fully disables that gesture -- it never fires regardless of input — see [docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md) |
 | Turn mode | Switch the turn detection logic between Hold (lean left/right and hold it) and Footstep (alternate the diagonal panels, the default) |
 | Dash input method | Switch how keyboard/keyboard+mouse modes send Dash between Combo key (modifier + forward key, the default) and Double-tap key (tap the forward key once, then hold it) |
-| Turn sensitivity | Mouse pixels-per-tick (keyboard+mouse mode) or stick deflection % (controller mode), separately for left/right |
+| Turn speed | Its absolute value differs per output mode, so the slider's range/value swaps automatically every time you switch the output mode radio -- one shared value for both directions. Hidden (shows "No setting") when Keyboard (Q/E) mode is selected |
 | Presence weight threshold | Calibrated total weight that counts as "someone is on the board" |
 | Sleep/wake seconds | How long presence must hold (both directions) before output locks/unlocks |
-| Turning enabled | When off, turning isn't detected at all, so no turn-equivalent output is ever sent in any output mode -- mouse, keyboard, controller, or OSC (forward/backward/dash are unaffected) |
 | Debug mode | Shows the raw CSV recording controls used to capture logs for `ClassifyTest` |
 | Keybinds tab | Per-action key (and the dash modifier key) for keyboard output modes |
-| Controller tab | Per-action button and stick deflection for virtual controller mode |
+| Controller tab | Per-action button for virtual controller mode (turn speed is set on the General tab's "Turn speed" row) |
 
 ## License
 

@@ -98,7 +98,7 @@ it reads as Idle. Only an actual confirmed footstep pair produces movement.
 ### Dash input method: combo key or double-tap
 
 Keyboard and keyboard+mouse output modes have a **Dash input method** switch (Settings, above the
-mouse sensitivity rows): **Combo key** (the default) holds the forward key plus a modifier (e.g.
+**Turn speed** row): **Combo key** (the default) holds the forward key plus a modifier (e.g.
 Shift+W); **Double-tap key** instead taps the forward key once and then holds it, for games whose
 sprint binding is "double-tap forward" rather than a modifier key. The tap uses the same
 `ForwardKey` binding from the Keybinds tab, not the separate Dash key/modifier bindings (which only
@@ -171,14 +171,14 @@ simultaneously -- so rather than keep them layered, they became an either/or cho
 
 ### Both models
 
-**Turning enabled** in Settings turns whichever model is selected off entirely, not just its
-output: when disabled, any pending state (Footstep's first step, or Hold's in-progress/confirmed
-lean) is dropped immediately, so nothing stale carries over to when it's re-enabled, and switching
-between Footstep and Hold likewise drops the other model's state right away. No turn-equivalent
-output is sent in any output mode while disabled -- no turn keys, no mouse-look movement, no
-right-stick deflection, and no OSC `LookHorizontal` messages. **Gesture sensitivity: Turn** at 0
-("Weak") has the identical effect regardless of which model is selected, so either one alone is
-enough to fully suppress turning.
+**Gesture sensitivity: Turn** at 0 ("Weak") turns whichever model is selected off entirely, not
+just its output -- there's no separate "turning enabled" toggle; this is the only way to disable
+turning, matching how Jump/Crouch sensitivity already work. When disabled, any pending state
+(Footstep's first step, or Hold's in-progress/confirmed lean) is dropped immediately, so nothing
+stale carries over to when sensitivity is raised again, and switching between Footstep and Hold
+likewise drops the other model's state right away. No turn-equivalent output is sent in any output
+mode while disabled -- no turn keys, no mouse-look movement, no right-stick deflection, and no OSC
+`LookHorizontal` messages.
 
 ## Jump: rise, then rapid collapse
 

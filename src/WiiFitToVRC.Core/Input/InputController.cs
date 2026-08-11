@@ -97,7 +97,7 @@ public sealed class InputController : IDisposable
             return;
         }
 
-        var direction = _direction.Update(cal, nowMs, isPresent: true, _settings.FootstepThresholdPercent / 100.0, _settings.DashPeriodMs, _settings.StepHoldMs, _settings.StepContinuationMs, _settings.ContinuationStepCount, _settings.TurnEnabled, _settings.TurnSensitivity, _settings.TurnMode == TurnMode.Footstep);
+        var direction = _direction.Update(cal, nowMs, isPresent: true, _settings.FootstepThresholdPercent / 100.0, _settings.DashPeriodMs, _settings.StepHoldMs, _settings.StepContinuationMs, _settings.ContinuationStepCount, _settings.TurnSensitivity, _settings.TurnMode == TurnMode.Footstep);
         ApplyDirection(direction, nowMs);
         ReleaseAndRepressDashKeyIfDue(nowMs);
 
@@ -179,7 +179,7 @@ public sealed class InputController : IDisposable
             case Direction.TurnRight:
                 if (_settings.OutputMode == OutputMode.KeyboardMouse)
                 {
-                    MouseSender.MoveRelative(_settings.MouseTurnStrokeRight);
+                    MouseSender.MoveRelative(_settings.MouseTurnSpeed);
                 }
                 else
                 {
@@ -189,7 +189,7 @@ public sealed class InputController : IDisposable
             case Direction.TurnLeft:
                 if (_settings.OutputMode == OutputMode.KeyboardMouse)
                 {
-                    MouseSender.MoveRelative(-_settings.MouseTurnStrokeLeft);
+                    MouseSender.MoveRelative(-_settings.MouseTurnSpeed);
                 }
                 else
                 {
@@ -263,8 +263,8 @@ public sealed class InputController : IDisposable
 
         double turnX = direction switch
         {
-            Direction.TurnRight => _settings.ControllerTurnStrokeRight / 100.0,
-            Direction.TurnLeft => -_settings.ControllerTurnStrokeLeft / 100.0,
+            Direction.TurnRight => _settings.ControllerTurnSpeed / 100.0,
+            Direction.TurnLeft => -_settings.ControllerTurnSpeed / 100.0,
             _ => 0.0,
         };
         _controller.SetRightStick(turnX, 0);
@@ -286,10 +286,11 @@ public sealed class InputController : IDisposable
         };
         _osc.SetMoveAxis(vertical, 0.0);
 
+        double oscTurnMagnitude = _settings.OscTurnSpeed / 100.0;
         double look = direction switch
         {
-            Direction.TurnRight => 1.0,
-            Direction.TurnLeft => -1.0,
+            Direction.TurnRight => oscTurnMagnitude,
+            Direction.TurnLeft => -oscTurnMagnitude,
             _ => 0.0,
         };
         _osc.SetLookAxis(look);

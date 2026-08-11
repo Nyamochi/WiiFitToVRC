@@ -140,17 +140,17 @@ public sealed class DirectionClassifier
     /// brief stepHoldMs tap each before HoldMsForStreak switches to the long, continuously-bridged
     /// hold -- see HoldMsForStreak. A plain step count (1-5), not a sensitivity-scaled
     /// threshold.</param>
-    /// <param name="turnEnabled">When false, turning is not tracked at all (any in-progress state
-    /// from either turn model is dropped) and stepping is never blocked by it -- lets output modes
-    /// fully lock out left/right turning while leaving forward/backward/dash untouched.</param>
     /// <param name="turnSensitivity">0-100, see GestureSensitivityScale -- scales whichever turn
     /// model (turnMode) is currently active (does not affect forward/backward/dash, which has its
-    /// own separate footstep-threshold setting). 0 fully disables turning, same as
-    /// turnEnabled = false.</param>
+    /// own separate footstep-threshold setting). 0 fully disables turning -- any in-progress state
+    /// from either turn model is dropped immediately, and stepping is never blocked by it, so
+    /// output modes can fully lock out left/right turning while leaving forward/backward/dash
+    /// untouched. There is no separate "turning enabled" toggle; this is the only way to disable
+    /// turning, matching how Jump/Crouch sensitivity already work.</param>
     /// <param name="footstepTurnMode">True runs the Footstep turn model, false runs Hold -- see the
     /// class doc comment. A plain bool (rather than AppSettings.TurnMode) so this class doesn't
     /// need to reference the Settings namespace, matching every other primitive parameter here.</param>
-    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, long stepContinuationMs, int continuationStepCount, bool turnEnabled, int turnSensitivity, bool footstepTurnMode)
+    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, long stepContinuationMs, int continuationStepCount, int turnSensitivity, bool footstepTurnMode)
     {
         bool trEdge = _topRight.Update(cal.TopRight, nowMs, _reference.ReferenceTopRight, footstepThresholdRatio);
         bool tlEdge = _topLeft.Update(cal.TopLeft, nowMs, _reference.ReferenceTopLeft, footstepThresholdRatio);
@@ -180,7 +180,7 @@ public sealed class DirectionClassifier
         }
 
         double x = ComputeX(cal);
-        bool turnActive = turnEnabled && !GestureSensitivityScale.IsDisabled(turnSensitivity);
+        bool turnActive = !GestureSensitivityScale.IsDisabled(turnSensitivity);
 
         if (turnActive && footstepTurnMode)
         {

@@ -60,10 +60,14 @@ public sealed class AppSettings
     public OutputMode OutputMode { get; set; } = OutputMode.KeyboardMouse;
 
     /// <summary>Pixels of relative mouse movement sent per tick while turning right/left is
-    /// active (OutputMode.KeyboardMouse only). Split per direction since the two can need
-    /// different tuning in practice.</summary>
-    public int MouseTurnStrokeRight { get; set; } = 5;
-    public int MouseTurnStrokeLeft { get; set; } = 5;
+    /// active (OutputMode.KeyboardMouse only). One shared value for both directions.</summary>
+    public int MouseTurnSpeed { get; set; } = 5;
+
+    /// <summary>Magnitude (0-100%) sent on VRChat's OSC LookHorizontal axis while turning
+    /// right/left is active (OutputMode.Osc only). One shared value for both directions. 50 is the
+    /// default -- half of the original hardcoded full-deflection (100%) behavior, which turned the
+    /// camera too fast.</summary>
+    public int OscTurnSpeed { get; set; } = 50;
 
     /// <summary>Calibrated total weight that must be exceeded before forward/backward/turn output
     /// is allowed to fire (someone needs to actually be standing on the board).</summary>
@@ -73,11 +77,6 @@ public sealed class AppSettings
     /// the board must stay above PresenceWeightThreshold before output unlocks, and how long it
     /// must stay below it before output re-locks.</summary>
     public int SleepSeconds { get; set; } = 3;
-
-    /// <summary>When false, turning is not detected at all, so no equivalent output (mouse-look,
-    /// turn keys, right stick, or the OSC LookHorizontal axis) is ever sent in any output mode --
-    /// forward/backward/dash keep working normally.</summary>
-    public bool TurnEnabled { get; set; } = true;
 
     /// <summary>Which turn-detection model is active -- see TurnMode. Footstep is the default.</summary>
     public TurnMode TurnMode { get; set; } = TurnMode.Footstep;
@@ -154,9 +153,9 @@ public sealed class AppSettings
     public ControllerButton CrouchButton { get; set; } = ControllerButton.B;
     public ControllerButton DashButton { get; set; } = ControllerButton.LeftThumb;
 
-    /// <summary>Right-stick deflection (0-100%) while turning right/left in controller mode.</summary>
-    public int ControllerTurnStrokeRight { get; set; } = 60;
-    public int ControllerTurnStrokeLeft { get; set; } = 60;
+    /// <summary>Right-stick deflection (0-100%) while turning right/left is active
+    /// (OutputMode.Controller only). One shared value for both directions.</summary>
+    public int ControllerTurnSpeed { get; set; } = 60;
 
     public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, "settings.json");
 

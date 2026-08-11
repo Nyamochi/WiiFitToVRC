@@ -125,27 +125,36 @@ public sealed class SettingsForm : Form
     private readonly RadioButton _dashInputModeComboKeyRadio = new() { Location = new Point(0, 0), AutoSize = true };
     private readonly RadioButton _dashInputModeDoubleTapRadio = new() { Location = new Point(110, 0), AutoSize = true };
 
-    private readonly TrackBar _strokeRightSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 585), Size = new Size(180, 40), TickFrequency = 5 };
-    private readonly Label _strokeRightValueLabel = new() { Location = new Point(ValueColumnX + 190, 593), AutoSize = true };
-    private readonly TrackBar _strokeLeftSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 625), Size = new Size(180, 40), TickFrequency = 5 };
-    private readonly Label _strokeLeftValueLabel = new() { Location = new Point(ValueColumnX + 190, 633), AutoSize = true };
+    // Turn speed's absolute value/range differs per output mode (mouse pixels-per-tick, OSC/
+    // controller 0-100%), and Keyboard mode has no speed concept at all (turning is a discrete Q/E
+    // key press). One physical slider is reused across the three speed-having modes -- its
+    // Minimum/Maximum/Value get reassigned by UpdateTurnSpeedControlForMode whenever the output
+    // mode radio changes, swapping in that mode's own staged value (see _mouseTurnSpeedValue /
+    // _oscTurnSpeedValue / _controllerTurnSpeedValue) -- and it's hidden entirely (in favor of
+    // _turnSpeedNoSettingLabel) for Keyboard mode. Left/right used to be independently tunable per
+    // mode; now one shared value drives both directions, matching how the other gesture sliders
+    // work.
+    private readonly TrackBar _turnSpeedSlider = new() { Minimum = 1, Maximum = 50, Location = new Point(ValueColumnX, 585), Size = new Size(180, 40), TickFrequency = 5 };
+    private readonly Label _turnSpeedValueLabel = new() { Location = new Point(ValueColumnX + 190, 593), AutoSize = true };
+    private readonly Label _turnSpeedNoSettingLabel = new() { Location = new Point(ValueColumnX, 593), AutoSize = true };
+    private int _mouseTurnSpeedValue;
+    private int _oscTurnSpeedValue;
+    private int _controllerTurnSpeedValue;
 
     // 1000-10000 in steps of 100 -- a plain TrackBar steps by 1 per dragged unit, so the control
     // itself covers 10-100 (hundreds of weight) and the real value is *100.
-    private readonly TrackBar _presenceSlider = new() { Minimum = 10, Maximum = 100, Location = new Point(ValueColumnX, 665), Size = new Size(180, 40), TickFrequency = 10 };
-    private readonly Label _presenceValueLabel = new() { Location = new Point(ValueColumnX + 190, 673), AutoSize = true };
+    private readonly TrackBar _presenceSlider = new() { Minimum = 10, Maximum = 100, Location = new Point(ValueColumnX, 625), Size = new Size(180, 40), TickFrequency = 10 };
+    private readonly Label _presenceValueLabel = new() { Location = new Point(ValueColumnX + 190, 633), AutoSize = true };
 
-    private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 709), Size = new Size(70, 24) };
+    private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 669), Size = new Size(70, 24) };
 
-    // Jump/crouch used to have their own enabled checkboxes here -- now redundant with their
-    // sensitivity sliders' "Weak" (0) end fully disabling them, so only turn's remains (it isn't
-    // covered by a slider position the same way, since turnEnabled and turnSensitivity are
-    // independent settings).
-    private readonly CheckBox _turnEnabledCheck = new() { Location = new Point(ValueColumnX, 743), AutoSize = true };
-    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 767), AutoSize = true };
+    // Jump/crouch/turn all disable via their own sensitivity slider's "Weak" (0) end now -- see
+    // GestureSensitivityScale.IsDisabled -- so none of the three need a separate enabled checkbox
+    // any more.
+    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 703), AutoSize = true };
 
-    private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 791), Size = new Size(180, 24) };
-    private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 790), Size = new Size(34, 24) };
+    private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 727), Size = new Size(180, 24) };
+    private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 726), Size = new Size(34, 24) };
 
     private readonly ComboBox _forwardKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _dashKeyCombo = MakeCombo<VirtualKey>();
@@ -156,11 +165,9 @@ public sealed class SettingsForm : Form
     private readonly ComboBox _jumpKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _crouchKeyCombo = MakeCombo<VirtualKey>();
 
+    // Turn speed for this mode now lives on the General tab's shared, mode-swapping slider (see
+    // _turnSpeedSlider) instead of its own pair of sliders here.
     private readonly Label _controllerStatusLabel = new() { Location = new Point(10, 10), AutoSize = true, MaximumSize = new Size(380, 0) };
-    private readonly TrackBar _controllerStrokeRightSlider = new() { Minimum = 10, Maximum = 100, Location = new Point(200, 50), Size = new Size(160, 40), TickFrequency = 10 };
-    private readonly Label _controllerStrokeRightValueLabel = new() { Location = new Point(365, 58), AutoSize = true };
-    private readonly TrackBar _controllerStrokeLeftSlider = new() { Minimum = 10, Maximum = 100, Location = new Point(200, 90), Size = new Size(160, 40), TickFrequency = 10 };
-    private readonly Label _controllerStrokeLeftValueLabel = new() { Location = new Point(365, 98), AutoSize = true };
     private readonly ComboBox _jumpButtonCombo = MakeCombo<ControllerButton>();
     private readonly ComboBox _crouchButtonCombo = MakeCombo<ControllerButton>();
     private readonly ComboBox _dashButtonCombo = MakeCombo<ControllerButton>();
@@ -193,8 +200,30 @@ public sealed class SettingsForm : Form
         // land anywhere, so force it back to the top once the dialog has actually been shown.
         Shown += (_, _) => _generalTab.AutoScrollPosition = new Point(0, 0);
 
-        _strokeRightSlider.ValueChanged += (_, _) => _strokeRightValueLabel.Text = _strokeRightSlider.Value.ToString();
-        _strokeLeftSlider.ValueChanged += (_, _) => _strokeLeftValueLabel.Text = _strokeLeftSlider.Value.ToString();
+        // Updates the currently-active mode's staged value too -- by the time this fires, the
+        // Value has already been reassigned by either the user dragging the slider (active mode
+        // unchanged) or UpdateTurnSpeedControlForMode switching modes (writes the new mode's own
+        // value right back to itself, a harmless no-op).
+        _turnSpeedSlider.ValueChanged += (_, _) =>
+        {
+            _turnSpeedValueLabel.Text = _turnSpeedSlider.Value.ToString();
+            if (_outputKeyboardMouseRadio.Checked)
+            {
+                _mouseTurnSpeedValue = _turnSpeedSlider.Value;
+            }
+            else if (_outputOscRadio.Checked)
+            {
+                _oscTurnSpeedValue = _turnSpeedSlider.Value;
+            }
+            else if (_outputControllerRadio.Checked)
+            {
+                _controllerTurnSpeedValue = _turnSpeedSlider.Value;
+            }
+        };
+        _outputKeyboardRadio.CheckedChanged += (_, _) => UpdateTurnSpeedControlForMode();
+        _outputKeyboardMouseRadio.CheckedChanged += (_, _) => UpdateTurnSpeedControlForMode();
+        _outputOscRadio.CheckedChanged += (_, _) => UpdateTurnSpeedControlForMode();
+        _outputControllerRadio.CheckedChanged += (_, _) => UpdateTurnSpeedControlForMode();
         _presenceSlider.ValueChanged += (_, _) => _presenceValueLabel.Text = (_presenceSlider.Value * 100).ToString();
         _walkSensitivitySlider.ValueChanged += (_, _) => _walkSensitivityValueLabel.Text = _walkSensitivitySlider.Value.ToString();
         _dashSensitivitySlider.ValueChanged += (_, _) => _dashSensitivityValueLabel.Text = _dashSensitivitySlider.Value.ToString();
@@ -204,14 +233,50 @@ public sealed class SettingsForm : Form
         _strideSlider.ValueChanged += (_, _) => _strideValueLabel.Text = _strideSlider.Value.ToString();
         _stepContinuationSlider.ValueChanged += (_, _) => _stepContinuationValueLabel.Text = _stepContinuationSlider.Value.ToString();
         _continuationStepCountSlider.ValueChanged += (_, _) => _continuationStepCountValueLabel.Text = _continuationStepCountSlider.Value.ToString();
-        _controllerStrokeRightSlider.ValueChanged += (_, _) => _controllerStrokeRightValueLabel.Text = _controllerStrokeRightSlider.Value.ToString();
-        _controllerStrokeLeftSlider.ValueChanged += (_, _) => _controllerStrokeLeftValueLabel.Text = _controllerStrokeLeftSlider.Value.ToString();
         _saveButton.Click += (_, _) => Save();
         _cancelButton.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
         // Loads the hardcoded AppSettings defaults into the form fields only -- Cancel still
         // discards them, Save is still required to actually persist a reset.
         _resetButton.Click += (_, _) => LoadFromSettings(new AppSettings());
         _debugFolderBrowseButton.Click += (_, _) => BrowseDebugFolder();
+    }
+
+    // Keyboard mode has no turn-speed concept (Q/E is a discrete key press) -- hide the slider and
+    // show "No setting" instead. The other three modes each swap in their own staged value and
+    // range: mouse pixels-per-tick (1-50), OSC/controller 0-100%.
+    private void UpdateTurnSpeedControlForMode()
+    {
+        if (_outputKeyboardRadio.Checked)
+        {
+            _turnSpeedSlider.Visible = false;
+            _turnSpeedValueLabel.Visible = false;
+            _turnSpeedNoSettingLabel.Visible = true;
+            return;
+        }
+
+        _turnSpeedNoSettingLabel.Visible = false;
+        _turnSpeedSlider.Visible = true;
+        _turnSpeedValueLabel.Visible = true;
+
+        if (_outputOscRadio.Checked)
+        {
+            _turnSpeedSlider.Minimum = 1;
+            _turnSpeedSlider.Maximum = 100;
+            _turnSpeedSlider.Value = Math.Clamp(_oscTurnSpeedValue, 1, 100);
+        }
+        else if (_outputControllerRadio.Checked)
+        {
+            _turnSpeedSlider.Minimum = 10;
+            _turnSpeedSlider.Maximum = 100;
+            _turnSpeedSlider.Value = Math.Clamp(_controllerTurnSpeedValue, 10, 100);
+        }
+        else
+        {
+            _turnSpeedSlider.Minimum = 1;
+            _turnSpeedSlider.Maximum = 50;
+            _turnSpeedSlider.Value = Math.Clamp(_mouseTurnSpeedValue, 1, 50);
+        }
+        _turnSpeedValueLabel.Text = _turnSpeedSlider.Value.ToString();
     }
 
     private void BrowseDebugFolder()
@@ -277,17 +342,16 @@ public sealed class SettingsForm : Form
         var stepContinuationLabel = new Label { Text = "  " + Localizer.Get("Settings_GestureSensitivity_StepContinuation", _uiLanguage), Location = new Point(10, 453), AutoSize = true };
         var continuationStepCountLabel = new Label { Text = "  " + Localizer.Get("Settings_GestureSensitivity_ContinuationStepCount", _uiLanguage), Location = new Point(10, 493), AutoSize = true };
         var dashInputModeLabel = new Label { Text = Localizer.Get("Settings_DashInputMode", _uiLanguage), Location = new Point(10, 553), AutoSize = true };
-        var strokeRightLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeRight", _uiLanguage), Location = new Point(10, 593), AutoSize = true };
-        var strokeLeftLabel = new Label { Text = Localizer.Get("Settings_MouseStrokeLeft", _uiLanguage), Location = new Point(10, 633), AutoSize = true };
-        var presenceLabel = new Label { Text = Localizer.Get("Settings_PresenceThreshold", _uiLanguage), Location = new Point(10, 673), AutoSize = true };
-        var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 711), AutoSize = true };
-        var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 795), AutoSize = true };
+        var turnSpeedLabel = new Label { Text = Localizer.Get("Settings_TurnSpeed", _uiLanguage), Location = new Point(10, 593), AutoSize = true };
+        var presenceLabel = new Label { Text = Localizer.Get("Settings_PresenceThreshold", _uiLanguage), Location = new Point(10, 633), AutoSize = true };
+        var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 671), AutoSize = true };
+        var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 731), AutoSize = true };
 
         _outputKeyboardRadio.Text = Localizer.Get("Settings_OutputMode_Keyboard", _uiLanguage);
         _outputKeyboardMouseRadio.Text = Localizer.Get("Settings_OutputMode_KeyboardMouse", _uiLanguage);
         _outputControllerRadio.Text = Localizer.Get("Settings_OutputMode_Controller", _uiLanguage);
         _outputOscRadio.Text = Localizer.Get("Settings_OutputMode_Osc", _uiLanguage);
-        _turnEnabledCheck.Text = Localizer.Get("Settings_TurnEnabled", _uiLanguage);
+        _turnSpeedNoSettingLabel.Text = Localizer.Get("Settings_NoSetting", _uiLanguage);
         _turnModeHoldRadio.Text = Localizer.Get("Settings_TurnMode_Hold", _uiLanguage);
         _turnModeFootstepRadio.Text = Localizer.Get("Settings_TurnMode_Footstep", _uiLanguage);
         _dashInputModeComboKeyRadio.Text = Localizer.Get("Settings_DashInputMode_ComboKey", _uiLanguage);
@@ -337,18 +401,17 @@ public sealed class SettingsForm : Form
             stepContinuationLabel, _stepContinuationNarrowLabel, _stepContinuationSlider, _stepContinuationWideLabel, _stepContinuationValueLabel,
             continuationStepCountLabel, _continuationStepCountSlider, _continuationStepCountValueLabel,
             dashInputModeLabel, _dashInputModePanel,
-            strokeRightLabel, _strokeRightSlider, _strokeRightValueLabel,
-            strokeLeftLabel, _strokeLeftSlider, _strokeLeftValueLabel,
+            turnSpeedLabel, _turnSpeedSlider, _turnSpeedValueLabel, _turnSpeedNoSettingLabel,
             presenceLabel, _presenceSlider, _presenceValueLabel,
             sleepLabel, _sleepSecondsInput,
-            _turnEnabledCheck, _debugModeCheck,
+            _debugModeCheck,
             debugFolderLabel, _debugFolderInput, _debugFolderBrowseButton,
         ]);
 
         // The tab's content now extends well past its fixed visible height -- scroll internally
         // (a vertical scrollbar appears automatically) rather than growing the window without bound.
         _generalTab.AutoScroll = true;
-        _generalTab.AutoScrollMinSize = new Size(0, 872);
+        _generalTab.AutoScrollMinSize = new Size(0, 808);
     }
 
     private void BuildKeybindsTab()
@@ -388,8 +451,6 @@ public sealed class SettingsForm : Form
                 ? Localizer.GetFormatted("Settings_ControllerStatus_Unavailable", _uiLanguage, reason)
                 : Localizer.Get("Settings_ControllerStatus_NotConnectedYet", _uiLanguage);
 
-        var strokeRightLabel = new Label { Text = Localizer.Get("Settings_ControllerStrokeRight", _uiLanguage), Location = new Point(10, 58), AutoSize = true };
-        var strokeLeftLabel = new Label { Text = Localizer.Get("Settings_ControllerStrokeLeft", _uiLanguage), Location = new Point(10, 98), AutoSize = true };
         var jumpButtonLabel = new Label { Text = Localizer.Get("Settings_ControllerButton_Jump", _uiLanguage), Location = new Point(10, 140), AutoSize = true };
         var crouchButtonLabel = new Label { Text = Localizer.Get("Settings_ControllerButton_Crouch", _uiLanguage), Location = new Point(10, 172), AutoSize = true };
         var dashButtonLabel = new Label { Text = Localizer.Get("Settings_ControllerButton_Dash", _uiLanguage), Location = new Point(10, 204), AutoSize = true };
@@ -400,8 +461,6 @@ public sealed class SettingsForm : Form
 
         _controllerTab.Controls.AddRange([
             _controllerStatusLabel,
-            strokeRightLabel, _controllerStrokeRightSlider, _controllerStrokeRightValueLabel,
-            strokeLeftLabel, _controllerStrokeLeftSlider, _controllerStrokeLeftValueLabel,
             jumpButtonLabel, _jumpButtonCombo,
             crouchButtonLabel, _crouchButtonCombo,
             dashButtonLabel, _dashButtonCombo,
@@ -428,10 +487,10 @@ public sealed class SettingsForm : Form
         _outputControllerRadio.Checked = source.OutputMode == OutputMode.Controller;
         _outputOscRadio.Checked = source.OutputMode == OutputMode.Osc;
 
-        _strokeRightSlider.Value = Math.Clamp(source.MouseTurnStrokeRight, _strokeRightSlider.Minimum, _strokeRightSlider.Maximum);
-        _strokeRightValueLabel.Text = _strokeRightSlider.Value.ToString();
-        _strokeLeftSlider.Value = Math.Clamp(source.MouseTurnStrokeLeft, _strokeLeftSlider.Minimum, _strokeLeftSlider.Maximum);
-        _strokeLeftValueLabel.Text = _strokeLeftSlider.Value.ToString();
+        _mouseTurnSpeedValue = source.MouseTurnSpeed;
+        _oscTurnSpeedValue = source.OscTurnSpeed;
+        _controllerTurnSpeedValue = source.ControllerTurnSpeed;
+        UpdateTurnSpeedControlForMode();
 
         int presenceSteps = Math.Clamp(source.PresenceWeightThreshold / 100, _presenceSlider.Minimum, _presenceSlider.Maximum);
         _presenceSlider.Value = presenceSteps;
@@ -464,7 +523,6 @@ public sealed class SettingsForm : Form
         _crouchSensitivitySlider.Value = Math.Clamp(source.CrouchSensitivity, _crouchSensitivitySlider.Minimum, _crouchSensitivitySlider.Maximum);
         _crouchSensitivityValueLabel.Text = _crouchSensitivitySlider.Value.ToString();
 
-        _turnEnabledCheck.Checked = source.TurnEnabled;
         _turnModeHoldRadio.Checked = source.TurnMode == TurnMode.Hold;
         _turnModeFootstepRadio.Checked = source.TurnMode == TurnMode.Footstep;
         _dashInputModeComboKeyRadio.Checked = source.DashInputMode == DashInputMode.ComboKey;
@@ -481,10 +539,6 @@ public sealed class SettingsForm : Form
         _jumpKeyCombo.SelectedItem = source.JumpKey;
         _crouchKeyCombo.SelectedItem = source.CrouchKey;
 
-        _controllerStrokeRightSlider.Value = Math.Clamp(source.ControllerTurnStrokeRight, _controllerStrokeRightSlider.Minimum, _controllerStrokeRightSlider.Maximum);
-        _controllerStrokeRightValueLabel.Text = _controllerStrokeRightSlider.Value.ToString();
-        _controllerStrokeLeftSlider.Value = Math.Clamp(source.ControllerTurnStrokeLeft, _controllerStrokeLeftSlider.Minimum, _controllerStrokeLeftSlider.Maximum);
-        _controllerStrokeLeftValueLabel.Text = _controllerStrokeLeftSlider.Value.ToString();
         _jumpButtonCombo.SelectedItem = source.JumpButton;
         _crouchButtonCombo.SelectedItem = source.CrouchButton;
         _dashButtonCombo.SelectedItem = source.DashButton;
@@ -497,8 +551,9 @@ public sealed class SettingsForm : Form
             : _outputControllerRadio.Checked ? OutputMode.Controller
             : _outputKeyboardMouseRadio.Checked ? OutputMode.KeyboardMouse
             : OutputMode.Keyboard;
-        _settings.MouseTurnStrokeRight = _strokeRightSlider.Value;
-        _settings.MouseTurnStrokeLeft = _strokeLeftSlider.Value;
+        _settings.MouseTurnSpeed = _mouseTurnSpeedValue;
+        _settings.OscTurnSpeed = _oscTurnSpeedValue;
+        _settings.ControllerTurnSpeed = _controllerTurnSpeedValue;
         _settings.PresenceWeightThreshold = _presenceSlider.Value * 100;
         _settings.SleepSeconds = (int)_sleepSecondsInput.Value;
         _settings.FootstepThresholdPercent = DisplayToRawInverted(_walkSensitivitySlider.Value, WalkRawMin, WalkRawMax);
@@ -509,7 +564,6 @@ public sealed class SettingsForm : Form
         _settings.TurnSensitivity = _turnSensitivitySlider.Value;
         _settings.JumpSensitivity = _jumpSensitivitySlider.Value;
         _settings.CrouchSensitivity = _crouchSensitivitySlider.Value;
-        _settings.TurnEnabled = _turnEnabledCheck.Checked;
         _settings.TurnMode = _turnModeHoldRadio.Checked ? TurnMode.Hold : TurnMode.Footstep;
         _settings.DashInputMode = _dashInputModeDoubleTapRadio.Checked ? DashInputMode.DoubleTap : DashInputMode.ComboKey;
         _settings.DebugMode = _debugModeCheck.Checked;
@@ -524,8 +578,6 @@ public sealed class SettingsForm : Form
         _settings.JumpKey = (VirtualKey)_jumpKeyCombo.SelectedItem!;
         _settings.CrouchKey = (VirtualKey)_crouchKeyCombo.SelectedItem!;
 
-        _settings.ControllerTurnStrokeRight = _controllerStrokeRightSlider.Value;
-        _settings.ControllerTurnStrokeLeft = _controllerStrokeLeftSlider.Value;
         _settings.JumpButton = (ControllerButton)_jumpButtonCombo.SelectedItem!;
         _settings.CrouchButton = (ControllerButton)_crouchButtonCombo.SelectedItem!;
         _settings.DashButton = (ControllerButton)_dashButtonCombo.SelectedItem!;
