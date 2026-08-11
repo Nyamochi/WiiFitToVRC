@@ -144,8 +144,8 @@ public sealed class AppSettings
     /// brief tap (StepHoldMs alone) before HoldMsForStreak switches to the long, continuously-
     /// bridged hold (StepHoldMs + StepContinuationMs). Doesn't apply to Turn, which always holds
     /// for StepHoldMs alone regardless of how many steps alternate. A plain step count (1-15), not
-    /// a Weak/Strong or Narrow/Wide dial like the other Gesture sensitivity sliders. 7 is the
-    /// default.</summary>
+    /// an Insensitive/Sensitive or Narrow/Wide dial like the other Gesture sensitivity sliders. 7
+    /// is the default.</summary>
     public int ContinuationStepCount { get; set; } = 7;
 
     /// <summary>Shows the raw-data recording controls (label picker, record button) on the main
@@ -176,6 +176,13 @@ public sealed class AppSettings
     /// <summary>Right-stick deflection (0-100%) while turning right/left is active
     /// (OutputMode.Controller only). One shared value for both directions.</summary>
     public int ControllerTurnSpeed { get; set; } = 60;
+
+    /// <summary>SHA of the latest GitHub commit touching WiiFitToVRC.exe that the "update
+    /// available" popup has already been shown for (see UpdateChecker, MonitorForm.
+    /// CheckForUpdateAsync) -- prevents re-showing it on every subsequent launch for the same
+    /// already-known update. Not exposed anywhere in the Settings UI; purely internal
+    /// bookkeeping.</summary>
+    public string? LastNotifiedUpdateSha { get; set; }
 
     public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, "settings.json");
 

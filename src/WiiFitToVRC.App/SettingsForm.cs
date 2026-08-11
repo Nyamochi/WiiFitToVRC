@@ -45,7 +45,7 @@ public sealed class SettingsForm : Form
     private static int DisplayToRaw(int display, int rawMin, int rawMax) =>
         rawMin + (int)Math.Round(display * (rawMax - rawMin) / 100.0);
 
-    // Dash sensitivity 0 ("Weak") is a hard cutoff, not just the far end of the 200-400ms range --
+    // Dash sensitivity 0 ("Insensitive") is a hard cutoff, not just the far end of the 200-400ms range --
     // DirectionClassifier treats DashPeriodMs = 0 as an unreachable interval floor, so dash can
     // never fire, matching turn/jump/crouch's sensitivity-0-fully-disables behavior. So 0 maps to
     // the raw sentinel 0 instead of DashRawMax, both ways.
@@ -55,7 +55,7 @@ public sealed class SettingsForm : Form
     private static int DashRawToDisplay(int raw) =>
         raw <= 0 ? 0 : Math.Clamp(RawToDisplayInverted(Math.Clamp(raw, DashRawMin, DashRawMax), DashRawMin, DashRawMax), 0, 100);
 
-    // Turn sensitivity 0 ("Weak") is the same hard disable cutoff as Dash -- see
+    // Turn sensitivity 0 ("Insensitive") is the same hard disable cutoff as Dash -- see
     // GestureSensitivityScale.IsDisabled -- so 0 maps to the raw sentinel 0 instead of TurnRawMin,
     // both ways, exactly like DashDisplayToRaw/DashRawToDisplay above.
     private static int TurnDisplayToRaw(int display) =>
@@ -130,7 +130,7 @@ public sealed class SettingsForm : Form
     private readonly Label _stepContinuationWideLabel = new() { Location = new Point(ValueColumnX + 201, 453), AutoSize = true };
     private readonly Label _stepContinuationValueLabel = new() { Location = new Point(ValueColumnX + 255, 453), AutoSize = true };
 
-    // A plain step count (1-10), not a Weak/Strong or Narrow/Wide dial -- no flanking qualitative
+    // A plain step count (1-15), not an Insensitive/Sensitive or Narrow/Wide dial -- no flanking qualitative
     // labels, just the slider and its raw value, same layout as the mouse-stroke/presence sliders
     // below.
     private readonly TrackBar _continuationStepCountSlider = new() { Minimum = 1, Maximum = 15, Location = new Point(ValueColumnX, 485), Size = new Size(140, 40), TickFrequency = 1 };
@@ -177,7 +177,7 @@ public sealed class SettingsForm : Form
 
     private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 709), Size = new Size(70, 24) };
 
-    // Jump/crouch/turn all disable via their own sensitivity slider's "Weak" (0) end now -- see
+    // Jump/crouch/turn all disable via their own sensitivity slider's "Insensitive" (0) end now -- see
     // GestureSensitivityScale.IsDisabled -- so none of the three need a separate enabled checkbox
     // any more.
     private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 743), AutoSize = true };
@@ -259,6 +259,12 @@ public sealed class SettingsForm : Form
         _strideSlider.ValueChanged += (_, _) => _strideValueLabel.Text = _strideSlider.Value.ToString();
         _stepContinuationSlider.ValueChanged += (_, _) => _stepContinuationValueLabel.Text = _stepContinuationSlider.Value.ToString();
         _continuationStepCountSlider.ValueChanged += (_, _) => _continuationStepCountValueLabel.Text = _continuationStepCountSlider.Value.ToString();
+        // The Dash input mode radio labels spell out the actual bound keys ("W + Shift", "W
+        // double-tap"), so they need to stay in sync with the Keybinds tab's combo boxes live,
+        // not just at dialog-open time.
+        _forwardKeyCombo.SelectedIndexChanged += (_, _) => UpdateDashInputModeLabels();
+        _dashKeyCombo.SelectedIndexChanged += (_, _) => UpdateDashInputModeLabels();
+        _dashModifierKeyCombo.SelectedIndexChanged += (_, _) => UpdateDashInputModeLabels();
         _saveButton.Click += (_, _) => Save();
         _cancelButton.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
         // Loads the hardcoded AppSettings defaults into the form fields only -- Cancel still
@@ -312,6 +318,24 @@ public sealed class SettingsForm : Form
         _turnHoldNarrowLabel.Visible = visible;
         _turnHoldWideLabel.Visible = visible;
         _turnHoldValueLabel.Visible = visible;
+    }
+
+    // The two Dash input mode radios spell out the actual keys involved rather than a generic
+    // "Combo key"/"Double-tap key" label -- e.g. "W + Shift" and "W double-tap" with the defaults.
+    // ComboKey needs no separate word at all (the "+" already reads as "these combine"); DoubleTap
+    // keeps its descriptor as a format-string suffix (Settings_DashInputMode_DoubleTap). Key names
+    // vary a lot in length (e.g. "Backspace" vs "W"), so the second radio is repositioned relative
+    // to the first radio's actual rendered width every time, instead of a fixed offset -- otherwise
+    // a long key name would run the two labels into each other.
+    private void UpdateDashInputModeLabels()
+    {
+        var dashKey = (VirtualKey)_dashKeyCombo.SelectedItem!;
+        var dashModifierKey = (VirtualKey)_dashModifierKeyCombo.SelectedItem!;
+        var forwardKey = (VirtualKey)_forwardKeyCombo.SelectedItem!;
+
+        _dashInputModeComboKeyRadio.Text = $"{dashKey} + {dashModifierKey}";
+        _dashInputModeDoubleTapRadio.Text = Localizer.GetFormatted("Settings_DashInputMode_DoubleTap", _uiLanguage, forwardKey);
+        _dashInputModeDoubleTapRadio.Location = new Point(_dashInputModeComboKeyRadio.Right + 20, 0);
     }
 
     private void BrowseDebugFolder()
@@ -390,25 +414,23 @@ public sealed class SettingsForm : Form
         _turnHoldLabel.Text = Localizer.Get("Settings_TurnHold", _uiLanguage);
         _turnModeHoldRadio.Text = Localizer.Get("Settings_TurnMode_Hold", _uiLanguage);
         _turnModeFootstepRadio.Text = Localizer.Get("Settings_TurnMode_Footstep", _uiLanguage);
-        _dashInputModeComboKeyRadio.Text = Localizer.Get("Settings_DashInputMode_ComboKey", _uiLanguage);
-        _dashInputModeDoubleTapRadio.Text = Localizer.Get("Settings_DashInputMode_DoubleTap", _uiLanguage);
         _debugModeCheck.Text = Localizer.Get("Settings_DebugMode", _uiLanguage);
         // Plain "..." rather than a localized "Browse" label -- a universal enough convention to
         // fit the button's fixed, deliberately compact width in every language.
         _debugFolderBrowseButton.Text = "...";
 
-        string weak = Localizer.Get("Settings_GestureSensitivity_Weak", _uiLanguage);
-        string strong = Localizer.Get("Settings_GestureSensitivity_Strong", _uiLanguage);
-        _walkSensitivityWeakLabel.Text = weak;
-        _walkSensitivityStrongLabel.Text = strong;
-        _dashSensitivityWeakLabel.Text = weak;
-        _dashSensitivityStrongLabel.Text = strong;
-        _turnSensitivityWeakLabel.Text = weak;
-        _turnSensitivityStrongLabel.Text = strong;
-        _jumpSensitivityWeakLabel.Text = weak;
-        _jumpSensitivityStrongLabel.Text = strong;
-        _crouchSensitivityWeakLabel.Text = weak;
-        _crouchSensitivityStrongLabel.Text = strong;
+        string insensitive = Localizer.Get("Settings_GestureSensitivity_Insensitive", _uiLanguage);
+        string sensitive = Localizer.Get("Settings_GestureSensitivity_Sensitive", _uiLanguage);
+        _walkSensitivityWeakLabel.Text = insensitive;
+        _walkSensitivityStrongLabel.Text = sensitive;
+        _dashSensitivityWeakLabel.Text = insensitive;
+        _dashSensitivityStrongLabel.Text = sensitive;
+        _turnSensitivityWeakLabel.Text = insensitive;
+        _turnSensitivityStrongLabel.Text = sensitive;
+        _jumpSensitivityWeakLabel.Text = insensitive;
+        _jumpSensitivityStrongLabel.Text = sensitive;
+        _crouchSensitivityWeakLabel.Text = insensitive;
+        _crouchSensitivityStrongLabel.Text = sensitive;
         _strideNarrowLabel.Text = Localizer.Get("Settings_GestureSensitivity_Narrow", _uiLanguage);
         _strideWideLabel.Text = Localizer.Get("Settings_GestureSensitivity_Wide", _uiLanguage);
         _stepContinuationNarrowLabel.Text = Localizer.Get("Settings_GestureSensitivity_Narrow", _uiLanguage);
@@ -576,6 +598,10 @@ public sealed class SettingsForm : Form
         _forwardKeyCombo.SelectedItem = source.ForwardKey;
         _dashKeyCombo.SelectedItem = source.DashKey;
         _dashModifierKeyCombo.SelectedItem = source.DashModifierKey;
+        // Explicit call rather than relying solely on the combos' SelectedIndexChanged wiring --
+        // during the very first LoadFromSettings call (from the constructor), that wiring hasn't
+        // been attached yet.
+        UpdateDashInputModeLabels();
         _backwardKeyCombo.SelectedItem = source.BackwardKey;
         _turnRightKeyCombo.SelectedItem = source.TurnRightKey;
         _turnLeftKeyCombo.SelectedItem = source.TurnLeftKey;

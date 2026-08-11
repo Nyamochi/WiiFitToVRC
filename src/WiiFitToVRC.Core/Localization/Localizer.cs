@@ -60,8 +60,10 @@ public static class Localizer
         ["Settings_ControllerButton_Crouch"] = ["Crouch button", "しゃがみボタン", "蹲下按钮", "蹲下按鈕", "웅크리기 버튼", "Bouton accroupi", "Duck-Taste", "Pulsante accovacciati"],
         ["Settings_ControllerButton_Dash"] = ["Dash (sprint) button", "ダッシュボタン", "冲刺按钮", "衝刺按鈕", "대시 버튼", "Bouton de sprint", "Sprint-Taste", "Pulsante scatto"],
         ["Settings_DashInputMode"] = ["Dash input method", "ダッシュの入力方式", "冲刺输入方式", "衝刺輸入方式", "대시 입력 방식", "Méthode d'entrée du sprint", "Sprint-Eingabemethode", "Metodo di input dello scatto"],
-        ["Settings_DashInputMode_ComboKey"] = ["Combo key", "複合キー", "组合键", "組合鍵", "조합 키", "Touche combinée", "Tastenkombination", "Tasto combinato"],
-        ["Settings_DashInputMode_DoubleTap"] = ["Double-tap key", "キー2度押し", "按键连按两次", "按鍵連按兩次", "키 두 번 누르기", "Double-appui", "Doppeltippen", "Doppio tocco"],
+        // ComboKey's radio label is now built directly from the two key names ("W + Shift") with
+        // no separate word needed -- unlike DoubleTap below, the "+" notation alone already reads
+        // as "these combine". No Settings_DashInputMode_ComboKey key any more.
+        ["Settings_DashInputMode_DoubleTap"] = ["{0} double-tap", "{0} キー2度押し", "{0} 连按两次", "{0} 連按兩次", "{0} 두 번 누르기", "{0} double-appui", "{0} Doppeltipp", "{0} doppio tocco"],
         ["Settings_TurnSpeed"] = ["Turn speed", "旋回の速さ", "转向速度", "轉向速度", "회전 속도", "Vitesse de rotation", "Drehgeschwindigkeit", "Velocità di rotazione"],
         ["Settings_NoSetting"] = ["No setting", "設定なし", "无设置项", "無設定項", "설정 없음", "Aucun réglage", "Keine Einstellung", "Nessuna impostazione"],
         ["Settings_TurnHold"] = ["Turn length", "旋回の長さ", "转向长度", "轉向長度", "회전 길이", "Durée de rotation", "Drehdauer", "Durata di rotazione"],
@@ -78,8 +80,8 @@ public static class Localizer
         ["Settings_GestureSensitivity_Stride"] = ["Stride", "歩幅", "步幅", "步幅", "보폭", "Longueur de foulée", "Schrittlänge", "Lunghezza del passo"],
         ["Settings_GestureSensitivity_StepContinuation"] = ["Walk/Dash continuation", "歩行/ダッシュの継続判定", "行走/冲刺持续判定", "行走/衝刺持續判定", "걷기/대시 지속 판정", "Continuité marche/sprint", "Lauf-/Sprint-Fortsetzung", "Continuità camminata/scatto"],
         ["Settings_GestureSensitivity_ContinuationStepCount"] = ["Steps until continuation", "継続判定までの歩数", "达到持续判定的步数", "達到持續判定的步數", "지속 판정까지의 걸음 수", "Pas avant continuation", "Schritte bis Fortsetzung", "Passi prima della continuità"],
-        ["Settings_GestureSensitivity_Weak"] = ["Weak", "弱い", "弱", "弱", "약함", "Faible", "Schwach", "Debole"],
-        ["Settings_GestureSensitivity_Strong"] = ["Strong", "強い", "强", "強", "강함", "Fort", "Stark", "Forte"],
+        ["Settings_GestureSensitivity_Insensitive"] = ["Insensitive", "鈍感", "迟钝", "遲鈍", "둔감", "Peu sensible", "Unempfindlich", "Poco sensibile"],
+        ["Settings_GestureSensitivity_Sensitive"] = ["Sensitive", "敏感", "敏感", "敏感", "민감", "Sensible", "Empfindlich", "Sensibile"],
         ["Settings_GestureSensitivity_Narrow"] = ["Narrow", "狭い", "窄", "窄", "좁음", "Étroit", "Eng", "Stretto"],
         ["Settings_GestureSensitivity_Wide"] = ["Wide", "広い", "宽", "寬", "넓음", "Large", "Weit", "Ampio"],
         ["Settings_DebugMode"] = ["Debug mode (show recording controls)", "デバッグモード(記録操作を表示)", "调试模式(显示记录控件)", "偵錯模式(顯示記錄控制項)", "디버그 모드(기록 컨트롤 표시)", "Mode débogage (afficher les contrôles d'enregistrement)", "Debug-Modus (Aufnahmesteuerung anzeigen)", "Modalità debug (mostra controlli di registrazione)"],
@@ -97,6 +99,8 @@ public static class Localizer
         ["Settings_ResetToDefaults"] = ["Defaults", "初期値", "默认值", "預設值", "기본값", "Par défaut", "Standard", "Predefiniti"],
         ["Settings_Save"] = ["Save", "保存", "保存", "儲存", "저장", "Enregistrer", "Speichern", "Salva"],
         ["Settings_Cancel"] = ["Cancel", "キャンセル", "取消", "取消", "취소", "Annuler", "Abbrechen", "Annulla"],
+        ["Update_Available_Title"] = ["Update available", "アップデート", "有可用更新", "有可用更新", "업데이트 사용 가능", "Mise à jour disponible", "Update verfügbar", "Aggiornamento disponibile"],
+        ["Update_Available_Message"] = ["A new version is available.\n{0}", "新しいバージョンが存在します。\n{0}", "有新版本可用。\n{0}", "有新版本可用。\n{0}", "새 버전이 있습니다.\n{0}", "Une nouvelle version est disponible.\n{0}", "Eine neue Version ist verfügbar.\n{0}", "È disponibile una nuova versione.\n{0}"],
     };
 
     private static readonly AppLanguage[] Order =

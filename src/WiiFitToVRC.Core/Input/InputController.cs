@@ -65,8 +65,10 @@ public sealed class InputController : IDisposable
     // Forward/Backward/Dash/Turn step -- filtered here to Forward/Dash only, i.e. front-corner
     // spikes, per the caller's request). In-memory only, no persistence: starts at 0 on launch and
     // is never saved to or restored from settings.json, by design -- this is a session odometer,
-    // not a lifetime one.
-    private const double DistancePerStepMeters = 0.4;
+    // not a lifetime one. Dash covers more ground per step than an ordinary walking stride, hence
+    // the separate (larger) per-step distance.
+    private const double WalkDistancePerStepMeters = 0.35;
+    private const double DashDistancePerStepMeters = 0.5;
     private double _walkDistanceMeters;
     private double _dashDistanceMeters;
     private int _stepCount;
@@ -104,11 +106,11 @@ public sealed class InputController : IDisposable
         switch (direction)
         {
             case Direction.Forward:
-                _walkDistanceMeters += DistancePerStepMeters;
+                _walkDistanceMeters += WalkDistancePerStepMeters;
                 _stepCount++;
                 break;
             case Direction.Dash:
-                _dashDistanceMeters += DistancePerStepMeters;
+                _dashDistanceMeters += DashDistancePerStepMeters;
                 _stepCount++;
                 break;
         }

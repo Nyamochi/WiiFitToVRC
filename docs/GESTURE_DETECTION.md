@@ -57,7 +57,7 @@ threshold %** of the weight reference (e.g. 120%) — a discrete "this foot just
   **Backward**.
 - If the two landings are closer together than the dash period (default 300ms, tuned via
   **Gesture sensitivity: Dash** in Settings), it's a **Dash** instead of a plain walk. At Dash
-  sensitivity 0 ("Weak"), the period is forced to 0ms -- no landing interval is ever shorter than
+  sensitivity 0 ("Insensitive"), the period is forced to 0ms -- no landing interval is ever shorter than
   that, so Dash can never fire and every alternation reads as a plain Forward/Backward step
   instead.
 
@@ -83,8 +83,8 @@ Turn does *not* use this mechanism at all -- see the Footstep turn model below.
   keep coming -- and stride length alone tunes the short coast *after* the sequence actually ends.
 
 **Steps until continuation** (Settings, directly under **Walk/Dash continuation**) is a plain 1-15
-step count, default 7 -- not a Weak/Strong or Narrow/Wide dial like the other Gesture sensitivity
-sliders, since it's a count rather than a threshold.
+step count, default 7 -- not an Insensitive/Sensitive or Narrow/Wide dial like the other Gesture
+sensitivity sliders, since it's a count rather than a threshold.
 
 **Walk/Dash continuation** (Settings, directly under **Stride**) is a Narrow/Wide 0-100 slider like
 Stride, backed by a 400-1400ms raw range (default 800ms, displayed at 40% rather than the usual
@@ -162,7 +162,7 @@ default threshold 45%, not 50%). The Settings slider still shows this default as
 as every other Gesture sensitivity slider, via its own raw/display mapping (`SettingsForm`'s
 `TurnRawMin`/`TurnRawMax`) -- moving the slider scales the applied threshold the same way Walk/
 Dash's thresholds do (lower percentage is easier to trigger, so the display direction is inverted --
-100 is "Strong"/easiest, 0 is "Weak" and fully disables turning).
+100 is "Sensitive"/easiest, 0 is "Insensitive" and fully disables turning).
 
 ### Hold
 
@@ -182,7 +182,7 @@ simultaneously -- so rather than keep them layered, they became an either/or cho
 
 ### Both models
 
-**Gesture sensitivity: Turn** at 0 ("Weak") turns whichever model is selected off entirely, not
+**Gesture sensitivity: Turn** at 0 ("Insensitive") turns whichever model is selected off entirely, not
 just its output -- there's no separate "turning enabled" toggle; this is the only way to disable
 turning, matching how Jump/Crouch sensitivity already work. When disabled, any pending state
 (Footstep's first step, or Hold's in-progress/confirmed lean) is dropped immediately, so nothing
@@ -201,7 +201,7 @@ near-zero weight (the moment the feet actually leave the board) within half a se
 never collapses that way, it wasn't a jump, and nothing fires. **Gesture sensitivity: Jump** scales
 how large that initial push-off spike must be (relative to the baseline) to arm; the
 collapse/settle shape that follows is left fixed, since it describes what a real jump looks like
-rather than how hard you have to move. At sensitivity 0 ("Weak"), the spike can never arm at all --
+rather than how hard you have to move. At sensitivity 0 ("Insensitive"), the spike can never arm at all --
 there's no separate "Jump enabled" toggle; this is the only way to disable jump.
 
 ## Crouch: slow and sustained, not a spike
@@ -213,16 +213,16 @@ jump's front-loading is a brief spike immediately followed by the airborne weigh
 above), so it can't sustain the hold; a real crouch settles in and stays there. Standing back up
 isn't rate-gated — any drop back below the lower threshold (`Y < 30`) ends the crouch immediately.
 These figures are likewise the defaults at **Gesture sensitivity: Crouch** = 50; the enter/exit Y
-thresholds and the hold duration all scale together with that setting. At sensitivity 0 ("Weak"),
+thresholds and the hold duration all scale together with that setting. At sensitivity 0 ("Insensitive"),
 crouch can never be entered, and immediately releases if it was already active when the setting
 changed -- there's no separate "Crouch enabled" toggle; this is the only way to disable crouch.
 
 ## Gesture sensitivity: independent dials for walk/dash/turn/jump/crouch/stride/continuation
 
-Settings has seven Weak/Strong-or-Narrow/Wide sliders plus one plain step count, grouped under
+Settings has seven Insensitive/Sensitive-or-Narrow/Wide sliders plus one plain step count, grouped under
 "Gesture sensitivity": **Walk**, **Dash**, **Turn**, **Jump**, **Crouch**, **Stride**, **Walk/Dash
 continuation**, and **Steps until continuation**. The first seven are each shown as a plain 0-100
-percentage (Weak to Strong, except Stride and Walk/Dash continuation which are Narrow to Wide),
+percentage (Insensitive to Sensitive, except Stride and Walk/Dash continuation which are Narrow to Wide),
 independent of the others -- turning up Jump doesn't touch Turn or Crouch. 50 is always the default
 *displayed* position for those seven -- for Jump/Crouch/Walk/Dash/Stride/Walk-Dash-continuation
 that's also the neutral value underneath, reproducing the original hardcoded thresholds unchanged,
@@ -235,18 +235,19 @@ Backward/Dash: the first few steps tap, later steps hold" above.
   [`GestureSensitivityScale.cs`](../src/WiiFitToVRC.Core/Motion/GestureSensitivityScale.cs), which
   turns the 0-100 value into a multiplier applied to that gesture's thresholds:
   `1.0 - (sensitivity - 50) * 0.01`. Each point away from 50 is a 1% change, so 100 is 0.5x
-  (thresholds/durations 50% smaller, easier to trigger -- "Strong") and moving toward 0 makes them
+  (thresholds/durations 50% smaller, easier to trigger -- "Sensitive") and moving toward 0 makes them
   larger and harder to trigger -- but 0 itself isn't just "1.5x harder", it's a hard cutoff (see
   `GestureSensitivityScale.IsDisabled`): each detector skips its trigger condition entirely at
   sensitivity 0, so the gesture can never fire no matter how extreme the input is.
 - **Walk** and **Dash** scale the same way, but in the *opposite* raw-value direction (a *smaller*
   footstep-threshold-% or dash-period-ms is what's easier to trigger), so the settings UI inverts
-  the display so 100 ("Strong") still means "easier" and 0 ("Weak") still means "harder", matching
+  the display so 100 ("Sensitive") still means "easier" and 0 ("Insensitive") still means "harder", matching
   the other four. Dash additionally hard-disables at 0 (see the Forward/backward/dash section
   above); Walk does not have a hard-disable, since disabling it would also disable forward/backward
   walking entirely.
-- **Stride** scales the stride-length hold duration; it isn't a Weak/Strong "how easily does this
-  fire" dial like the other five (nothing about stride makes a gesture more or less likely), so it
+- **Stride** scales the stride-length hold duration; it isn't an Insensitive/Sensitive "how easily
+  does this fire" dial like the other five (nothing about stride makes a gesture more or less
+  likely), so it
   uses Narrow/Wide labels instead and has no disable behavior.
 - **Walk/Dash continuation** scales the alternation-pairing window described above (Forward/
   Backward's *and* Turn's) and, for Forward/Backward/Dash only, the streak-reset window -- likewise
@@ -254,7 +255,7 @@ Backward/Dash: the first few steps tap, later steps hold" above.
   added on top of stride length for the long-hold duration.
 - **Steps until continuation** sets the streak count that Forward/Backward/Dash switch over at --
   Turn doesn't use it at all, always holding for stride length alone regardless. A plain 1-15 count
-  rather than a Weak/Strong/Narrow/Wide dial, and has no disable behavior either.
+  rather than an Insensitive/Sensitive/Narrow/Wide dial, and has no disable behavior either.
 
 None of these eight affect forward/backward, which has its own separate **Footstep threshold %**
 raw value (mapped to the "Walk" slider) as described above.

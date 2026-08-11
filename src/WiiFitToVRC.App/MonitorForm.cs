@@ -4,6 +4,7 @@ using WiiFitToVRC.Core.Input;
 using WiiFitToVRC.Core.Localization;
 using WiiFitToVRC.Core.Motion;
 using WiiFitToVRC.Core.Settings;
+using WiiFitToVRC.Core.Updates;
 
 namespace WiiFitToVRC.App;
 
@@ -84,6 +85,43 @@ public partial class MonitorForm : Form
                 await StartConnectFlowAsync();
             }
         };
+        // Fire-and-forget -- an offline/slow update check must never delay or block the
+        // board-connect flow above.
+        Load += (_, _) => _ = CheckForUpdateAsync();
+    }
+
+    private const string RepositoryUrl = "https://github.com/Nyamochi/WiiFitToVRC";
+
+    // Best-effort, silent-on-failure (see UpdateChecker). The published exe is committed
+    // directly to the repo root rather than released via GitHub Releases, so "is there an
+    // update" is answered by comparing this exe's own file timestamp against the latest commit
+    // that touched that path -- not a version number. LastNotifiedUpdateSha (a hidden
+    // settings.json field, no Settings UI control) makes sure the popup only ever fires once per
+    // update, not on every subsequent launch until the user actually updates.
+    private async Task CheckForUpdateAsync()
+    {
+        var latest = await UpdateChecker.GetLatestExeCommitAsync();
+        if (latest is null || latest.Sha == _settings.LastNotifiedUpdateSha)
+        {
+            return;
+        }
+
+        DateTime exeModifiedUtc = File.GetLastWriteTimeUtc(Application.ExecutablePath);
+        if (latest.CommittedAt.UtcDateTime <= exeModifiedUtc)
+        {
+            return;
+        }
+
+        var lang = CurrentLanguage;
+        MessageBox.Show(
+            this,
+            Localizer.GetFormatted("Update_Available_Message", lang, RepositoryUrl),
+            Localizer.Get("Update_Available_Title", lang),
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+
+        _settings.LastNotifiedUpdateSha = latest.Sha;
+        _settings.Save();
     }
 
     // Runs once at startup. If the board was already paired in a previous session, Windows may
