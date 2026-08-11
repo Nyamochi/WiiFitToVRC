@@ -75,6 +75,7 @@ public static class Localizer
         ["Settings_GestureSensitivity_Crouch"] = ["Crouch", "しゃがみ", "下蹲", "蹲下", "웅크리기", "Accroupissement", "Ducken", "Accovacciamento"],
         ["Settings_GestureSensitivity_Stride"] = ["Stride", "歩幅", "步幅", "步幅", "보폭", "Longueur de foulée", "Schrittlänge", "Lunghezza del passo"],
         ["Settings_GestureSensitivity_StepContinuation"] = ["Walk/Dash continuation", "歩行/ダッシュの継続判定", "行走/冲刺持续判定", "行走/衝刺持續判定", "걷기/대시 지속 판정", "Continuité marche/sprint", "Lauf-/Sprint-Fortsetzung", "Continuità camminata/scatto"],
+        ["Settings_GestureSensitivity_ContinuationStepCount"] = ["Steps until continuation", "継続判定までの歩数", "达到持续判定的步数", "達到持續判定的步數", "지속 판정까지의 걸음 수", "Pas avant continuation", "Schritte bis Fortsetzung", "Passi prima della continuità"],
         ["Settings_GestureSensitivity_Weak"] = ["Weak", "弱い", "弱", "弱", "약함", "Faible", "Schwach", "Debole"],
         ["Settings_GestureSensitivity_Strong"] = ["Strong", "強い", "强", "強", "강함", "Fort", "Stark", "Forte"],
         ["Settings_GestureSensitivity_Narrow"] = ["Narrow", "狭い", "窄", "窄", "좁음", "Étroit", "Eng", "Stretto"],

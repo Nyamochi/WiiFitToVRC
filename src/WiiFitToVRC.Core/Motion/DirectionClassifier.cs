@@ -84,9 +84,10 @@ public sealed class DirectionClassifier
     // be judged against the raw corner-touch timing, not against Current going back to Idle -- the
     // 1st step's own hold is far shorter than stepContinuationMs, so Current already reads Idle
     // again well before the 2nd real step of an ordinary walk arrives; resetting on that would mean
-    // the streak could never reach 2. See HoldMsForStreak: the 1st and 2nd steps of a sequence are
-    // a brief tap each (in case that's all there is -- someone taking just one or two steps), and
-    // only the 3rd step onward switches to a long, continuously-bridged hold.
+    // the streak could never grow. See HoldMsForStreak: the first (continuationStepCount - 1) steps
+    // of a sequence are a brief tap each (in case that's all there is -- someone taking just a few
+    // steps), and only the continuationStepCount-th step onward switches to a long,
+    // continuously-bridged hold.
     private int _frontStreak;
     private int _backStreak;
     private int _diagonalStreak;
@@ -130,11 +131,15 @@ public sealed class DirectionClassifier
     /// just this long (in case that's all there is), and the tail coast after the *last* step of a
     /// longer sequence too. Configurable since how "sticky" a step should feel is a matter of
     /// taste.</param>
-    /// <param name="stepContinuationMs">Added on top of stepHoldMs from the 2nd confirming step of
-    /// a sequence onward, and also how long a gap between two steps is still considered the same
-    /// sequence in the first place -- see HoldMsForStreak. Needs to comfortably span real stride
-    /// cadence (several hundred ms between footsteps) or continuous walking would release and
-    /// re-press the key between every step.</param>
+    /// <param name="stepContinuationMs">Added on top of stepHoldMs from the continuationStepCount-th
+    /// confirming step of a sequence onward, and also how long a gap between two steps is still
+    /// considered the same sequence in the first place -- see HoldMsForStreak. Needs to comfortably
+    /// span real stride cadence (several hundred ms between footsteps) or continuous walking would
+    /// release and re-press the key between every step.</param>
+    /// <param name="continuationStepCount">How many confirming steps of a fresh sequence are just a
+    /// brief stepHoldMs tap each before HoldMsForStreak switches to the long, continuously-bridged
+    /// hold -- see HoldMsForStreak. A plain step count (1-5), not a sensitivity-scaled
+    /// threshold.</param>
     /// <param name="turnEnabled">When false, turning is not tracked at all (any in-progress state
     /// from either turn model is dropped) and stepping is never blocked by it -- lets output modes
     /// fully lock out left/right turning while leaving forward/backward/dash untouched.</param>
@@ -145,7 +150,7 @@ public sealed class DirectionClassifier
     /// <param name="footstepTurnMode">True runs the Footstep turn model, false runs Hold -- see the
     /// class doc comment. A plain bool (rather than AppSettings.TurnMode) so this class doesn't
     /// need to reference the Settings namespace, matching every other primitive parameter here.</param>
-    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, long stepContinuationMs, bool turnEnabled, int turnSensitivity, bool footstepTurnMode)
+    public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, long stepContinuationMs, int continuationStepCount, bool turnEnabled, int turnSensitivity, bool footstepTurnMode)
     {
         bool trEdge = _topRight.Update(cal.TopRight, nowMs, _reference.ReferenceTopRight, footstepThresholdRatio);
         bool tlEdge = _topLeft.Update(cal.TopLeft, nowMs, _reference.ReferenceTopLeft, footstepThresholdRatio);
@@ -159,19 +164,19 @@ public sealed class DirectionClassifier
         // the two so a step doesn't get attributed to the wrong direction.
         if (trEdge && y >= 0)
         {
-            HandleFrontEdge(Corner.Right, nowMs, dashPeriodMs, stepHoldMs, stepContinuationMs);
+            HandleFrontEdge(Corner.Right, nowMs, dashPeriodMs, stepHoldMs, stepContinuationMs, continuationStepCount);
         }
         if (tlEdge && y >= 0)
         {
-            HandleFrontEdge(Corner.Left, nowMs, dashPeriodMs, stepHoldMs, stepContinuationMs);
+            HandleFrontEdge(Corner.Left, nowMs, dashPeriodMs, stepHoldMs, stepContinuationMs, continuationStepCount);
         }
         if (brEdge && y <= 0)
         {
-            HandleBackEdge(Corner.Right, nowMs, stepHoldMs, stepContinuationMs);
+            HandleBackEdge(Corner.Right, nowMs, stepHoldMs, stepContinuationMs, continuationStepCount);
         }
         if (blEdge && y <= 0)
         {
-            HandleBackEdge(Corner.Left, nowMs, stepHoldMs, stepContinuationMs);
+            HandleBackEdge(Corner.Left, nowMs, stepHoldMs, stepContinuationMs, continuationStepCount);
         }
 
         double x = ComputeX(cal);
@@ -186,19 +191,19 @@ public sealed class DirectionClassifier
             bool diagBlEdge = _diagBottomLeft.Update(cal.PctBottomLeft, nowMs, 1.0, diagonalThresholdPct);
             if (diagTrEdge)
             {
-                HandleDiagonalEdge(DiagonalCorner.TopRight, nowMs, stepHoldMs, stepContinuationMs);
+                HandleDiagonalEdge(DiagonalCorner.TopRight, nowMs, stepHoldMs, stepContinuationMs, continuationStepCount);
             }
             if (diagTlEdge)
             {
-                HandleDiagonalEdge(DiagonalCorner.TopLeft, nowMs, stepHoldMs, stepContinuationMs);
+                HandleDiagonalEdge(DiagonalCorner.TopLeft, nowMs, stepHoldMs, stepContinuationMs, continuationStepCount);
             }
             if (diagBrEdge)
             {
-                HandleDiagonalEdge(DiagonalCorner.BottomRight, nowMs, stepHoldMs, stepContinuationMs);
+                HandleDiagonalEdge(DiagonalCorner.BottomRight, nowMs, stepHoldMs, stepContinuationMs, continuationStepCount);
             }
             if (diagBlEdge)
             {
-                HandleDiagonalEdge(DiagonalCorner.BottomLeft, nowMs, stepHoldMs, stepContinuationMs);
+                HandleDiagonalEdge(DiagonalCorner.BottomLeft, nowMs, stepHoldMs, stepContinuationMs, continuationStepCount);
             }
         }
         else if (_lastDiagonalEdge != DiagonalCorner.None)
@@ -285,7 +290,7 @@ public sealed class DirectionClassifier
         }
     }
 
-    private void HandleFrontEdge(Corner corner, long nowMs, long dashPeriodMs, long stepHoldMs, long stepContinuationMs)
+    private void HandleFrontEdge(Corner corner, long nowMs, long dashPeriodMs, long stepHoldMs, long stepContinuationMs, int continuationStepCount)
     {
         // A gap longer than stepContinuationMs since the last front-corner touch means whatever
         // sequence was building has lapsed -- the *next* confirmed pair starts over at streak 1
@@ -303,14 +308,14 @@ public sealed class DirectionClassifier
             long interval = nowMs - _lastFrontEdgeMs;
             _steppingDirection = interval < dashPeriodMs ? Direction.Dash : Direction.Forward;
             _frontStreak++;
-            _steppingUntilMs = nowMs + HoldMsForStreak(_frontStreak, stepHoldMs, stepContinuationMs);
+            _steppingUntilMs = nowMs + HoldMsForStreak(_frontStreak, stepHoldMs, stepContinuationMs, continuationStepCount);
         }
 
         _lastFrontEdge = corner;
         _lastFrontEdgeMs = nowMs;
     }
 
-    private void HandleBackEdge(Corner corner, long nowMs, long stepHoldMs, long stepContinuationMs)
+    private void HandleBackEdge(Corner corner, long nowMs, long stepHoldMs, long stepContinuationMs, int continuationStepCount)
     {
         if (_lastBackEdge != Corner.None && nowMs - _lastBackEdgeMs > stepContinuationMs)
         {
@@ -320,7 +325,7 @@ public sealed class DirectionClassifier
         if (_lastBackEdge != Corner.None && _lastBackEdge != corner && nowMs - _lastBackEdgeMs <= stepContinuationMs)
         {
             _backStreak++;
-            ConfirmCompetingStep(Direction.Backward, nowMs, HoldMsForStreak(_backStreak, stepHoldMs, stepContinuationMs), stepContinuationMs);
+            ConfirmCompetingStep(Direction.Backward, nowMs, HoldMsForStreak(_backStreak, stepHoldMs, stepContinuationMs, continuationStepCount), stepContinuationMs);
         }
 
         _lastBackEdge = corner;
@@ -331,7 +336,7 @@ public sealed class DirectionClassifier
     // (either order) is a right turn, front-right paired with back-left (either order) is a left
     // turn. A single corner crossing the threshold is never enough by itself; it just becomes the
     // pending "first step" for the next one to potentially pair with.
-    private void HandleDiagonalEdge(DiagonalCorner corner, long nowMs, long stepHoldMs, long stepContinuationMs)
+    private void HandleDiagonalEdge(DiagonalCorner corner, long nowMs, long stepHoldMs, long stepContinuationMs, int continuationStepCount)
     {
         if (_lastDiagonalEdge != DiagonalCorner.None && nowMs - _lastDiagonalEdgeMs > stepContinuationMs)
         {
@@ -349,7 +354,7 @@ public sealed class DirectionClassifier
             if (confirmed is { } direction)
             {
                 _diagonalStreak++;
-                ConfirmCompetingStep(direction, nowMs, HoldMsForStreak(_diagonalStreak, stepHoldMs, stepContinuationMs), stepContinuationMs);
+                ConfirmCompetingStep(direction, nowMs, HoldMsForStreak(_diagonalStreak, stepHoldMs, stepContinuationMs, continuationStepCount), stepContinuationMs);
             }
         }
 
@@ -379,15 +384,16 @@ public sealed class DirectionClassifier
         _steppingUntilMs = nowMs + holdMs;
     }
 
-    // The 1st and 2nd confirmed steps of a fresh sequence (streak < 3) are just a brief tap each --
-    // stepHoldMs alone -- in case that's genuinely all there is (someone taking one or two steps).
-    // Only once a 3rd step confirms the sequence is actually continuing does it switch to a long,
-    // continuously-bridged hold: stepContinuationMs on top, comfortably spanning real stride cadence
-    // (several hundred ms between footsteps) so the key stays held instead of releasing and
-    // re-pressing between every subsequent step, plus stepHoldMs still as the short coast after the
-    // sequence's last step. Reused identically for Forward/Dash, Backward, and Footstep-mode Turn.
-    private static long HoldMsForStreak(int streak, long stepHoldMs, long stepContinuationMs) =>
-        streak >= 3 ? stepHoldMs + stepContinuationMs : stepHoldMs;
+    // The first (continuationStepCount - 1) confirmed steps of a fresh sequence are just a brief tap
+    // each -- stepHoldMs alone -- in case that's genuinely all there is (someone taking just a few
+    // steps). Only once the continuationStepCount-th step confirms the sequence is actually
+    // continuing does it switch to a long, continuously-bridged hold: stepContinuationMs on top,
+    // comfortably spanning real stride cadence (several hundred ms between footsteps) so the key
+    // stays held instead of releasing and re-pressing between every subsequent step, plus stepHoldMs
+    // still as the short coast after the sequence's last step. Reused identically for Forward/Dash,
+    // Backward, and Footstep-mode Turn.
+    private static long HoldMsForStreak(int streak, long stepHoldMs, long stepContinuationMs, int continuationStepCount) =>
+        streak >= continuationStepCount ? stepHoldMs + stepContinuationMs : stepHoldMs;
 
     /// <summary>
     /// Watches one corner for the moment its value crosses thresholdRatio times a reference value

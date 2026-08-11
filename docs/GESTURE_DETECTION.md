@@ -61,26 +61,30 @@ threshold %** of the weight reference (e.g. 120%) — a discrete "this foot just
   that, so Dash can never fire and every alternation reads as a plain Forward/Backward step
   instead.
 
-### The first two steps tap, the third and later steps hold
+### The first few steps tap, later steps hold
 
 A confirmed direction doesn't hold for the same duration every time -- it depends on whether this
-is an isolated one- or two-step sequence or a genuinely ongoing one, tracked per mechanism
-(front-corner, back-corner, diagonal-corner) as a streak count that resets once the gap since that
-mechanism's last corner touch exceeds **Walk/Dash continuation** (`DirectionClassifier.HoldMsForStreak`):
+is an isolated short sequence or a genuinely ongoing one, tracked per mechanism (front-corner,
+back-corner, diagonal-corner) as a streak count that resets once the gap since that mechanism's
+last corner touch exceeds **Walk/Dash continuation** (`DirectionClassifier.HoldMsForStreak`):
 
-- The **first and second** confirming steps of a fresh sequence each hold for just **stride length
-  (ms)** (default 70ms) -- a brief tap. This matters for someone who genuinely only wants to take
-  one or two steps: without it, those steps would hold the key down far longer than the steps
-  themselves.
-- The **third and every subsequent** confirming step of the same ongoing sequence holds for
-  **stride length (ms) + Walk/Dash continuation** (default 70ms + 900ms). The continuation
-  component is what actually matters here: ordinary stride cadence (several hundred ms between
-  landings) is far slower than stride length alone, so holding for only stride length would release
-  and re-press the key between literally every step of a real walk. Once a third step confirms
-  that this is a real ongoing sequence (not just one or two deliberate steps), the long hold takes
-  over and bridges the gaps between steps, keeping continuous walking/dashing/turning held as one
-  unbroken output for as long as the steps keep coming -- and stride length alone tunes the short
-  coast *after* the sequence actually ends.
+- The first **Steps until continuation** confirming steps of a fresh sequence (default 3) each hold
+  for just **stride length (ms)** (default 70ms) -- a brief tap. This matters for someone who
+  genuinely only wants to take a few steps: without it, those steps would hold the key down far
+  longer than the steps themselves.
+- Every confirming step from **Steps until continuation** onward holds for **stride length (ms) +
+  Walk/Dash continuation** (default 70ms + 900ms). The continuation component is what actually
+  matters here: ordinary stride cadence (several hundred ms between landings) is far slower than
+  stride length alone, so holding for only stride length would release and re-press the key between
+  literally every step of a real walk. Once enough steps confirm that this is a real ongoing
+  sequence (not just a few deliberate steps), the long hold takes over and bridges the gaps between
+  steps, keeping continuous walking/dashing/turning held as one unbroken output for as long as the
+  steps keep coming -- and stride length alone tunes the short coast *after* the sequence actually
+  ends.
+
+**Steps until continuation** (Settings, directly under **Walk/Dash continuation**) is a plain 1-5
+step count, default 3 -- not a Weak/Strong or Narrow/Wide dial like the other Gesture sensitivity
+sliders, since it's a count rather than a threshold.
 
 **Walk/Dash continuation** (Settings, directly under **Stride**) is a Narrow/Wide 0-100 slider like
 Stride, backed by a 400-1400ms raw range (default 900ms at the 50% midpoint); its raw value is
@@ -140,8 +144,8 @@ threshold here is a plain percentage of total board weight on that one corner (*
 A turn confirms on the **second** step of the pair: a single corner crossing 50% is never enough by
 itself, it just becomes the pending first step waiting for the diagonal partner's next crossing.
 Once confirmed it behaves exactly like a footstep -- the same tap-then-hold streak mechanism
-described above applies here too (the first and second confirming steps tap for stride length
-alone, the third and later steps of the same alternating sequence hold for stride length +
+described above applies here too (the first **Steps until continuation** confirming steps tap for
+stride length alone, later steps of the same alternating sequence hold for stride length +
 Walk/Dash continuation), releasing back to Idle the same way stepping does once the alternation
 stops.
 
@@ -204,11 +208,14 @@ changed -- there's no separate "Crouch enabled" toggle; this is the only way to 
 
 ## Gesture sensitivity: independent dials for walk/dash/turn/jump/crouch/stride/continuation
 
-Settings has seven of these sliders, grouped under "Gesture sensitivity": **Walk**, **Dash**,
-**Turn**, **Jump**, **Crouch**, **Stride**, and **Walk/Dash continuation**. Each is shown as a
-plain 0-100 percentage (Weak to Strong, except Stride and Walk/Dash continuation which are Narrow
-to Wide), independent of the others -- turning up Jump doesn't touch Turn or Crouch. 50 is always
-the default/neutral position, reproducing the original hardcoded values unchanged.
+Settings has seven Weak/Strong-or-Narrow/Wide sliders plus one plain step count, grouped under
+"Gesture sensitivity": **Walk**, **Dash**, **Turn**, **Jump**, **Crouch**, **Stride**, **Walk/Dash
+continuation**, and **Steps until continuation**. The first seven are each shown as a plain 0-100
+percentage (Weak to Strong, except Stride and Walk/Dash continuation which are Narrow to Wide),
+independent of the others -- turning up Jump doesn't touch Turn or Crouch. 50 is always the
+default/neutral position for those seven, reproducing the original hardcoded values unchanged.
+**Steps until continuation** is a plain 1-5 count instead (default 3), described in "The first few
+steps tap, later steps hold" above.
 
 - **Turn/Jump/Crouch** feed directly into
   [`GestureSensitivityScale.cs`](../src/WiiFitToVRC.Core/Motion/GestureSensitivityScale.cs), which
@@ -228,11 +235,13 @@ the default/neutral position, reproducing the original hardcoded values unchange
   fire" dial like the other five (nothing about stride makes a gesture more or less likely), so it
   uses Narrow/Wide labels instead and has no disable behavior.
 - **Walk/Dash continuation** scales the alternation-pairing/streak-reset window described in
-  "One step taps, two or more steps hold" above -- likewise Narrow/Wide with no disable behavior,
-  and independent of Stride even though its raw value is added on top of stride length for the
-  long-hold duration.
+  "The first few steps tap, later steps hold" above -- likewise Narrow/Wide with no disable
+  behavior, and independent of Stride even though its raw value is added on top of stride length
+  for the long-hold duration.
+- **Steps until continuation** sets the streak count that same section switches over at -- a plain
+  1-5 count rather than a Weak/Strong/Narrow/Wide dial, and has no disable behavior either.
 
-None of the six affect forward/backward, which has its own separate **Footstep threshold %**
+None of these eight affect forward/backward, which has its own separate **Footstep threshold %**
 raw value (mapped to the "Walk" slider) as described above.
 
 Crouch is also suppressed for 500ms after any forward/backward/turn/jump last fired, since those

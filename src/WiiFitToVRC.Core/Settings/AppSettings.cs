@@ -113,14 +113,21 @@ public sealed class AppSettings
     /// (displayed as 50%).</summary>
     public int StepHoldMs { get; set; } = 70;
 
-    /// <summary>Added on top of StepHoldMs (see DirectionClassifier.HoldMsForStreak) from the 3rd
-    /// confirming step of a forward/backward/dash/footstep-turn sequence onward, and also how long
-    /// a gap after any confirming step is still considered the same ongoing sequence. Needs to
-    /// comfortably span real stride cadence (several hundred ms between footsteps) or continuous
-    /// walking/dashing would release and re-press the key between every step instead of staying
-    /// held. 900 is the default -- the midpoint of the "Walk/Dash continuation" slider's
-    /// 400-1400ms range (displayed as 50%).</summary>
+    /// <summary>Added on top of StepHoldMs (see DirectionClassifier.HoldMsForStreak) from the
+    /// ContinuationStepCount-th confirming step of a forward/backward/dash/footstep-turn sequence
+    /// onward, and also how long a gap after any confirming step is still considered the same
+    /// ongoing sequence. Needs to comfortably span real stride cadence (several hundred ms between
+    /// footsteps) or continuous walking/dashing would release and re-press the key between every
+    /// step instead of staying held. 900 is the default -- the midpoint of the "Walk/Dash
+    /// continuation" slider's 400-1400ms range (displayed as 50%).</summary>
     public int StepContinuationMs { get; set; } = 900;
+
+    /// <summary>How many confirming steps of a fresh forward/backward/dash/footstep-turn sequence
+    /// are just a brief tap (StepHoldMs alone) before HoldMsForStreak switches to the long,
+    /// continuously-bridged hold (StepHoldMs + StepContinuationMs). A plain step count (1-5), not a
+    /// Weak/Strong or Narrow/Wide dial like the other Gesture sensitivity sliders. 3 is the
+    /// default.</summary>
+    public int ContinuationStepCount { get; set; } = 3;
 
     /// <summary>Shows the raw-data recording controls (label picker, record button) on the main
     /// window -- only useful for capturing gesture logs during tuning, so hidden by default.</summary>
