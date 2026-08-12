@@ -125,9 +125,22 @@ public partial class MonitorForm : Form
             return;
         }
 
-        using (var form = new UpdateAvailableForm(CurrentLanguage, RepositoryUrl, latest.Message))
+        string? downloadedExePath;
+        using (var form = new UpdateAvailableForm(CurrentLanguage, RepositoryUrl, latest.Sha, latest.Message))
         {
             form.ShowDialog(this);
+            downloadedExePath = form.DownloadedExePath;
+        }
+
+        if (downloadedExePath is not null)
+        {
+            // Hands off to a detached helper and exits this process -- see
+            // AutoUpdater.ApplyAndRestart. LastNotifiedUpdateSha is moot here: the exe this
+            // relaunches into is the very build that would otherwise satisfy it, and by the time
+            // anyone's back at this code path they're running that fresh exe with its own fresh
+            // file timestamp, which the check above already gates on independently.
+            AutoUpdater.ApplyAndRestart(downloadedExePath);
+            return;
         }
 
         _settings.LastNotifiedUpdateSha = latest.Sha;

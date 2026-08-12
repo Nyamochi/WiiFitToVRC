@@ -19,6 +19,16 @@ public static class UpdateChecker
     // GitHub's API rejects requests with no User-Agent header entirely.
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(8) };
 
+    // Separate client for the exe download itself -- the ~8s timeout above is sized for a small
+    // JSON API call, not a ~70MB binary; this one relies on the caller's CancellationToken instead
+    // of a blanket timeout.
+    private static readonly HttpClient DownloadHttp = new() { Timeout = Timeout.InfiniteTimeSpan };
+
+    // A truncated/interrupted download would leave a file far smaller than a real build -- this is
+    // just a sanity floor to reject an obviously-broken download before it ever gets swapped in
+    // for the running exe (see AutoUpdater), not a precise size check.
+    private const long MinPlausibleExeBytes = 20 * 1024 * 1024;
+
     public static async Task<LatestExeCommit?> GetLatestExeCommitAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -57,6 +67,66 @@ public static class UpdateChecker
             or KeyNotFoundException or InvalidOperationException)
         {
             return null;
+        }
+    }
+
+    /// <summary>Downloads WiiFitToVRC.exe as it existed at the given commit (raw.githubusercontent.com,
+    /// not the API) to destinationPath. Pinned to that exact sha rather than "whatever's on main
+    /// right now" so the download matches the commit the user was actually shown/confirmed --
+    /// main could theoretically move again mid-download otherwise. Reports (bytesDownloaded,
+    /// totalBytes-or-null) as it goes; totalBytes is null if the server didn't send a
+    /// Content-Length. Best-effort like the rest of this class: any failure returns false rather
+    /// than throwing, and never leaves a partially-written file at destinationPath behind.</summary>
+    public static async Task<bool> DownloadExeAsync(string sha, string destinationPath,
+        IProgress<(long BytesDownloaded, long? TotalBytes)>? progress, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            string url = $"https://raw.githubusercontent.com/Nyamochi/WiiFitToVRC/{sha}/WiiFitToVRC.exe";
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.UserAgent.ParseAdd("WiiFitToVRC-UpdateChecker");
+
+            using var response = await DownloadHttp.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                return false;
+            }
+
+            long? totalBytes = response.Content.Headers.ContentLength;
+
+            using (var httpStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
+            using (var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                var buffer = new byte[81920];
+                long downloaded = 0;
+                int read;
+                while ((read = await httpStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    await fileStream.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                    downloaded += read;
+                    progress?.Report((downloaded, totalBytes));
+                }
+            }
+
+            if (new FileInfo(destinationPath).Length < MinPlausibleExeBytes)
+            {
+                File.Delete(destinationPath);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException)
+        {
+            try
+            {
+                if (File.Exists(destinationPath))
+                {
+                    File.Delete(destinationPath);
+                }
+            }
+            catch (IOException) { }
+            return false;
         }
     }
 }

@@ -106,6 +106,10 @@ public static class Localizer
         ["Update_Available_Title"] = ["Update available", "アップデート", "有可用更新", "有可用更新", "업데이트 사용 가능", "Mise à jour disponible", "Update verfügbar", "Aggiornamento disponibile"],
         ["Update_Available_Message"] = ["An app update is available.", "アプリのアップデートがあります", "有可用的应用更新", "有可用的應用程式更新", "앱 업데이트가 있습니다", "Une mise à jour de l'application est disponible.", "Es ist ein App-Update verfügbar.", "È disponibile un aggiornamento dell'app."],
         ["Update_Available_SummaryLabel"] = ["What's new:", "更新内容:", "更新内容:", "更新內容:", "업데이트 내용:", "Nouveautés :", "Was ist neu:", "Novità:"],
+        ["Update_PerformButton"] = ["Update now", "アップデートを実施", "立即更新", "立即更新", "지금 업데이트", "Mettre à jour maintenant", "Jetzt aktualisieren", "Aggiorna ora"],
+        ["Update_LaterButton"] = ["Later", "後で", "稍后", "稍後", "나중에", "Plus tard", "Später", "Più tardi"],
+        ["Update_Downloading"] = ["Downloading update... {0}", "アップデートをダウンロード中... {0}", "正在下载更新... {0}", "正在下載更新... {0}", "업데이트 다운로드 중... {0}", "Téléchargement de la mise à jour... {0}", "Update wird heruntergeladen... {0}", "Download dell'aggiornamento in corso... {0}"],
+        ["Update_DownloadFailed"] = ["The update download failed. Please try again later.", "アップデートのダウンロードに失敗しました。時間をおいて再試行してください。", "更新下载失败,请稍后重试。", "更新下載失敗,請稍後重試。", "업데이트 다운로드에 실패했습니다. 나중에 다시 시도해 주세요.", "Échec du téléchargement de la mise à jour. Veuillez réessayer plus tard.", "Der Update-Download ist fehlgeschlagen. Bitte versuche es später erneut.", "Il download dell'aggiornamento non è riuscito. Riprova più tardi."],
     };
 
     private static readonly AppLanguage[] Order =
