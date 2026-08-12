@@ -108,13 +108,14 @@ public partial class MonitorForm : Form
     // Best-effort, silent-on-failure (see UpdateChecker). The published exe is committed
     // directly to the repo root rather than released via GitHub Releases, so "is there an
     // update" is answered by comparing this exe's own file timestamp against the latest commit
-    // that touched that path -- not a version number. LastNotifiedUpdateSha (a hidden
-    // settings.json field, no Settings UI control) makes sure the popup only ever fires once per
-    // update, not on every subsequent launch until the user actually updates.
+    // that touched that path -- not a version number. Shows on every launch for as long as the
+    // running exe is actually behind -- now that Update_PerformButton/AutoUpdater can fix that in
+    // one click, there's no need to only pester once and then let an out-of-date build go quiet;
+    // "Later" just means later, not "never remind me about this specific update again".
     private async Task CheckForUpdateAsync()
     {
         var latest = await UpdateChecker.GetLatestExeCommitAsync();
-        if (latest is null || latest.Sha == _settings.LastNotifiedUpdateSha)
+        if (latest is null)
         {
             return;
         }
@@ -135,16 +136,9 @@ public partial class MonitorForm : Form
         if (downloadedExePath is not null)
         {
             // Hands off to a detached helper and exits this process -- see
-            // AutoUpdater.ApplyAndRestart. LastNotifiedUpdateSha is moot here: the exe this
-            // relaunches into is the very build that would otherwise satisfy it, and by the time
-            // anyone's back at this code path they're running that fresh exe with its own fresh
-            // file timestamp, which the check above already gates on independently.
+            // AutoUpdater.ApplyAndRestart.
             AutoUpdater.ApplyAndRestart(downloadedExePath);
-            return;
         }
-
-        _settings.LastNotifiedUpdateSha = latest.Sha;
-        _settings.Save();
     }
 
     // Runs once at startup. If the board was already paired in a previous session, Windows may

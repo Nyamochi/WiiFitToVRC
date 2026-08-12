@@ -210,13 +210,6 @@ public sealed class AppSettings
     /// (OutputMode.Controller only). One shared value for both directions.</summary>
     public int ControllerTurnSpeed { get; set; } = 60;
 
-    /// <summary>SHA of the latest GitHub commit touching WiiFitToVRC.exe that the "update
-    /// available" popup has already been shown for (see UpdateChecker, MonitorForm.
-    /// CheckForUpdateAsync) -- prevents re-showing it on every subsequent launch for the same
-    /// already-known update. Not exposed anywhere in the Settings UI; purely internal
-    /// bookkeeping.</summary>
-    public string? LastNotifiedUpdateSha { get; set; }
-
     public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, "settings.json");
 
     public static AppSettings Load(string? path = null)
