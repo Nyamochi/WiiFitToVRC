@@ -24,7 +24,7 @@ partial class MonitorForm
         AutoScaleMode = AutoScaleMode.None;
         ClientSize = new Size(660, 380);
         StartPosition = FormStartPosition.CenterScreen;
-        Text = "WiiFitToVRC モニター";
+        Text = "WiiFitToVRC";
         // FixedToolWindow carries WS_EX_TOOLWINDOW, which Windows explicitly excludes from the
         // taskbar -- the window was there (visible, focusable) but never showed a taskbar button.
         FormBorderStyle = FormBorderStyle.FixedSingle;
