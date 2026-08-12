@@ -48,6 +48,21 @@ public sealed class DirectionClassifier
     // reference like the footstep detector below) -- scaled by GestureSensitivityScale.
     private const double BaselineTurnDiagonalThresholdPct = 50;
 
+    // Sitting forward/backward/dash -- see the instantWeightCalibration branch in Update. A plain
+    // percentage-of-total threshold on the front/back corner pairs, exactly the same mechanism as
+    // BaselineTurnDiagonalThresholdPct above (which already works fine seated, just on the
+    // diagonal pairs instead) -- scaled by footstepThresholdRatio rather than turnSensitivity,
+    // since this is standing's forward/backward/dash slider's sitting counterpart, not turn's.
+    // Reference-relative detection (the standing path below) falls apart seated: the reference
+    // gets seeded from whatever single sample happens to be on hand the instant presence first
+    // crosses the (much lower) Sitting threshold -- which can land mid-step, or at a corner that
+    // person's seated stance never rests any weight on at all (reference 0 permanently blocks that
+    // corner, see CornerPeakTracker's doc comment). 35% was tuned against real seated gait
+    // recordings (see debug/sit_*.csv): front/back corner percentages during an actual step
+    // cluster in the low-to-high 40s% at the default 120% footstepThresholdRatio, resting well
+    // under that between steps.
+    private const double BaselineSittingFrontBackThresholdPct = 35;
+
     // Hold turn model -- baseline (Gesture sensitivity = 50) values, scaled by
     // GestureSensitivityScale before use.
     private const double BaselineTurnEnterX = 40;   // X (left-right %) magnitude to start timing a turn candidate
@@ -70,6 +85,15 @@ public sealed class DirectionClassifier
     private readonly CornerPeakTracker _diagTopLeft = new();
     private readonly CornerPeakTracker _diagBottomRight = new();
     private readonly CornerPeakTracker _diagBottomLeft = new();
+
+    // Sitting-only forward/backward/dash trackers -- see BaselineSittingFrontBackThresholdPct.
+    // Independent instances (not reused from _topRight etc. above) since they run off a completely
+    // different reference (fixed 1.0, i.e. a plain percentage) and would otherwise fight over
+    // refractory/edge state with the reference-relative standing trackers.
+    private readonly CornerPeakTracker _sittingTopRight = new();
+    private readonly CornerPeakTracker _sittingTopLeft = new();
+    private readonly CornerPeakTracker _sittingBottomRight = new();
+    private readonly CornerPeakTracker _sittingBottomLeft = new();
 
     private Corner _lastFrontEdge = Corner.None;
     private long _lastFrontEdgeMs;
@@ -104,6 +128,13 @@ public sealed class DirectionClassifier
 
     public Direction Current { get; private set; } = Direction.Idle;
     public bool IsWeightCalibrated => _reference.IsCalibrated;
+
+    /// <summary>Sum of the four learned per-corner reference values (0 if not yet calibrated) --
+    /// exposed for JumpDetector's sitting path, which detects a jump as total weight collapsing
+    /// toward zero relative to this "feet resting normally" baseline (see AppSettings.PostureMode
+    /// doc comment).</summary>
+    public double ReferenceTotal =>
+        _reference.ReferenceTopRight + _reference.ReferenceBottomRight + _reference.ReferenceTopLeft + _reference.ReferenceBottomLeft;
 
     /// <summary>Fires when the weight reference is refreshed mid-session (see
     /// ReferenceWeightCalibrator.Refreshed).</summary>
@@ -169,10 +200,23 @@ public sealed class DirectionClassifier
     /// footstepTurnMode above.</param>
     public Direction Update(CalibratedReading cal, long nowMs, bool isPresent, double footstepThresholdRatio, long dashPeriodMs, long stepHoldMs, long stepContinuationMs, int continuationStepCount, int turnSensitivity, bool footstepTurnMode, bool instantWeightCalibration)
     {
-        bool trEdge = _topRight.Update(cal.TopRight, nowMs, _reference.ReferenceTopRight, footstepThresholdRatio);
-        bool tlEdge = _topLeft.Update(cal.TopLeft, nowMs, _reference.ReferenceTopLeft, footstepThresholdRatio);
-        bool brEdge = _bottomRight.Update(cal.BottomRight, nowMs, _reference.ReferenceBottomRight, footstepThresholdRatio);
-        bool blEdge = _bottomLeft.Update(cal.BottomLeft, nowMs, _reference.ReferenceBottomLeft, footstepThresholdRatio);
+        bool trEdge, tlEdge, brEdge, blEdge;
+        if (instantWeightCalibration)
+        {
+            // Sitting -- see BaselineSittingFrontBackThresholdPct.
+            double sittingThresholdPct = BaselineSittingFrontBackThresholdPct * footstepThresholdRatio;
+            trEdge = _sittingTopRight.Update(cal.PctTopRight, nowMs, 1.0, sittingThresholdPct);
+            tlEdge = _sittingTopLeft.Update(cal.PctTopLeft, nowMs, 1.0, sittingThresholdPct);
+            brEdge = _sittingBottomRight.Update(cal.PctBottomRight, nowMs, 1.0, sittingThresholdPct);
+            blEdge = _sittingBottomLeft.Update(cal.PctBottomLeft, nowMs, 1.0, sittingThresholdPct);
+        }
+        else
+        {
+            trEdge = _topRight.Update(cal.TopRight, nowMs, _reference.ReferenceTopRight, footstepThresholdRatio);
+            tlEdge = _topLeft.Update(cal.TopLeft, nowMs, _reference.ReferenceTopLeft, footstepThresholdRatio);
+            brEdge = _bottomRight.Update(cal.BottomRight, nowMs, _reference.ReferenceBottomRight, footstepThresholdRatio);
+            blEdge = _bottomLeft.Update(cal.BottomLeft, nowMs, _reference.ReferenceBottomLeft, footstepThresholdRatio);
+        }
 
         double y = ComputeY(cal);
 

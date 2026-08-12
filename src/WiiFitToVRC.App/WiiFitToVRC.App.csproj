@@ -11,6 +11,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationHighDpiMode>DpiUnaware</ApplicationHighDpiMode>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
 </Project>

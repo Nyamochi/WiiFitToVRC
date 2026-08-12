@@ -270,3 +270,77 @@ binding — one press crouches, the next press stands back up. So instead of hol
 while `IsCrouching` is true, the app sends exactly one tap on *each* transition (crouch starting,
 and crouch ending). This pairing has to stay exact: if a tap were ever silently dropped, the game
 and the app's idea of the crouch state would end up permanently inverted relative to each other.
+
+## Sitting posture: overrides, not new settings
+
+Settings has no separate "sitting" screen — there wasn't room to add one, and someone using the
+board seated still wants to tune Gesture sensitivity, Dash input method, and everything else the
+same way a standing user does. Instead, the main window's **Play posture** row (立ち/Standing,
+座り/Sitting — `AppSettings.PostureMode`, `MonitorForm`'s posture radio pair) reinterprets a
+handful of the settings and detectors described above for a body resting on a chair rather than
+standing on the board, without adding anything new to the Settings dialog.
+
+### Presence and calibration
+
+Sitting overrides two settings outright (`AppSettings.EffectivePresenceWeightThreshold`/
+`EffectiveSleepSeconds`, see the `PostureMode` doc comment) rather than exposing separate sliders
+for them:
+
+- **Presence weight threshold**: 500 instead of the configured value — someone seated rests only a
+  fraction of their body weight on the board, the chair carries the rest.
+- **Sleep/wake seconds**: 0 — a seated session tends to start and stop in short, quick bursts, and
+  the normal hysteresis delay just gets in the way.
+
+The weight reference (see above) also works completely differently while sitting: instead of the
+normal ~20+ second "stand still" flatness-window wait, `ReferenceWeightCalibrator.
+CalibrateImmediately` seeds it straight from whatever reading is on hand the instant presence is
+first detected, and the usual ongoing auto-refresh is suspended entirely for as long as sitting
+stays on (`DirectionClassifier.Update`'s `instantWeightCalibration` parameter) — a seated resting
+weight is light and inconsistent enough that the flat-window process isn't a good fit for it
+either way. Switching **Play posture** in either direction resets the reference (and
+`JumpDetector`'s own standing baseline) so it re-establishes fresh for the new posture
+(`InputController.ResetWeightCalibration`, called from `MonitorForm.SetPostureMode`).
+
+### Forward/backward/dash: a fixed percentage instead of a learned reference
+
+The reference-relative footstep detection described above doesn't hold up seated: with presence
+now unlocking at 500 instead of thousands, the reference can seed mid-step, or seed 0 for a corner
+someone's seated stance never rests any weight on at all (a 0 reference permanently blocks that
+corner — see `CornerPeakTracker`'s doc comment). Sitting forward/backward/dash instead reuses the
+exact same front/back corner-pair alternation, dash-period, hold, and continuation logic described
+above, but feeds it from a plain percentage-of-total threshold on those corners — the same
+mechanism the Footstep turn model already uses for the diagonal pair
+(`DirectionClassifier.BaselineSittingFrontBackThresholdPct`, 35% at the baseline, scaled by the
+same **Footstep threshold %** ratio Standing's Walk slider controls). This was tuned against real
+seated gait recordings (`debug/sit_*.csv`): front/back corner percentages during an actual step
+cluster in the low-to-high 40s% at the default 120% ratio, resting well under that between steps.
+
+### Turn: unchanged
+
+Turn already uses that same fixed-percentage-of-total mechanism for its diagonal corner pair (see
+above), so it needed no changes at all for sitting — it behaves identically in both postures.
+
+### Crouch: top and bottom panels swapped
+
+A seated crouch gesture is recorded on the **bottom** panels instead of the top ones standing
+leans onto (feet pushed forward under the board rather than weight shifted onto the toes).
+`InputController.Update` negates Y before calling `CrouchDetector.Update` while sitting — since Y
+is top-minus-bottom, negating it is exactly that swap — with every other part of
+`CrouchDetector`'s own logic (hold duration, hysteresis, sensitivity scaling) left completely
+untouched.
+
+### Jump: near-zero weight instead of a push-off spike
+
+A seated push-off is far too subtle and inconsistent to arm off the way Standing's spike-then-
+collapse state machine does (see above). What's reliable instead is the feet actually lifting
+clear of the board, which reads as total weight collapsing toward zero relative to the reference
+established above (`JumpDetector`'s `sittingPosture` path). **Gesture sensitivity: Jump** still
+drives this off the same slider as standing, but maps it to a different underlying range: 0-40% of
+the reference weight instead of a spike multiplier (`JumpDetector.SittingMaxThresholdFraction`),
+so the default 50 arms at 20% — comfortably above the near-zero readings a real lifted-leg moment
+produces, and comfortably below ordinary seated weight-bearing.
+
+Because this near-zero moment is exactly what Sitting's zero-second sleep/wake override would
+otherwise read as "no longer present" and gate out, `InputController.Update` runs sitting jump
+detection as a fully self-contained step *ahead of* the presence gate, rather than after it like
+every other detector.

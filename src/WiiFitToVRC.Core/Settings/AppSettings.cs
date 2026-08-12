@@ -70,7 +70,7 @@ public sealed class AppSettings
 
     /// <summary>Pixels of relative mouse movement sent per tick while turning right/left is
     /// active (OutputMode.KeyboardMouse only). One shared value for both directions.</summary>
-    public int MouseTurnSpeed { get; set; } = 5;
+    public int MouseTurnSpeed { get; set; } = 15;
 
     /// <summary>How long (ms) a single confirmed turn step's output is independently held for on
     /// OutputMode.Osc/Controller only -- see InputController.ResolveHeldTurnDirection. A confirmed

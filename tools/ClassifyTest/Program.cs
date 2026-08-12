@@ -21,11 +21,18 @@ foreach (string path in paths)
 // its own -- forward/backward footstep detection would never fire at all. Seed it instead with 5
 // synthetic flat samples (evenly split across the 4 corners, since we don't have this person's
 // real resting stance) well before the real data starts, so the reference reads ReferenceWeight
-// per corner by the time real rows are processed.
+// per corner by the time real rows are processed. Sitting recordings (filename prefix "sit_", see
+// debug/sit_*.csv) skip this entirely -- their forward/backward/dash detection doesn't depend on
+// the reference at all (see DirectionClassifier's instantWeightCalibration branch), and the
+// reference they DO calibrate (for jump's sittingReferenceTotal) is meant to seed from real data
+// the moment presence first crosses AppSettings.EffectivePresenceWeightThreshold (500), the same
+// as the real app does, not from a synthetic flat seed.
 const double ReferenceWeight = 7100;
+const int SittingPresenceWeightThreshold = 500;
 
 static void RunOneFile(string path, bool footstepTurnMode)
 {
+    bool sitting = Path.GetFileName(path).StartsWith("sit_", StringComparison.Ordinal);
     var directionClassifier = new DirectionClassifier();
     var crouchDetector = new CrouchDetector();
     var jumpDetector = new JumpDetector();
@@ -63,7 +70,10 @@ static void RunOneFile(string path, bool footstepTurnMode)
 
         if (!seeded)
         {
-            SeedReference(directionClassifier, unixMs, footstepTurnMode);
+            if (!sitting)
+            {
+                SeedReference(directionClassifier, unixMs, footstepTurnMode);
+            }
             seeded = true;
             firstUnixMs = unixMs;
         }
@@ -81,8 +91,23 @@ static void RunOneFile(string path, bool footstepTurnMode)
         };
 
         double y = DirectionClassifier.ComputeY(cal);
+        bool isPresent = !sitting || cal.Total > SittingPresenceWeightThreshold;
 
-        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 70, stepContinuationMs: 800, continuationStepCount: 7, turnSensitivity: 60, footstepTurnMode, instantWeightCalibration: false);
+        // Sitting jump runs ahead of (independent of) the presence gate below, matching
+        // InputController.Update -- it's specifically the near-zero-weight moments the gate would
+        // otherwise treat as "not present" that jump needs to see.
+        if (sitting && jumpDetector.Update(cal.Total, unixMs, jumpSensitivity: 50, sittingPosture: true, directionClassifier.ReferenceTotal))
+        {
+            jumpTriggers++;
+        }
+
+        if (!isPresent)
+        {
+            totalSamples++;
+            continue; // matches InputController's presence gate -- direction/crouch never run while not present
+        }
+
+        var direction = directionClassifier.Update(cal, unixMs, isPresent: true, footstepThresholdRatio: 1.20, dashPeriodMs: 300, stepHoldMs: 70, stepContinuationMs: 800, continuationStepCount: 7, turnSensitivity: 60, footstepTurnMode, instantWeightCalibration: sitting);
         if (Environment.GetEnvironmentVariable("CLASSIFYTEST_TRACE") == "1" && direction != lastTraced)
         {
             Console.WriteLine($"    t={(unixMs - firstUnixMs) / 1000.0:F2}s -> {direction}");
@@ -90,12 +115,14 @@ static void RunOneFile(string path, bool footstepTurnMode)
         }
         directionCounts[direction] = directionCounts.GetValueOrDefault(direction) + 1;
 
-        if (crouchDetector.Update(y, unixMs, crouchSensitivity: 50))
+        // Sitting crouch is recorded on the bottom panels instead of the top ones standing uses --
+        // negating Y is exactly that swap (Y is top-minus-bottom), matching InputController.Update.
+        if (crouchDetector.Update(sitting ? -y : y, unixMs, crouchSensitivity: 50))
         {
             crouchSamples++;
         }
 
-        if (jumpDetector.Update(cal.Total, unixMs, jumpSensitivity: 50))
+        if (!sitting && jumpDetector.Update(cal.Total, unixMs, jumpSensitivity: 50, sittingPosture: false, 0))
         {
             jumpTriggers++;
         }

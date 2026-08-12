@@ -128,6 +128,22 @@ public sealed class InputController : IDisposable
             _controller.Connect(); // no-op once already connected, or already failed once
         }
 
+        bool sitting = _settings.PostureMode == PostureMode.Sitting;
+        bool jumped = false;
+
+        // Sitting jump fires on total weight collapsing toward zero as the feet lift clear (see
+        // JumpDetector's sittingPosture path) -- exactly the kind of momentary dip Sitting's own
+        // zero-second EffectiveSleepSeconds override would otherwise read as "no longer present"
+        // and gate out below, before jump detection ever got a chance to see it. Run as a fully
+        // self-contained block (press-or-not, then its own release check) ahead of the presence
+        // gate for that reason. Standing doesn't have this conflict -- its SleepSeconds is long
+        // enough to ride out a jump's own airborne dip -- so it stays gated behind presence as
+        // before, further down.
+        if (sitting)
+        {
+            jumped = UpdateJump(cal, nowMs, sitting: true);
+        }
+
         if (!_presence.Update(cal.Total, nowMs, _settings.EffectivePresenceWeightThreshold, _settings.EffectiveSleepSeconds))
         {
             // Nobody's on the board yet (or hasn't been long enough after stepping on/off) --
@@ -141,17 +157,14 @@ public sealed class InputController : IDisposable
             return;
         }
 
-        var direction = _direction.Update(cal, nowMs, isPresent: true, _settings.FootstepThresholdPercent / 100.0, _settings.DashPeriodMs, _settings.StepHoldMs, _settings.StepContinuationMs, _settings.ContinuationStepCount, _settings.TurnSensitivity, _settings.TurnMode == TurnMode.Footstep, _settings.PostureMode == PostureMode.Sitting);
+        var direction = _direction.Update(cal, nowMs, isPresent: true, _settings.FootstepThresholdPercent / 100.0, _settings.DashPeriodMs, _settings.StepHoldMs, _settings.StepContinuationMs, _settings.ContinuationStepCount, _settings.TurnSensitivity, _settings.TurnMode == TurnMode.Footstep, sitting);
         ApplyDirection(direction, nowMs);
         ReleaseAndRepressDashKeyIfDue(nowMs);
 
-        bool jumped = _jump.Update(cal.Total, nowMs, _settings.JumpSensitivity);
-        if (jumped)
+        if (!sitting)
         {
-            PressTap(isJump: true, nowMs);
-            Jumped?.Invoke();
+            jumped = UpdateJump(cal, nowMs, sitting: false);
         }
-        ReleaseTapIfDue(isJump: true, nowMs);
 
         if (direction != Direction.Idle || jumped)
         {
@@ -160,11 +173,27 @@ public sealed class InputController : IDisposable
 
         if (nowMs - _lastMovementMs >= CrouchCooldownMs)
         {
-            double y = DirectionClassifier.ComputeY(cal);
+            // Sitting crouch is recorded on the bottom panels instead of the top ones standing
+            // uses -- negating Y is exactly that swap (Y is top-minus-bottom), with the rest of
+            // CrouchDetector's own logic (hold duration, hysteresis, sensitivity scaling) left
+            // completely untouched.
+            double y = DirectionClassifier.ComputeY(cal) * (sitting ? -1 : 1);
             bool crouching = _crouch.Update(y, nowMs, _settings.CrouchSensitivity);
             ApplyCrouch(crouching, nowMs);
         }
         ReleaseTapIfDue(isJump: false, nowMs);
+    }
+
+    private bool UpdateJump(CalibratedReading cal, long nowMs, bool sitting)
+    {
+        bool jumped = _jump.Update(cal.Total, nowMs, _settings.JumpSensitivity, sitting, sitting ? _direction.ReferenceTotal : 0);
+        if (jumped)
+        {
+            PressTap(isJump: true, nowMs);
+            Jumped?.Invoke();
+        }
+        ReleaseTapIfDue(isJump: true, nowMs);
+        return jumped;
     }
 
     private void ApplyDirection(Direction direction, long nowMs)
@@ -514,8 +543,16 @@ public sealed class InputController : IDisposable
     }
 
     /// <summary>Call when the sensor zero-point changes (a fresh SensorCalibration pass) -- the
-    /// weight reference is only meaningful relative to that offset.</summary>
-    public void ResetWeightCalibration() => _direction.ResetWeightCalibration();
+    /// weight reference is only meaningful relative to that offset. Also called on every
+    /// AppSettings.PostureMode switch (see MonitorForm.SetPostureMode), since standing and sitting
+    /// put very different weight on the board -- JumpDetector's own standing baseline is reset
+    /// alongside DirectionClassifier's for the same reason, rather than left to slowly re-converge
+    /// via its EMA.</summary>
+    public void ResetWeightCalibration()
+    {
+        _direction.ResetWeightCalibration();
+        _jump.ResetBaseline();
+    }
 
     public void Dispose()
     {

@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace WiiFitToVRC.Core.Updates;
 
-public sealed record LatestExeCommit(string Sha, DateTimeOffset CommittedAt);
+public sealed record LatestExeCommit(string Sha, DateTimeOffset CommittedAt, string Message);
 
 /// <summary>Checks GitHub for whether WiiFitToVRC.exe at the repo root has been updated more
 /// recently than the exe currently running -- the published exe is committed directly to the
@@ -43,13 +43,15 @@ public static class UpdateChecker
 
             var latest = doc.RootElement[0];
             string sha = latest.GetProperty("sha").GetString() ?? "";
-            string dateText = latest.GetProperty("commit").GetProperty("committer").GetProperty("date").GetString() ?? "";
+            var commitElement = latest.GetProperty("commit");
+            string dateText = commitElement.GetProperty("committer").GetProperty("date").GetString() ?? "";
+            string message = commitElement.GetProperty("message").GetString() ?? "";
             if (sha.Length == 0 || !DateTimeOffset.TryParse(dateText, out var committedAt))
             {
                 return null;
             }
 
-            return new LatestExeCommit(sha, committedAt);
+            return new LatestExeCommit(sha, committedAt, message);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException
             or KeyNotFoundException or InvalidOperationException)

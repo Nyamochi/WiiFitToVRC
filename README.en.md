@@ -89,6 +89,12 @@ been tried with:
   window -- tallied from launch to exit, not saved.
 - Localized UI: auto-detects the Windows display language, with English, Japanese, Simplified &
   Traditional Chinese, Korean, French, German, and Italian built in.
+- **Play posture switch (Standing/Sitting)** — toggle in the bottom-left of the main window.
+  Sitting auto-adjusts the presence weight threshold and sleep/wake seconds, and switches
+  forward/backward, jump, and crouch detection to logic tuned for a seated body — see
+  [docs/GESTURE_DETECTION.md](docs/GESTURE_DETECTION.md).
+- Checks GitHub for a newer version on launch and shows a non-forced popup (with a summary of
+  what changed and a link to the repo) if one's available -- just click OK to dismiss.
 
 ## Building from source
 

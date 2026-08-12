@@ -25,19 +25,37 @@ public sealed class JumpDetector
     private const double EmaAlpha = 0.01;
     private const long ArmedTimeoutMs = 500; // push-off to airborne dip happens within a fraction of a second
 
+    // Sitting -- JumpSensitivity (0-100) maps to 0-40% of the calibrated reference weight instead
+    // of scaling a push-off spike (see the sittingPosture doc comment on Update). A seated
+    // push-off is far too subtle and inconsistent to arm off (unlike standing, where the whole
+    // body's weight is already on the board and a real push-off spike is unmistakable) -- what's
+    // reliable instead is the feet actually lifting clear, which reads as total weight collapsing
+    // toward zero. Tuned against real recordings (see debug/sit_*.csv): both a slow deliberate leg
+    // raise and an actual small jump while seated drop total to near the empty-board noise floor,
+    // comfortably under 40% of a normal seated reference weight even at the low end of that range.
+    private const double SittingMaxThresholdFraction = 0.40;
+
     private enum State { Idle, Armed, Landing }
 
     private double _baselineEma = -1;
     private State _state = State.Idle;
     private long _armedSinceMs;
+    private bool _sittingAirborne;
 
     /// <param name="jumpSensitivity">0-100, see GestureSensitivityScale -- scales how large the
     /// push-off spike must be relative to the baseline weight to arm (does not affect
     /// forward/backward). 0 fully disables jump: it can never arm, so the confirming key-press
     /// event can never fire.</param>
+    /// <param name="sittingPosture">See AppSettings.PostureMode.Sitting -- switches from the
+    /// standing spike-then-collapse state machine below to a direct near-zero-weight check (see
+    /// UpdateSitting), since a seated push-off spike isn't a reliable signal to arm from.</param>
+    /// <param name="sittingReferenceTotal">DirectionClassifier.ReferenceTotal -- the calibrated
+    /// "feet resting normally" weight Sitting mode seeds instantly on presence (see
+    /// ReferenceWeightCalibrator.CalibrateImmediately). Ignored unless sittingPosture is
+    /// true.</param>
     /// <returns>True exactly on the sample where a jump (push-off confirmed by the following
-    /// airborne dip) is detected.</returns>
-    public bool Update(int total, long nowMs, int jumpSensitivity)
+    /// airborne dip, standing; or the near-zero weight moment itself, sitting) is detected.</returns>
+    public bool Update(int total, long nowMs, int jumpSensitivity, bool sittingPosture, double sittingReferenceTotal)
     {
         if (_baselineEma < 0)
         {
@@ -51,8 +69,14 @@ public sealed class JumpDetector
             // no key-press event can slip through after the setting is disabled. Baseline tracking
             // continues so it doesn't drift stale while disabled.
             _state = State.Idle;
+            _sittingAirborne = false;
             _baselineEma += EmaAlpha * (total - _baselineEma);
             return false;
+        }
+
+        if (sittingPosture)
+        {
+            return UpdateSitting(total, jumpSensitivity, sittingReferenceTotal);
         }
 
         // Anchored at 1.0 (a ratio, not a raw magnitude) -- moves the same direction as the other
@@ -95,5 +119,42 @@ public sealed class JumpDetector
             default:
                 return false;
         }
+    }
+
+    // Simple threshold-crossing with a hysteresis-free latch (rather than the standing state
+    // machine above): fires once the instant total first drops under the threshold, then stays
+    // silent until it rises back above that same threshold, so a jump that hangs in the air for a
+    // while doesn't repeatedly re-fire every sample while still airborne.
+    private bool UpdateSitting(int total, int jumpSensitivity, double referenceTotal)
+    {
+        if (referenceTotal <= 0)
+        {
+            return false; // not calibrated yet -- see ReferenceWeightCalibrator.IsCalibrated
+        }
+
+        double thresholdRatio = jumpSensitivity / 100.0 * SittingMaxThresholdFraction;
+        bool nearZero = total < referenceTotal * thresholdRatio;
+
+        if (nearZero && !_sittingAirborne)
+        {
+            _sittingAirborne = true;
+            return true; // the near-zero moment itself -- this IS the jump
+        }
+        if (!nearZero)
+        {
+            _sittingAirborne = false;
+        }
+        return false;
+    }
+
+    /// <summary>Call alongside DirectionClassifier.ResetWeightCalibration (see InputController.
+    /// ResetWeightCalibration) whenever AppSettings.PostureMode changes -- the standing baseline
+    /// isn't meaningful across a posture switch either, and would otherwise sit stale until the
+    /// slow EmaAlpha catch-up gradually re-converges it.</summary>
+    public void ResetBaseline()
+    {
+        _baselineEma = -1;
+        _state = State.Idle;
+        _sittingAirborne = false;
     }
 }

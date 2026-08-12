@@ -125,7 +125,7 @@ public partial class MonitorForm : Form
             return;
         }
 
-        using (var form = new UpdateAvailableForm(CurrentLanguage, RepositoryUrl))
+        using (var form = new UpdateAvailableForm(CurrentLanguage, RepositoryUrl, latest.Message))
         {
             form.ShowDialog(this);
         }
@@ -646,7 +646,9 @@ public partial class MonitorForm : Form
                 ? Localizer.Get("Status_WeightCalibrationRefreshed", CurrentLanguage)
                 : _inputController.IsWeightCalibrated
                     ? Localizer.Get("Button_Connected", CurrentLanguage)
-                    : Localizer.Get("Status_WeightCalibrating", CurrentLanguage);
+                    : Localizer.Get(
+                        _settings.PostureMode == PostureMode.Sitting ? "Status_WeightCalibrating_Sitting" : "Status_WeightCalibrating",
+                        CurrentLanguage);
         }
 
         int total = s.TopLeft + s.TopRight + s.BottomLeft + s.BottomRight;
