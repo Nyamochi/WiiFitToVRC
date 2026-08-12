@@ -33,6 +33,14 @@ public sealed class SettingsForm : Form
     // raw 60 lands at display 50, keeping every other slider's "50 is the default" convention.
     private const int TurnRawMin = 10, TurnRawMax = 110;
 
+    // Walk/Dash/Turn/Jump/Crouch are the five sliders where 0 is a hard disable (see
+    // GestureSensitivityScale.IsDisabled) rather than just the weakest end of a continuous range --
+    // showing a plain "0" next to them reads as "still a little responsive", so the value label
+    // spells out "OFF" there instead. Stride/Walk-Dash-continuation/Steps-until-continuation have
+    // no disable behavior at all and keep showing their plain numeric value, so this is only ever
+    // called for those five.
+    private static string FormatSensitivityValue(int display) => display <= 0 ? "OFF" : display.ToString();
+
     private static int RawToDisplayInverted(int raw, int rawMin, int rawMax) =>
         (int)Math.Round((rawMax - raw) * 100.0 / (rawMax - rawMin));
 
@@ -251,11 +259,11 @@ public sealed class SettingsForm : Form
         _outputControllerRadio.CheckedChanged += (_, _) => { UpdateTurnSpeedControlForMode(); UpdateTurnHoldRowVisibility(); };
         _turnHoldSlider.ValueChanged += (_, _) => _turnHoldValueLabel.Text = _turnHoldSlider.Value.ToString();
         _presenceSlider.ValueChanged += (_, _) => _presenceValueLabel.Text = (_presenceSlider.Value * 100).ToString();
-        _walkSensitivitySlider.ValueChanged += (_, _) => _walkSensitivityValueLabel.Text = _walkSensitivitySlider.Value.ToString();
-        _dashSensitivitySlider.ValueChanged += (_, _) => _dashSensitivityValueLabel.Text = _dashSensitivitySlider.Value.ToString();
-        _turnSensitivitySlider.ValueChanged += (_, _) => _turnSensitivityValueLabel.Text = _turnSensitivitySlider.Value.ToString();
-        _jumpSensitivitySlider.ValueChanged += (_, _) => _jumpSensitivityValueLabel.Text = _jumpSensitivitySlider.Value.ToString();
-        _crouchSensitivitySlider.ValueChanged += (_, _) => _crouchSensitivityValueLabel.Text = _crouchSensitivitySlider.Value.ToString();
+        _walkSensitivitySlider.ValueChanged += (_, _) => _walkSensitivityValueLabel.Text = FormatSensitivityValue(_walkSensitivitySlider.Value);
+        _dashSensitivitySlider.ValueChanged += (_, _) => _dashSensitivityValueLabel.Text = FormatSensitivityValue(_dashSensitivitySlider.Value);
+        _turnSensitivitySlider.ValueChanged += (_, _) => _turnSensitivityValueLabel.Text = FormatSensitivityValue(_turnSensitivitySlider.Value);
+        _jumpSensitivitySlider.ValueChanged += (_, _) => _jumpSensitivityValueLabel.Text = FormatSensitivityValue(_jumpSensitivitySlider.Value);
+        _crouchSensitivitySlider.ValueChanged += (_, _) => _crouchSensitivityValueLabel.Text = FormatSensitivityValue(_crouchSensitivitySlider.Value);
         _strideSlider.ValueChanged += (_, _) => _strideValueLabel.Text = _strideSlider.Value.ToString();
         _stepContinuationSlider.ValueChanged += (_, _) => _stepContinuationValueLabel.Text = _stepContinuationSlider.Value.ToString();
         _continuationStepCountSlider.ValueChanged += (_, _) => _continuationStepCountValueLabel.Text = _continuationStepCountSlider.Value.ToString();
@@ -565,10 +573,10 @@ public sealed class SettingsForm : Form
 
         int walkRaw = Math.Clamp(source.FootstepThresholdPercent, WalkRawMin, WalkRawMax);
         _walkSensitivitySlider.Value = Math.Clamp(RawToDisplayInverted(walkRaw, WalkRawMin, WalkRawMax), _walkSensitivitySlider.Minimum, _walkSensitivitySlider.Maximum);
-        _walkSensitivityValueLabel.Text = _walkSensitivitySlider.Value.ToString();
+        _walkSensitivityValueLabel.Text = FormatSensitivityValue(_walkSensitivitySlider.Value);
 
         _dashSensitivitySlider.Value = Math.Clamp(DashRawToDisplay(source.DashPeriodMs), _dashSensitivitySlider.Minimum, _dashSensitivitySlider.Maximum);
-        _dashSensitivityValueLabel.Text = _dashSensitivitySlider.Value.ToString();
+        _dashSensitivityValueLabel.Text = FormatSensitivityValue(_dashSensitivitySlider.Value);
 
         int strideRaw = Math.Clamp(source.StepHoldMs, StrideRawMin, StrideRawMax);
         _strideSlider.Value = Math.Clamp(RawToDisplay(strideRaw, StrideRawMin, StrideRawMax), _strideSlider.Minimum, _strideSlider.Maximum);
@@ -582,11 +590,11 @@ public sealed class SettingsForm : Form
         _continuationStepCountValueLabel.Text = _continuationStepCountSlider.Value.ToString();
 
         _turnSensitivitySlider.Value = Math.Clamp(TurnRawToDisplay(source.TurnSensitivity), _turnSensitivitySlider.Minimum, _turnSensitivitySlider.Maximum);
-        _turnSensitivityValueLabel.Text = _turnSensitivitySlider.Value.ToString();
+        _turnSensitivityValueLabel.Text = FormatSensitivityValue(_turnSensitivitySlider.Value);
         _jumpSensitivitySlider.Value = Math.Clamp(source.JumpSensitivity, _jumpSensitivitySlider.Minimum, _jumpSensitivitySlider.Maximum);
-        _jumpSensitivityValueLabel.Text = _jumpSensitivitySlider.Value.ToString();
+        _jumpSensitivityValueLabel.Text = FormatSensitivityValue(_jumpSensitivitySlider.Value);
         _crouchSensitivitySlider.Value = Math.Clamp(source.CrouchSensitivity, _crouchSensitivitySlider.Minimum, _crouchSensitivitySlider.Maximum);
-        _crouchSensitivityValueLabel.Text = _crouchSensitivitySlider.Value.ToString();
+        _crouchSensitivityValueLabel.Text = FormatSensitivityValue(_crouchSensitivitySlider.Value);
 
         _turnModeHoldRadio.Checked = source.TurnMode == TurnMode.Hold;
         _turnModeFootstepRadio.Checked = source.TurnMode == TurnMode.Footstep;
