@@ -26,6 +26,7 @@ public static class Localizer
         ["Caption_DistanceTraveled"] = ["Distance traveled", "走行距離", "行走距离", "行走距離", "이동 거리", "Distance parcourue", "Zurückgelegte Strecke", "Distanza percorsa"],
         ["Stat_WalkDistance"] = ["Walk {0:F1} m", "歩行 {0:F1} m", "行走 {0:F1} m", "行走 {0:F1} m", "걷기 {0:F1} m", "Marche {0:F1} m", "Gehen {0:F1} m", "Camminata {0:F1} m"],
         ["Stat_DashDistance"] = ["Dash {0:F1} m", "ダッシュ {0:F1} m", "冲刺 {0:F1} m", "衝刺 {0:F1} m", "대시 {0:F1} m", "Sprint {0:F1} m", "Sprint {0:F1} m", "Scatto {0:F1} m"],
+        ["Stat_TotalDistance"] = ["Total {0:F1} m", "合計 {0:F1} m", "合计 {0:F1} m", "合計 {0:F1} m", "합계 {0:F1} m", "Total {0:F1} m", "Gesamt {0:F1} m", "Totale {0:F1} m"],
         ["Stat_StepCount"] = ["{0} steps", "歩数 {0}歩", "步数 {0}步", "步數 {0}步", "걸음 수 {0}걸음", "{0} pas", "{0} Schritte", "{0} passi"],
         ["Caption_PostureMode"] = ["Posture", "プレイ姿勢", "游玩姿势", "遊玩姿勢", "플레이 자세", "Posture de jeu", "Spielhaltung", "Postura di gioco"],
         ["PostureMode_Standing"] = ["Standing", "立ち", "站立", "站立", "서 있기", "Debout", "Stehend", "In piedi"],

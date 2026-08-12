@@ -81,6 +81,7 @@ public sealed class InputController : IDisposable
     public string? ControllerUnavailableReason => _controller.UnavailableReason;
     public double WalkDistanceMeters => _walkDistanceMeters;
     public double DashDistanceMeters => _dashDistanceMeters;
+    public double TotalDistanceMeters => _walkDistanceMeters + _dashDistanceMeters;
     public int StepCount => _stepCount;
 
     /// <summary>Fires on the calling (background HID) thread each time a jump is detected.</summary>

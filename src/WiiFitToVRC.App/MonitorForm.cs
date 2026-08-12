@@ -361,7 +361,8 @@ public partial class MonitorForm : Form
         _distanceLabel.Location = new Point(430, 305);
         _distanceLabel.Text =
             Localizer.GetFormatted("Stat_WalkDistance", CurrentLanguage, 0.0) + "\n" +
-            Localizer.GetFormatted("Stat_DashDistance", CurrentLanguage, 0.0) + "\n\n" +
+            Localizer.GetFormatted("Stat_DashDistance", CurrentLanguage, 0.0) + "\n" +
+            Localizer.GetFormatted("Stat_TotalDistance", CurrentLanguage, 0.0) + "\n" +
             Localizer.GetFormatted("Stat_StepCount", CurrentLanguage, 0);
 
         _labelCombo.Location = new Point(10, rowY + 220);
@@ -437,7 +438,8 @@ public partial class MonitorForm : Form
         {
             _distanceLabel.Text =
                 Localizer.GetFormatted("Stat_WalkDistance", lang, 0.0) + "\n" +
-                Localizer.GetFormatted("Stat_DashDistance", lang, 0.0) + "\n\n" +
+                Localizer.GetFormatted("Stat_DashDistance", lang, 0.0) + "\n" +
+                Localizer.GetFormatted("Stat_TotalDistance", lang, 0.0) + "\n" +
                 Localizer.GetFormatted("Stat_StepCount", lang, 0);
         }
         _recordButton.Text = _logWriter is null ? Localizer.Get("Button_RecordStart", lang) : Localizer.Get("Button_RecordStop", lang);
@@ -666,7 +668,8 @@ public partial class MonitorForm : Form
         var lang = CurrentLanguage;
         _distanceLabel.Text =
             Localizer.GetFormatted("Stat_WalkDistance", lang, _inputController.WalkDistanceMeters) + "\n" +
-            Localizer.GetFormatted("Stat_DashDistance", lang, _inputController.DashDistanceMeters) + "\n\n" +
+            Localizer.GetFormatted("Stat_DashDistance", lang, _inputController.DashDistanceMeters) + "\n" +
+            Localizer.GetFormatted("Stat_TotalDistance", lang, _inputController.TotalDistanceMeters) + "\n" +
             Localizer.GetFormatted("Stat_StepCount", lang, _inputController.StepCount);
 
         var direction = _inputController.LastDirection;
