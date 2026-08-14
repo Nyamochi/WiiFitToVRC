@@ -98,6 +98,13 @@ public sealed class InputController : IDisposable
         _settings = settings;
         _direction.WeightCalibrationRefreshed += () => WeightCalibrationRefreshed?.Invoke();
         _direction.StepPaired += OnStepPaired;
+        // Restores the running average accumulated across previous sessions (see SensorCorrection)
+        // -- this session's own first calibration still takes a fresh measurement and folds it in
+        // on top, same as every calibration after it.
+        _sensorCorrection.LoadHistory(
+            settings.CorrectionTopRightFactor, settings.CorrectionBottomRightFactor,
+            settings.CorrectionTopLeftFactor, settings.CorrectionBottomLeftFactor,
+            settings.CorrectionSampleCount);
     }
 
     // Only Forward/Dash count -- both come from the front-corner pairing mechanism ("front panel
@@ -127,13 +134,21 @@ public sealed class InputController : IDisposable
 
         // AppSettings.ForcedControllerCorrection: once a per-corner correction is established
         // (see SensorCorrection), every downstream consumer below -- direction, jump, crouch, and
-        // the presence gate -- sees the corrected reading instead of the raw one. Established from
-        // (and only from) the raw reference the first time it's available; establishing here
-        // rather than gating on the setting elsewhere means toggling the setting off and back on
-        // reuses an already-established correction instead of forcing a fresh wait.
+        // the presence gate -- sees the corrected reading instead of the raw one. Each fresh
+        // calibration folds one more measurement into the running average that backs it; when that
+        // happens, persist the updated average immediately so it survives even if the app closes
+        // before anything else would have saved settings.json.
         if (_settings.ForcedControllerCorrection)
         {
-            _sensorCorrection.TryEstablish(_direction);
+            if (_sensorCorrection.TryEstablish(_direction))
+            {
+                _settings.CorrectionTopRightFactor = _sensorCorrection.TopRightFactor;
+                _settings.CorrectionBottomRightFactor = _sensorCorrection.BottomRightFactor;
+                _settings.CorrectionTopLeftFactor = _sensorCorrection.TopLeftFactor;
+                _settings.CorrectionBottomLeftFactor = _sensorCorrection.BottomLeftFactor;
+                _settings.CorrectionSampleCount = _sensorCorrection.SampleCount;
+                _settings.Save();
+            }
             if (_sensorCorrection.IsEstablished)
             {
                 cal = _sensorCorrection.Apply(cal);
@@ -564,9 +579,9 @@ public sealed class InputController : IDisposable
     /// AppSettings.PostureMode switch (see MonitorForm.SetPostureMode), since standing and sitting
     /// put very different weight on the board -- JumpDetector's own standing baseline is reset
     /// alongside DirectionClassifier's for the same reason, rather than left to slowly re-converge
-    /// via its EMA. SensorCorrection resets too, so ForcedControllerCorrection re-establishes from
-    /// the fresh raw reference this produces instead of staying pinned to factors computed against
-    /// the old (now invalid) one.</summary>
+    /// via its EMA. SensorCorrection resets too, so ForcedControllerCorrection takes a fresh
+    /// measurement from the new raw reference this produces and folds it into its running average,
+    /// rather than reusing a measurement taken against the old (now invalid) reference.</summary>
     public void ResetWeightCalibration()
     {
         _direction.ResetWeightCalibration();

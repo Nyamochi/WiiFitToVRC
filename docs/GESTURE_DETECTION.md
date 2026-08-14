@@ -355,32 +355,45 @@ corners identically. Settings has a single **Forced correction for poorly-respon
 controllers** checkbox (General tab, just above Debug mode) that turns it on; off by default,
 since it's a fix for specific damaged hardware, not something most boards need.
 
-**Establishing the correction.** The normal reference-weight flow (see above) runs completely
-untouched first -- correction needs a genuine raw reference to work from, so it waits for
+**Taking a measurement.** The normal reference-weight flow (see above) runs completely untouched
+first -- correction needs a genuine raw reference to work from, so it waits for
 `DirectionClassifier.IsWeightCalibrated` to become true (standing's ~20+ second "stand still"
 process, or Sitting's instant seed) exactly as everything else does. The moment that happens, it
-reads the four raw reference corners and computes one multiplier per corner that would bring it up
-(or down) to the *average* of all four -- e.g. reference corners of 2000/2000/2000/500 (total
-6500) average to 1625, so the three healthy corners get ×0.8125 and the weak one gets ×3.25.
-Averaging is deliberate, not arbitrary: it's the only target that keeps the corrected total equal
-to the original raw total (4 × average == the sum), so correction only redistributes weight across
-corners -- it never silently shifts total-weight-based settings like **Presence weight
-threshold** the way targeting some other fixed value would.
+reads the four raw reference corners and computes one raw multiplier per corner that would bring
+it up (or down) to the *average* of all four -- e.g. reference corners of 2000/2000/2000/500
+(total 6500) average to 1625, so the three healthy corners measure ×0.8125 and the weak one
+measures ×3.25 for that cycle. Averaging the four corners (rather than targeting some other fixed
+value) is deliberate: it's the only target that keeps the corrected total equal to the original
+raw total (4 × average == the sum), so correction only redistributes weight across corners -- it
+never silently shifts total-weight-based settings like **Presence weight threshold**.
 
-**Applying it.** Once established, every subsequent sample is corrected (each corner's raw value
-scaled by its own multiplier, then `Total`/`Pct*` recomputed from those) *before* it reaches
-anything else in `InputController.Update` -- direction, jump, crouch, and the presence gate all see
-the corrected reading, not the raw one, matching how forward/backward/turn/jump/crouch already
-work off a single shared `CalibratedReading`.
+**The correction applied is a running average of every measurement, not just the latest.** A
+single calibration can land on an unusually skewed reference (mid-step, an odd stance, calibrating
+before fully settling) and produce an extreme, one-off correction -- e.g. the example above
+one-shot, only ever measured once, could swing the weak corner's multiplier much higher or lower
+than its true long-run value depending on exactly how that one calibration happened to go.
+Averaging every measurement taken so far smooths that out: a fresh raw measurement is taken every
+time `ResetWeightCalibration` produces a newly-calibrated reference -- app launch, a manual sensor
+recalibration, or an `AppSettings.PostureMode` switch -- and folded into a running average
+(`SensorCorrection.FoldIn`), so e.g. three measurements of 0.75, 0.8, and 0.6 settle to an applied
+factor of 0.717 rather than jumping straight to whichever was measured most recently. That running
+average (and how many measurements built it) is persisted to `settings.json`
+(`AppSettings.CorrectionTopRightFactor` etc., `CorrectionSampleCount` -- hidden bookkeeping, no
+Settings UI control), so it keeps improving across every future launch instead of starting over
+each time.
 
-**Why the correction freezes.** The factors are computed once and then left alone for the rest of
-that calibration cycle, deliberately not recomputed every time the reference re-learns (standing's
+**Applying it.** Once at least one measurement exists, every subsequent sample is corrected (each
+corner's raw value scaled by its own running-average multiplier, then `Total`/`Pct*` recomputed
+from those) *before* it reaches anything else in `InputController.Update` -- direction, jump,
+crouch, and the presence gate all see the corrected reading, not the raw one, matching how
+forward/backward/turn/jump/crouch already work off a single shared `CalibratedReading`.
+
+**Why only one measurement per calibration cycle.** Within a single cycle, the applied factor
+stays fixed -- it's deliberately *not* recomputed every time the reference re-learns (standing's
 own continuous background refresh, see above). Feeding corrected data back into that same
-re-learning process is intentional and safe *only* because the factors stay frozen: the reference
-naturally settles toward the shared target on every corner once corrected values are what it's
-learning from, but since correction isn't recomputed from that already-corrected reference, the
-original (non-trivial) factors never get overwritten by a second calculation that would trivially
-yield 1.0 for every corner and quietly erase the fix. A fresh `ResetWeightCalibration` -- a manual
-sensor recalibration, or an `AppSettings.PostureMode` switch -- is what starts a new correction
-cycle from scratch, exactly like it already does for the reference weight and `JumpDetector`'s own
-baseline.
+re-learning process is intentional and safe *only* because the factor stays fixed within the
+cycle: the reference naturally settles toward the shared target on every corner once corrected
+values are what it's learning from, but recomputing from that already-corrected reference would
+trivially yield 1.0 for every corner and quietly erase the fix. Taking at most one fresh
+measurement per `ResetWeightCalibration` avoids that trap while still letting the running average
+grow over time, one genuine calibration at a time.

@@ -186,6 +186,20 @@ public sealed class AppSettings
     /// since it's a fix for specific damaged hardware, not something most boards need.</summary>
     public bool ForcedControllerCorrection { get; set; }
 
+    /// <summary>Running-average state behind ForcedControllerCorrection (see SensorCorrection) --
+    /// not exposed anywhere in the Settings UI, purely internal bookkeeping. Each Factor is the
+    /// average per-corner correction multiplier across every calibration cycle measured so far
+    /// (not just the latest one) -- averaging across repeated measurements, rather than trusting
+    /// any single one, is what keeps an unusually skewed reference reading from producing an
+    /// extreme, one-off correction. CorrectionSampleCount is how many calibration cycles have
+    /// contributed to that average; all default to a neutral "no correction, no measurements yet"
+    /// state.</summary>
+    public double CorrectionTopRightFactor { get; set; } = 1.0;
+    public double CorrectionBottomRightFactor { get; set; } = 1.0;
+    public double CorrectionTopLeftFactor { get; set; } = 1.0;
+    public double CorrectionBottomLeftFactor { get; set; } = 1.0;
+    public int CorrectionSampleCount { get; set; }
+
     /// <summary>Shows the raw-data recording controls (label picker, record button) on the main
     /// window -- only useful for capturing gesture logs during tuning, so hidden by default.</summary>
     public bool DebugMode { get; set; }
