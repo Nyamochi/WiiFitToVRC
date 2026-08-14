@@ -382,6 +382,13 @@ average (and how many measurements built it) is persisted to `settings.json`
 Settings UI control), so it keeps improving across every future launch instead of starting over
 each time.
 
+Unchecking **Forced correction for poorly-responsive controllers** after it was on clears that
+accumulated average back to a neutral "no measurements yet" state (`SettingsForm.Save`,
+`SensorCorrection.ClearHistory`) rather than just turning correction off while leaving it intact --
+the board most likely got repaired or swapped out for a different one, so an average describing
+the old hardware's specific defect shouldn't silently carry over and get reapplied if this is
+turned back on again later.
+
 **Applying it.** Once at least one measurement exists, every subsequent sample is corrected (each
 corner's raw value scaled by its own running-average multiplier, then `Total`/`Pct*` recomputed
 from those) *before* it reaches anything else in `InputController.Update` -- direction, jump,

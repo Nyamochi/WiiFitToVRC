@@ -652,7 +652,22 @@ public sealed class SettingsForm : Form
         _settings.CrouchSensitivity = _crouchSensitivitySlider.Value;
         _settings.TurnMode = _turnModeHoldRadio.Checked ? TurnMode.Hold : TurnMode.Footstep;
         _settings.DashInputMode = _dashInputModeDoubleTapRadio.Checked ? DashInputMode.DoubleTap : DashInputMode.ComboKey;
+        bool forcedControllerCorrectionWasOn = _settings.ForcedControllerCorrection;
         _settings.ForcedControllerCorrection = _forcedControllerCorrectionCheck.Checked;
+        if (forcedControllerCorrectionWasOn && !_settings.ForcedControllerCorrection)
+        {
+            // Unchecking this after it was on most likely means the controller's been repaired or
+            // replaced -- the accumulated running average (see SensorCorrection) describes
+            // whatever hardware was in use while it was being measured, so start it over rather
+            // than silently reapplying old measurements to different hardware if this gets turned
+            // back on later.
+            _settings.CorrectionTopRightFactor = 1.0;
+            _settings.CorrectionBottomRightFactor = 1.0;
+            _settings.CorrectionTopLeftFactor = 1.0;
+            _settings.CorrectionBottomLeftFactor = 1.0;
+            _settings.CorrectionSampleCount = 0;
+            _inputController.ClearForcedCorrectionHistory();
+        }
         _settings.DebugMode = _debugModeCheck.Checked;
         _settings.DebugOutputFolder = string.IsNullOrWhiteSpace(_debugFolderInput.Text) ? "debug" : _debugFolderInput.Text.Trim();
 

@@ -589,6 +589,13 @@ public sealed class InputController : IDisposable
         _sensorCorrection.Reset();
     }
 
+    /// <summary>Call when AppSettings.ForcedControllerCorrection is turned off after having been
+    /// on (see SettingsForm.Save, which clears the matching settings.json fields at the same
+    /// time) -- wipes the in-memory running average so a stale one isn't silently reused if the
+    /// setting gets turned back on again later in this same session, e.g. against replacement
+    /// hardware the old average says nothing about.</summary>
+    public void ClearForcedCorrectionHistory() => _sensorCorrection.ClearHistory();
+
     public void Dispose()
     {
         _controller.Dispose();

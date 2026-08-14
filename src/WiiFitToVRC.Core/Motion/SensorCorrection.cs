@@ -128,4 +128,20 @@ public sealed class SensorCorrection
     {
         _awaitingSample = true;
     }
+
+    /// <summary>Wipes the running average back to a neutral "no correction, no measurements yet"
+    /// state -- unlike Reset() above, which just arms the next measurement while keeping history.
+    /// Call when AppSettings.ForcedControllerCorrection is turned off after having been on (see
+    /// SettingsForm.Save): the accumulated average describes whatever controller was in use while
+    /// it was being measured, and isn't meaningful once that hardware's been repaired or
+    /// replaced.</summary>
+    public void ClearHistory()
+    {
+        _topRightFactor = 1.0;
+        _bottomRightFactor = 1.0;
+        _topLeftFactor = 1.0;
+        _bottomLeftFactor = 1.0;
+        _sampleCount = 0;
+        _awaitingSample = true;
+    }
 }
