@@ -181,6 +181,11 @@ public sealed class AppSettings
     /// is the default.</summary>
     public int ContinuationStepCount { get; set; } = 7;
 
+    /// <summary>For a board with one permanently weak/desensitized corner sensor (not fully dead,
+    /// just far less responsive than the other three) -- see SensorCorrection. Off by default,
+    /// since it's a fix for specific damaged hardware, not something most boards need.</summary>
+    public bool ForcedControllerCorrection { get; set; }
+
     /// <summary>Shows the raw-data recording controls (label picker, record button) on the main
     /// window -- only useful for capturing gesture logs during tuning, so hidden by default.</summary>
     public bool DebugMode { get; set; }

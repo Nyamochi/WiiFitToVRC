@@ -185,13 +185,18 @@ public sealed class SettingsForm : Form
 
     private readonly NumericUpDown _sleepSecondsInput = new() { Minimum = 1, Maximum = 30, Location = new Point(ValueColumnX, 709), Size = new Size(70, 24) };
 
+    // Explains what the checkbox below is for -- the setting name alone ("強制補正") doesn't
+    // convey when someone would actually want to turn it on, so this spells it out right above it.
+    private readonly Label _forcedControllerCorrectionHintLabel = new() { Location = new Point(10, 743), AutoSize = true, MaximumSize = new Size(520, 0) };
+    private readonly CheckBox _forcedControllerCorrectionCheck = new() { Location = new Point(ValueColumnX, 765), AutoSize = true };
+
     // Jump/crouch/turn all disable via their own sensitivity slider's "Insensitive" (0) end now -- see
     // GestureSensitivityScale.IsDisabled -- so none of the three need a separate enabled checkbox
     // any more.
-    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 743), AutoSize = true };
+    private readonly CheckBox _debugModeCheck = new() { Location = new Point(ValueColumnX, 799), AutoSize = true };
 
-    private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 767), Size = new Size(180, 24) };
-    private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 766), Size = new Size(34, 24) };
+    private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 823), Size = new Size(180, 24) };
+    private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 822), Size = new Size(34, 24) };
 
     private readonly ComboBox _forwardKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _dashKeyCombo = MakeCombo<VirtualKey>();
@@ -412,7 +417,7 @@ public sealed class SettingsForm : Form
         var turnSpeedLabel = new Label { Text = Localizer.Get("Settings_TurnSpeed", _uiLanguage), Location = new Point(10, 593), AutoSize = true };
         var presenceLabel = new Label { Text = Localizer.Get("Settings_PresenceThreshold", _uiLanguage), Location = new Point(10, 673), AutoSize = true };
         var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 711), AutoSize = true };
-        var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 771), AutoSize = true };
+        var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 827), AutoSize = true };
 
         _outputKeyboardRadio.Text = Localizer.Get("Settings_OutputMode_Keyboard", _uiLanguage);
         _outputKeyboardMouseRadio.Text = Localizer.Get("Settings_OutputMode_KeyboardMouse", _uiLanguage);
@@ -422,6 +427,8 @@ public sealed class SettingsForm : Form
         _turnHoldLabel.Text = Localizer.Get("Settings_TurnHold", _uiLanguage);
         _turnModeHoldRadio.Text = Localizer.Get("Settings_TurnMode_Hold", _uiLanguage);
         _turnModeFootstepRadio.Text = Localizer.Get("Settings_TurnMode_Footstep", _uiLanguage);
+        _forcedControllerCorrectionHintLabel.Text = Localizer.Get("Settings_ForcedControllerCorrectionHint", _uiLanguage);
+        _forcedControllerCorrectionCheck.Text = Localizer.Get("Settings_ForcedControllerCorrection", _uiLanguage);
         _debugModeCheck.Text = Localizer.Get("Settings_DebugMode", _uiLanguage);
         // Plain "..." rather than a localized "Browse" label -- a universal enough convention to
         // fit the button's fixed, deliberately compact width in every language.
@@ -473,6 +480,7 @@ public sealed class SettingsForm : Form
             _turnHoldLabel, _turnHoldSlider, _turnHoldNarrowLabel, _turnHoldWideLabel, _turnHoldValueLabel,
             presenceLabel, _presenceSlider, _presenceValueLabel,
             sleepLabel, _sleepSecondsInput,
+            _forcedControllerCorrectionHintLabel, _forcedControllerCorrectionCheck,
             _debugModeCheck,
             debugFolderLabel, _debugFolderInput, _debugFolderBrowseButton,
         ]);
@@ -480,7 +488,7 @@ public sealed class SettingsForm : Form
         // The tab's content now extends well past its fixed visible height -- scroll internally
         // (a vertical scrollbar appears automatically) rather than growing the window without bound.
         _generalTab.AutoScroll = true;
-        _generalTab.AutoScrollMinSize = new Size(0, 848);
+        _generalTab.AutoScrollMinSize = new Size(0, 904);
     }
 
     private void BuildKeybindsTab()
@@ -600,6 +608,7 @@ public sealed class SettingsForm : Form
         _turnModeFootstepRadio.Checked = source.TurnMode == TurnMode.Footstep;
         _dashInputModeComboKeyRadio.Checked = source.DashInputMode == DashInputMode.ComboKey;
         _dashInputModeDoubleTapRadio.Checked = source.DashInputMode == DashInputMode.DoubleTap;
+        _forcedControllerCorrectionCheck.Checked = source.ForcedControllerCorrection;
         _debugModeCheck.Checked = source.DebugMode;
         _debugFolderInput.Text = source.DebugOutputFolder;
 
@@ -643,6 +652,7 @@ public sealed class SettingsForm : Form
         _settings.CrouchSensitivity = _crouchSensitivitySlider.Value;
         _settings.TurnMode = _turnModeHoldRadio.Checked ? TurnMode.Hold : TurnMode.Footstep;
         _settings.DashInputMode = _dashInputModeDoubleTapRadio.Checked ? DashInputMode.DoubleTap : DashInputMode.ComboKey;
+        _settings.ForcedControllerCorrection = _forcedControllerCorrectionCheck.Checked;
         _settings.DebugMode = _debugModeCheck.Checked;
         _settings.DebugOutputFolder = string.IsNullOrWhiteSpace(_debugFolderInput.Text) ? "debug" : _debugFolderInput.Text.Trim();
 

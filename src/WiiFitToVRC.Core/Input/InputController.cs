@@ -36,6 +36,7 @@ public sealed class InputController : IDisposable
     private readonly PresenceGate _presence = new();
     private readonly VirtualControllerSender _controller = new();
     private readonly OscSender _osc = new();
+    private readonly SensorCorrection _sensorCorrection = new();
 
     private Direction _lastAppliedDirection = Direction.Idle;
     private bool _lastCrouching;
@@ -122,6 +123,21 @@ public sealed class InputController : IDisposable
         if (cal is null)
         {
             return; // no calibration yet -- nothing meaningful to classify
+        }
+
+        // AppSettings.ForcedControllerCorrection: once a per-corner correction is established
+        // (see SensorCorrection), every downstream consumer below -- direction, jump, crouch, and
+        // the presence gate -- sees the corrected reading instead of the raw one. Established from
+        // (and only from) the raw reference the first time it's available; establishing here
+        // rather than gating on the setting elsewhere means toggling the setting off and back on
+        // reuses an already-established correction instead of forcing a fresh wait.
+        if (_settings.ForcedControllerCorrection)
+        {
+            _sensorCorrection.TryEstablish(_direction);
+            if (_sensorCorrection.IsEstablished)
+            {
+                cal = _sensorCorrection.Apply(cal);
+            }
         }
 
         if (_settings.OutputMode == OutputMode.Controller)
@@ -548,11 +564,14 @@ public sealed class InputController : IDisposable
     /// AppSettings.PostureMode switch (see MonitorForm.SetPostureMode), since standing and sitting
     /// put very different weight on the board -- JumpDetector's own standing baseline is reset
     /// alongside DirectionClassifier's for the same reason, rather than left to slowly re-converge
-    /// via its EMA.</summary>
+    /// via its EMA. SensorCorrection resets too, so ForcedControllerCorrection re-establishes from
+    /// the fresh raw reference this produces instead of staying pinned to factors computed against
+    /// the old (now invalid) one.</summary>
     public void ResetWeightCalibration()
     {
         _direction.ResetWeightCalibration();
         _jump.ResetBaseline();
+        _sensorCorrection.Reset();
     }
 
     public void Dispose()

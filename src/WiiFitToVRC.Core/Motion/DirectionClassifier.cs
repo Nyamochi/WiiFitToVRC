@@ -136,6 +136,14 @@ public sealed class DirectionClassifier
     public double ReferenceTotal =>
         _reference.ReferenceTopRight + _reference.ReferenceBottomRight + _reference.ReferenceTopLeft + _reference.ReferenceBottomLeft;
 
+    // Exposed for SensorCorrection, which needs each corner's own raw reference value (not just
+    // the sum above) to compute a per-corner correction factor for AppSettings.
+    // ForcedControllerCorrection.
+    public double ReferenceTopRight => _reference.ReferenceTopRight;
+    public double ReferenceBottomRight => _reference.ReferenceBottomRight;
+    public double ReferenceTopLeft => _reference.ReferenceTopLeft;
+    public double ReferenceBottomLeft => _reference.ReferenceBottomLeft;
+
     /// <summary>Fires when the weight reference is refreshed mid-session (see
     /// ReferenceWeightCalibrator.Refreshed).</summary>
     public event Action? WeightCalibrationRefreshed;
