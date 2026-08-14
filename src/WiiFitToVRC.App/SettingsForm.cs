@@ -281,8 +281,17 @@ public sealed class SettingsForm : Form
         _saveButton.Click += (_, _) => Save();
         _cancelButton.Click += (_, _) => { DialogResult = DialogResult.Cancel; Close(); };
         // Loads the hardcoded AppSettings defaults into the form fields only -- Cancel still
-        // discards them, Save is still required to actually persist a reset.
-        _resetButton.Click += (_, _) => LoadFromSettings(new AppSettings());
+        // discards them, Save is still required to actually persist a reset. The one exception is
+        // the accumulated Forced controller correction average (see
+        // ClearForcedControllerCorrectionHistory): there's no form control displaying it to stage
+        // a reverted value for, so Defaults clears and persists that immediately, the same way
+        // unchecking Forced controller correction and saving already does.
+        _resetButton.Click += (_, _) =>
+        {
+            LoadFromSettings(new AppSettings());
+            ClearForcedControllerCorrectionHistory();
+            _settings.Save();
+        };
         _debugFolderBrowseButton.Click += (_, _) => BrowseDebugFolder();
     }
 
@@ -630,6 +639,19 @@ public sealed class SettingsForm : Form
         _dashButtonCombo.SelectedItem = source.DashButton;
     }
 
+    // Wipes the accumulated Forced controller correction average (see SensorCorrection) in both
+    // settings.json and the live InputController's own copy -- shared between Save (unchecking
+    // Forced controller correction) and the Defaults button, which should behave the same way.
+    private void ClearForcedControllerCorrectionHistory()
+    {
+        _settings.CorrectionTopRightFactor = 1.0;
+        _settings.CorrectionBottomRightFactor = 1.0;
+        _settings.CorrectionTopLeftFactor = 1.0;
+        _settings.CorrectionBottomLeftFactor = 1.0;
+        _settings.CorrectionSampleCount = 0;
+        _inputController.ClearForcedCorrectionHistory();
+    }
+
     private void Save()
     {
         _settings.Language = ((LanguageItem)_languageCombo.SelectedItem!).Language;
@@ -661,12 +683,7 @@ public sealed class SettingsForm : Form
             // whatever hardware was in use while it was being measured, so start it over rather
             // than silently reapplying old measurements to different hardware if this gets turned
             // back on later.
-            _settings.CorrectionTopRightFactor = 1.0;
-            _settings.CorrectionBottomRightFactor = 1.0;
-            _settings.CorrectionTopLeftFactor = 1.0;
-            _settings.CorrectionBottomLeftFactor = 1.0;
-            _settings.CorrectionSampleCount = 0;
-            _inputController.ClearForcedCorrectionHistory();
+            ClearForcedControllerCorrectionHistory();
         }
         _settings.DebugMode = _debugModeCheck.Checked;
         _settings.DebugOutputFolder = string.IsNullOrWhiteSpace(_debugFolderInput.Text) ? "debug" : _debugFolderInput.Text.Trim();
