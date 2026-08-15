@@ -5,21 +5,28 @@ namespace WiiFitToVRC.Core.Motion;
 
 /// <summary>
 /// Continuously tracks a "resting" reference reading (each corner's calibrated value while
-/// standing normally): every 5 seconds while the board reads present and nothing is currently
+/// standing normally): every 1 second while the board reads present and nothing is currently
 /// detected (Idle), take a sample; once 5 samples have accumulated, check whether that window is
 /// essentially flat (its total weight's standard deviation is under FlatnessStdDev). Any window
 /// that qualifies becomes the new reference outright -- not just the single steadiest window ever
 /// seen. Walking spikes the total on every step, so a window spanning any real movement fails the
-/// flatness check and the reference holds; standing still for 20+ seconds keeps refreshing it.
-/// This deliberately lets the reference drift to a new person's weight: if a 70kg person steps
-/// off and a 50kg person steps on and stands still, the very next flat window adopts their
-/// weight, rather than staying anchored to whichever person happened to stand stillest first.
-/// Call Reset() when the sensor zero-point itself changes (a fresh SensorCalibration pass), since
-/// every value here is only meaningful relative to that offset.
+/// flatness check and the reference holds; standing still for 4+ seconds keeps refreshing it. 1s
+/// (down from an original 5s) was tuned against a real stand-still recording (see
+/// debug/session_20260815_192404.csv): total weight stayed under a standard deviation of ~70
+/// across every possible 4-second window in that whole 35-second recording, comfortably inside
+/// FlatnessStdDev's 200 -- and cross-checking the same window size against a separate mixed
+/// walk/dash/stop recording found windows that passed the flatness check landing on the file's own
+/// genuine stops, not on brief pauses mid-stride, so shortening the window didn't trade away the
+/// protection against calibrating off actual movement. This deliberately lets the reference drift
+/// to a new person's weight: if a 70kg person steps off and a 50kg person steps on and stands
+/// still, the very next flat window adopts their weight, rather than staying anchored to whichever
+/// person happened to stand stillest first. Call Reset() when the sensor zero-point itself
+/// changes (a fresh SensorCalibration pass), since every value here is only meaningful relative to
+/// that offset.
 /// </summary>
 public sealed class ReferenceWeightCalibrator
 {
-    private const long SampleIntervalMs = 5000;
+    private const long SampleIntervalMs = 1000;
     private const int WindowSize = 5;
 
     // Below this standard deviation (same units as calibrated total weight), a 5-sample window

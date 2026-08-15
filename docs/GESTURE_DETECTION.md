@@ -25,24 +25,44 @@ off takes a moment to register).
 Forward/backward detection (below) needs to know what a *quiet, resting* corner value looks like,
 so it can tell a real footstep apart from background noise. Rather than a fixed number, the app
 learns this continuously: [`ReferenceWeightCalibrator.cs`](../src/WiiFitToVRC.Core/Motion/ReferenceWeightCalibrator.cs)
-samples the calibrated reading every 5 seconds while the board is present and nothing is currently
-detected (i.e. the person is just standing there). Once 5 samples (25 seconds) have accumulated,
+samples the calibrated reading every second while the board is present and nothing is currently
+detected (i.e. the person is just standing there). Once 5 samples (4 seconds) have accumulated,
 it checks whether that window is essentially flat — the standard deviation of the total weight is
 under a fixed threshold. Any window that qualifies becomes the new reference outright, replacing
-whatever was there before.
+whatever was there before. (This sampling interval used to be 5 seconds, a 25-second wait -- see
+"Faster stand-still calibration" below for why it's 1 second/4 seconds now.)
 
 This is deliberately *not* "lock onto the single steadiest moment ever seen" — walking spikes the
 total on every step, so a window spanning any real movement fails the flatness check and the
 reference holds; standing still keeps refreshing it. That means if one person steps off and a
 different (lighter or heavier) person steps on and stands still, the reference naturally drifts to
-match them within the next 25-second quiet stretch, rather than staying anchored to whoever
-happened to stand stillest first. The status bar shows "体重キャリブレーション中" / "Weight
+match them within the next few seconds of quiet, rather than staying anchored to whoever happened
+to stand stillest first. The status bar shows "体重キャリブレーション中" / "Weight
 calibrating" until the first reference is established, and briefly shows a confirmation message
 each time it's refreshed afterward.
 
 A fresh sensor calibration (stepping off and recalibrating the zero-point) invalidates the weight
 reference too, since every value in it is only meaningful relative to that offset — it resets
 automatically alongside a sensor recalibration.
+
+### Faster stand-still calibration
+
+The original 5-second sampling interval (25-second wait for the first 5-sample window) was a
+conservative starting point, not something tuned against real data. A dedicated stand-still
+recording (`debug/session_20260815_192404.csv`, 35 seconds of someone deliberately standing
+still) showed the total weight's standard deviation staying under ~70 across *every* possible
+4-second window in the whole recording -- comfortably inside `FlatnessStdDev`'s 200 threshold, and
+nowhere close to needing the original 25-second span to reliably read as flat.
+
+The real constraint isn't "how long does it take to look flat" (genuine stillness looks flat
+almost immediately) -- it's "how do we avoid mistaking a brief pause mid-walk for having actually
+stopped." Cross-checking the same shortened window against a separate mixed walk/dash/stop
+recording (`debug/session_20260815_192444.csv`) found that the only windows passing the flatness
+check landed on that file's own genuine stop events, not on brief pauses between steps during
+otherwise-continuous movement -- shortening the window didn't trade away that protection. Sampling
+every 1 second instead of every 5 (`ReferenceWeightCalibrator.SampleIntervalMs`) cuts the wait for
+a first reference from ~25 seconds down to ~4 seconds, without changing the 5-sample window size or
+the flatness threshold itself.
 
 ## Forward / backward / dash: footstep alternation
 
@@ -303,7 +323,7 @@ for them:
   the normal hysteresis delay just gets in the way.
 
 The weight reference (see above) also works completely differently while sitting: instead of the
-normal ~20+ second "stand still" flatness-window wait, `ReferenceWeightCalibrator.
+normal ~4 second "stand still" flatness-window wait, `ReferenceWeightCalibrator.
 CalibrateImmediately` seeds it straight from whatever reading is on hand the instant presence is
 first detected, and the usual ongoing auto-refresh is suspended entirely for as long as sitting
 stays on (`DirectionClassifier.Update`'s `instantWeightCalibration` parameter) — a seated resting
@@ -368,7 +388,7 @@ since it's a fix for specific damaged hardware, not something most boards need.
 
 **Taking a measurement.** The normal reference-weight flow (see above) runs completely untouched
 first -- correction needs a genuine raw reference to work from, so it waits for
-`DirectionClassifier.IsWeightCalibrated` to become true (standing's ~20+ second "stand still"
+`DirectionClassifier.IsWeightCalibrated` to become true (standing's ~4 second "stand still"
 process, or Sitting's instant seed) exactly as everything else does. The moment that happens, it
 reads the four raw reference corners and computes one raw multiplier per corner that would bring
 it up (or down) to the *average* of all four -- e.g. reference corners of 2000/2000/2000/500
