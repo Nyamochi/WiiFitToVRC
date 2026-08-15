@@ -59,6 +59,13 @@ public sealed class DirectionClassifier
     // unaffected.
     private const double DashContinuationFraction = 0.5;
 
+    // Backward needs double the configured Steps until continuation before it escalates to the
+    // long, continuously-bridged hold -- walking backward is inherently less controlled than
+    // walking forward, so staying in the brief-tap-per-step mode for longer keeps it feeling more
+    // deliberate, one step at a time, before it commits to a continuously-held walk. Forward/Dash
+    // are unaffected.
+    private const int BackwardContinuationStepCountMultiplier = 2;
+
     // Sitting forward/backward/dash -- see the instantWeightCalibration branch in Update. A plain
     // percentage-of-total threshold on the front/back corner pairs, exactly the same mechanism as
     // BaselineTurnDiagonalThresholdPct above (which already works fine seated, just on the
@@ -484,9 +491,14 @@ public sealed class DirectionClassifier
     // releasing and re-pressing between every subsequent step, plus stepHoldMs still as the short
     // coast after the sequence's last step. Used for Forward/Dash and Backward (Footstep-mode Turn
     // never calls this at all -- it always holds for stepHoldMs alone, see the class doc comment).
+    // Backward's own threshold is BackwardContinuationStepCountMultiplier times continuationStepCount
+    // instead of the plain configured value -- see that constant's own doc comment for why.
     private static long HoldMsForStreak(int streak, Direction direction, long stepHoldMs, long stepContinuationMs, int continuationStepCount)
     {
-        if (streak < continuationStepCount)
+        int effectiveContinuationStepCount = direction == Direction.Backward
+            ? continuationStepCount * BackwardContinuationStepCountMultiplier
+            : continuationStepCount;
+        if (streak < effectiveContinuationStepCount)
         {
             return stepHoldMs;
         }

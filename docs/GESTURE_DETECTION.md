@@ -113,6 +113,14 @@ steps. Halving the tail for Dash specifically cuts that stop-detection lag to ~4
 leaving comfortable margin above the ~300ms worst case actually observed; Walk and Backward are
 unaffected, and continue using the full **Walk/Dash continuation** value.
 
+**Backward needs twice as many steps as Walk/Dash before it escalates to the long hold**:
+`DirectionClassifier.BackwardContinuationStepCountMultiplier` doubles **Steps until continuation**
+for Backward specifically (default 7 → 14), so it stays in the brief-tap-per-step mode for twice as
+long. Walking backward is inherently less controlled than walking forward, so this keeps it feeling
+more deliberate -- one step at a time -- for longer before it commits to a continuously-held walk.
+Only the *step-count threshold* changes; once Backward's streak does mature, it holds for the same
+**stride length (ms) + Walk/Dash continuation** as Forward. Forward and Dash are unaffected.
+
 **Steps until continuation** (Settings, directly under **Walk/Dash continuation**) is a plain 1-15
 step count, default 7 -- not an Insensitive/Sensitive or Narrow/Wide dial like the other Gesture
 sensitivity sliders, since it's a count rather than a threshold.
