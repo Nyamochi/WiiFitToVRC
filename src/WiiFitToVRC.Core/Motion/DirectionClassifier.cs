@@ -48,6 +48,17 @@ public sealed class DirectionClassifier
     // reference like the footstep detector below) -- scaled by GestureSensitivityScale.
     private const double BaselineTurnDiagonalThresholdPct = 50;
 
+    // Dash's real inter-step cadence tops out far below Walk's -- real recordings (see
+    // debug/session_20260815_*.csv, dedicated dash-then-stop and walk-then-stop sessions) show
+    // dash gaps capping around 250-300ms against walk's 550-700ms, roughly half. Sharing Walk's
+    // full stepContinuationMs tail-hold for Dash too (see HoldMsForStreak) meant a stop from
+    // dashing stayed asserted for up to ~800ms after the last real dash step, far longer than
+    // dashing itself ever needs between steps. Scaling the tail down for Dash specifically (half,
+    // by default 400ms) cuts that stop-detection lag roughly in half while still leaving
+    // comfortable margin above the ~300ms worst case actually observed -- Walk/Backward/Turn are
+    // unaffected.
+    private const double DashContinuationFraction = 0.5;
+
     // Sitting forward/backward/dash -- see the instantWeightCalibration branch in Update. A plain
     // percentage-of-total threshold on the front/back corner pairs, exactly the same mechanism as
     // BaselineTurnDiagonalThresholdPct above (which already works fine seated, just on the
@@ -387,7 +398,7 @@ public sealed class DirectionClassifier
             long interval = nowMs - _lastFrontEdgeMs;
             _steppingDirection = interval < dashPeriodMs ? Direction.Dash : Direction.Forward;
             _frontStreak++;
-            _steppingUntilMs = nowMs + HoldMsForStreak(_frontStreak, stepHoldMs, stepContinuationMs, continuationStepCount);
+            _steppingUntilMs = nowMs + HoldMsForStreak(_frontStreak, _steppingDirection, stepHoldMs, stepContinuationMs, continuationStepCount);
             StepPaired?.Invoke(_steppingDirection, interval);
         }
 
@@ -406,7 +417,7 @@ public sealed class DirectionClassifier
         {
             long interval = nowMs - _lastBackEdgeMs;
             _backStreak++;
-            ConfirmCompetingStep(Direction.Backward, nowMs, HoldMsForStreak(_backStreak, stepHoldMs, stepContinuationMs, continuationStepCount), stepContinuationMs);
+            ConfirmCompetingStep(Direction.Backward, nowMs, HoldMsForStreak(_backStreak, Direction.Backward, stepHoldMs, stepContinuationMs, continuationStepCount), stepContinuationMs);
             StepPaired?.Invoke(Direction.Backward, interval);
         }
 
@@ -467,13 +478,24 @@ public sealed class DirectionClassifier
     // The first (continuationStepCount - 1) confirmed steps of a fresh sequence are just a brief tap
     // each -- stepHoldMs alone -- in case that's genuinely all there is (someone taking just a few
     // steps). Only once the continuationStepCount-th step confirms the sequence is actually
-    // continuing does it switch to a long, continuously-bridged hold: stepContinuationMs on top,
-    // comfortably spanning real stride cadence (several hundred ms between footsteps) so the key
-    // stays held instead of releasing and re-pressing between every subsequent step, plus stepHoldMs
-    // still as the short coast after the sequence's last step. Reused identically for Forward/Dash,
-    // Backward, and Footstep-mode Turn.
-    private static long HoldMsForStreak(int streak, long stepHoldMs, long stepContinuationMs, int continuationStepCount) =>
-        streak >= continuationStepCount ? stepHoldMs + stepContinuationMs : stepHoldMs;
+    // continuing does it switch to a long, continuously-bridged hold: stepContinuationMs on top (or
+    // DashContinuationFraction of it, for Dash specifically -- see above), comfortably spanning
+    // real stride cadence (several hundred ms between footsteps) so the key stays held instead of
+    // releasing and re-pressing between every subsequent step, plus stepHoldMs still as the short
+    // coast after the sequence's last step. Used for Forward/Dash and Backward (Footstep-mode Turn
+    // never calls this at all -- it always holds for stepHoldMs alone, see the class doc comment).
+    private static long HoldMsForStreak(int streak, Direction direction, long stepHoldMs, long stepContinuationMs, int continuationStepCount)
+    {
+        if (streak < continuationStepCount)
+        {
+            return stepHoldMs;
+        }
+
+        long continuation = direction == Direction.Dash
+            ? (long)(stepContinuationMs * DashContinuationFraction)
+            : stepContinuationMs;
+        return stepHoldMs + continuation;
+    }
 
     /// <summary>
     /// Watches one corner for the moment its value crosses thresholdRatio times a reference value

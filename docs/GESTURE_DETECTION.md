@@ -82,6 +82,17 @@ Turn does *not* use this mechanism at all -- see the Footstep turn model below.
   steps, keeping continuous walking/dashing held as one unbroken output for as long as the steps
   keep coming -- and stride length alone tunes the short coast *after* the sequence actually ends.
 
+**Dash's long hold is shorter than Walk/Backward's**, even though all three share the same
+**Walk/Dash continuation** setting: Dash uses half of it (`DirectionClassifier.
+DashContinuationFraction`, default 400ms of the 800ms default) rather than the full value. Real
+recordings of repeated dash-then-stop and walk-then-stop cycles (`debug/session_20260815_*.csv`)
+showed dash's own inter-step gaps topping out around 250-300ms, roughly half of walk's 550-700ms
+-- sharing walk's full tail meant a stop from dashing stayed asserted for up to ~870ms after the
+last real dash step even though dashing itself never needs anywhere near that much slack between
+steps. Halving the tail for Dash specifically cuts that stop-detection lag to ~470ms while still
+leaving comfortable margin above the ~300ms worst case actually observed; Walk and Backward are
+unaffected, and continue using the full **Walk/Dash continuation** value.
+
 **Steps until continuation** (Settings, directly under **Walk/Dash continuation**) is a plain 1-15
 step count, default 7 -- not an Insensitive/Sensitive or Narrow/Wide dial like the other Gesture
 sensitivity sliders, since it's a count rather than a threshold.
