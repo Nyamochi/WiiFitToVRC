@@ -31,7 +31,10 @@ namespace WiiFitToVRC.Core.Motion;
 ///   how many alternating steps follow, so turning always reads as one deliberate step at a time.
 ///   Added after an earlier version of Hold below turned out to false-trigger the opposite turn
 ///   during this model's own large X swings, since the two used to run simultaneously; they're
-///   mutually exclusive now.
+///   mutually exclusive now. The two touches don't have to land as close together as a Walk/Dash
+///   step pair does, either: the pairing window is TurnContinuationMultiplier times Walk/Dash
+///   continuation (see HandleDiagonalEdge), since a deliberate turn's two touches can land further
+///   apart than an ordinary stride without either one being any less "a real turn."
 /// - **Hold** (TurnMode.Hold): X (left-right weight) has to swing past a threshold and *stay*
 ///   there continuously for a sustained stretch before it's confirmed -- an ordinary step's sway
 ///   crosses the same instantaneous threshold plenty, but flips side to side too quickly to ever
@@ -65,6 +68,17 @@ public sealed class DirectionClassifier
     // deliberate, one step at a time, before it commits to a continuously-held walk. Forward/Dash
     // are unaffected.
     private const int BackwardContinuationStepCountMultiplier = 2;
+
+    // Footstep-mode turn's own pairing window (how long the first diagonal touch waits for its
+    // partner -- see HandleDiagonalEdge) is double Walk/Dash continuation, not the plain
+    // configured value. Real turn recordings (debug/session_2026081*.csv) confirmed the diagonal
+    // pattern itself (front touch, then the *opposite-side* back touch) is already exactly right
+    // -- the gap between the two touches is what's sometimes too long for the shared 800ms default
+    // to catch on a slower, more deliberate turn. Simulating a wider window against the same
+    // recordings found it recovers a real pairing that 800ms missed, while producing zero change
+    // in turn false-positive counts on dedicated forward recordings even at windows well beyond
+    // this multiplier -- widening only this pairing window carries no measured risk to Forward.
+    private const int TurnContinuationMultiplier = 2;
 
     // Sitting forward/backward/dash -- see the instantWeightCalibration branch in Update. A plain
     // percentage-of-total threshold on the front/back corner pairs, exactly the same mechanism as
@@ -441,7 +455,7 @@ public sealed class DirectionClassifier
     // as a deliberate one-step-at-a-time action instead of coasting between steps.
     private void HandleDiagonalEdge(DiagonalCorner corner, long nowMs, long stepHoldMs, long stepContinuationMs)
     {
-        if (_lastDiagonalEdge != DiagonalCorner.None && nowMs - _lastDiagonalEdgeMs <= stepContinuationMs)
+        if (_lastDiagonalEdge != DiagonalCorner.None && nowMs - _lastDiagonalEdgeMs <= stepContinuationMs * TurnContinuationMultiplier)
         {
             Direction? confirmed = (_lastDiagonalEdge, corner) switch
             {

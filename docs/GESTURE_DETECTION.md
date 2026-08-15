@@ -177,10 +177,21 @@ default). The two models are mutually exclusive, not simultaneous -- see below f
 Turning right by alternately stepping on the **back-right** and **front-left** panels (in either
 order) reads as a right turn; alternately stepping **front-right**/**back-left** reads as a left
 turn. This is the same "watch a corner cross a threshold, pair it with the opposite corner's next
-crossing within **Walk/Dash continuation**" alternation as forward/backward/dash above, just on the
-*diagonal* pair of corners instead of the front or back pair -- and unlike forward/backward, the
-threshold here is a plain percentage of total board weight on that one corner (**turn threshold
-%**, default 50%), not relative to a learned resting reference.
+crossing" alternation as forward/backward/dash above, just on the *diagonal* pair of corners
+instead of the front or back pair -- and unlike forward/backward, the threshold here is a plain
+percentage of total board weight on that one corner (**turn threshold %**, default 50%), not
+relative to a learned resting reference.
+
+The pairing window itself is wider than forward/backward/dash's, though: **Walk/Dash continuation**
+×`DirectionClassifier.TurnContinuationMultiplier` (double, so 1600ms at the 800ms default) instead
+of the plain configured value. A deliberate turn's two touches don't necessarily land as close
+together as an ordinary stride's do, and real turn recordings
+(`debug/session_2026081{0,1,5}_*.csv`) confirmed the diagonal pattern itself was already exactly
+right -- the gap between the two touches was what occasionally exceeded the shared 800ms on a
+slower turn, resetting the pairing before it could confirm. Simulating the wider window against
+the same recordings recovered a real pairing that 800ms had missed (a 1080ms gap), while producing
+zero change in turn false-positive counts on dedicated forward recordings even at windows well
+beyond double -- so widening only this pairing window doesn't come at Forward's expense.
 
 A turn confirms on the **second** step of the pair: a single corner crossing the threshold is never
 enough by itself, it just becomes the pending first step waiting for the diagonal partner's next
