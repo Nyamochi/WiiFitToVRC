@@ -67,7 +67,14 @@ public partial class MonitorForm : Form
     private long _weightCalibrationFlashUntilTicks;
 
     private static readonly string[] ActionLabels =
-        ["baseline", "forward", "backward", "turn_right", "turn_left", "crouch", "jump"];
+        ["baseline", "forward", "backward", "turn_right", "turn_left", "crouch", "jump", DevicesLabel];
+
+    // Not a balance-board gesture -- see ToggleRecording/ShowDetectedDevicesPopup and
+    // Core.Bluetooth.BluetoothDeviceScanner. Selecting this label runs a Bluetooth device scan
+    // (not board telemetry) for the duration of the recording, so it doesn't require a connected
+    // board (see UpdateRecordButtonEnabled).
+    private const string DevicesLabel = "devices";
+    private readonly BluetoothDeviceScanner _bluetoothScanner = new();
 
     public MonitorForm()
     {
@@ -79,6 +86,8 @@ public partial class MonitorForm : Form
         ApplyLocalization();
         _labelCombo.Items.AddRange(ActionLabels);
         _labelCombo.SelectedIndex = 0;
+        _labelCombo.SelectedIndexChanged += (_, _) => UpdateRecordButtonEnabled();
+        UpdateRecordButtonEnabled();
         _connectButton.Click += async (_, _) => await OnConnectButtonClicked();
         _recordButton.Click += (_, _) => ToggleRecording();
         _calibrateButton.Click += async (_, _) => await CalibrateAsync();
@@ -289,7 +298,7 @@ public partial class MonitorForm : Form
         _device = null;
 
         var lang = CurrentLanguage;
-        _recordButton.Enabled = false;
+        UpdateRecordButtonEnabled();
         _calibrateButton.Enabled = false;
         _statusLabel.Text = Localizer.Get("Status_NotConnected", lang);
         _connectButton.Text = Localizer.Get("Button_ConnectPrompt", lang);
@@ -505,7 +514,7 @@ public partial class MonitorForm : Form
         _device = device;
         var lang = CurrentLanguage;
         _statusLabel.Text = Localizer.Get("Button_Connected", lang);
-        _recordButton.Enabled = true;
+        UpdateRecordButtonEnabled();
         _calibrateButton.Enabled = true;
         _connectButton.Text = Localizer.Get("Button_Disconnect", lang);
         _connectButton.Enabled = true;
@@ -535,7 +544,6 @@ public partial class MonitorForm : Form
         _inputController.ReleaseAll();
 
         _statusLabel.Text = Localizer.GetFormatted("Status_Disconnected", CurrentLanguage, reason);
-        _recordButton.Enabled = false;
         _calibrateButton.Enabled = false;
         _connectButton.Text = Localizer.Get("Button_ConnectPrompt", CurrentLanguage);
         _connectButton.Enabled = true;
@@ -544,6 +552,8 @@ public partial class MonitorForm : Form
         // CreateFile on the same device path.
         _device?.Dispose();
         _device = null;
+        // Must run after _device is nulled -- it's still the (now-dead) old reference above.
+        UpdateRecordButtonEnabled();
     }
 
     private void ToggleRecording()
@@ -566,17 +576,40 @@ public partial class MonitorForm : Form
             _recordButton.Text = Localizer.Get("Button_RecordStop", lang);
             _labelCombo.Enabled = false;
             _recordStatusLabel.Text = Localizer.GetFormatted("Record_Recording", lang, _currentLabel, Path.GetFileName(path));
+
+            if (_currentLabel == DevicesLabel)
+            {
+                _bluetoothScanner.Start();
+            }
         }
         else
         {
             _logWriter.Flush();
             _logWriter.Dispose();
             _logWriter = null;
+            string? stoppedLabel = _currentLabel;
             _currentLabel = null;
             _recordButton.Text = Localizer.Get("Button_RecordStart", lang);
             _labelCombo.Enabled = true;
             _recordStatusLabel.Text = Localizer.Get("Record_Stopped", lang);
+
+            if (stoppedLabel == DevicesLabel)
+            {
+                var devices = _bluetoothScanner.Stop();
+                using var popup = new DetectedDevicesForm(lang, devices);
+                popup.ShowDialog(this);
+            }
         }
+    }
+
+    // See UpdateRecordButtonEnabled's other caller sites: recording board telemetry needs a
+    // connected board, but the "devices" label runs a Bluetooth scan instead (see ToggleRecording
+    // and Core.Bluetooth.BluetoothDeviceScanner) and works without one -- e.g. exactly the case
+    // where a board's own HID connection never succeeds because it isn't recognized.
+    private void UpdateRecordButtonEnabled()
+    {
+        bool isDeviceScan = (string?)_labelCombo.SelectedItem == DevicesLabel;
+        _recordButton.Enabled = _device is not null || isDeviceScan;
     }
 
     // A relative DebugOutputFolder is resolved against the exe's own folder (not the current
