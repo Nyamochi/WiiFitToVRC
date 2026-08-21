@@ -17,6 +17,16 @@ public enum OutputMode
     KeyboardMouse,
     Controller,
     Osc,
+
+    /// <summary>Resolved every InputController.Update tick (see VrAppDetector, polled every 10s --
+    /// process enumeration isn't cheap enough to do every sample) to plain KeyboardMouse or Osc,
+    /// never used as an output mode in its own right: VRChat running without SteamVR resolves to
+    /// KeyboardMouse (SendInput works fine on a desktop session); VRChat *and* SteamVR running
+    /// together resolves to Osc (VR headsets commonly lock input focus away from the desktop,
+    /// where SendInput -- even the virtual controller -- never reaches VRChat at all). The default
+    /// output mode, so a first-time setup that just launches both apps normally gets working
+    /// input without ever opening Settings.</summary>
+    KeyboardMouseOscAuto,
 }
 
 public enum AppLanguage
@@ -80,7 +90,7 @@ public enum MovementMode
 public sealed class AppSettings
 {
     public AppLanguage Language { get; set; } = AppLanguage.Auto;
-    public OutputMode OutputMode { get; set; } = OutputMode.KeyboardMouse;
+    public OutputMode OutputMode { get; set; } = OutputMode.KeyboardMouseOscAuto;
 
     /// <summary>Pixels of relative mouse movement sent per tick while turning right/left is
     /// active (OutputMode.KeyboardMouse only). One shared value for both directions.</summary>
@@ -271,6 +281,49 @@ public sealed class AppSettings
     /// tell whether the running build is current -- so the popup reappears once after any future
     /// update swaps in a new exe, not just on the very first-ever launch.</summary>
     public DateTime LastAcknowledgedCautionExeWriteTimeUtc { get; set; }
+
+    // Bumped only by hand, only in a specific release that deliberately wants to force every
+    // user's settings back to defaults (e.g. a tuning overhaul where old values would actively
+    // fight the new behavior) -- not a general "new build" signal like
+    // LastAcknowledgedCautionExeWriteTimeUtc above, which fires on every update. 0 means "no
+    // forced reset has ever been declared" -- see MonitorForm.ShowMajorUpdateResetIfNeeded.
+    public const int MajorResetVersion = 0;
+
+    /// <summary>Highest MajorResetVersion this installation has already applied the forced reset
+    /// for. Not exposed in the Settings UI, and deliberately excluded from ResetToDefaults itself
+    /// (see PropertiesExcludedFromReset) -- otherwise the reset would erase its own record of
+    /// having just happened and re-fire forever.</summary>
+    public int LastAppliedMajorResetVersion { get; set; }
+
+    // Settings.json property names ResetToDefaults leaves untouched -- both are bookkeeping about
+    // *when a popup was last shown*, not user preferences, and resetting either as a side effect
+    // of an unrelated settings reset would be a surprising coupling (re-showing the floor-mat/
+    // jump-weight caution, or looping the major-reset popup forever).
+    private static readonly HashSet<string> PropertiesExcludedFromReset =
+    [
+        nameof(LastAcknowledgedCautionExeWriteTimeUtc),
+        nameof(LastAppliedMajorResetVersion),
+    ];
+
+    /// <summary>Copies every value from a fresh, default-constructed AppSettings onto this
+    /// instance (except PropertiesExcludedFromReset) -- used by
+    /// MonitorForm.ShowMajorUpdateResetIfNeeded to reset an already-loaded, already-referenced
+    /// instance in place, since InputController and other consumers hold a direct reference to
+    /// this specific object rather than whatever AppSettings.Load returns. Reflection-based
+    /// (rather than a hand-maintained field list) so a newly added setting is automatically
+    /// covered without this needing to be updated in lockstep.</summary>
+    public void ResetToDefaults()
+    {
+        var defaults = new AppSettings();
+        foreach (var property in typeof(AppSettings).GetProperties())
+        {
+            if (!property.CanRead || !property.CanWrite || PropertiesExcludedFromReset.Contains(property.Name))
+            {
+                continue;
+            }
+            property.SetValue(this, property.GetValue(defaults));
+        }
+    }
 
     public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, "settings.json");
 

@@ -107,6 +107,10 @@ public partial class MonitorForm : Form
         // finishes before either of the async handlers below start -- the safety notice should be
         // the very first thing a user sees, not something racing the connect flow or update check.
         Load += (_, _) => ShowFirstLaunchCautionIfNeeded();
+        // Second, for the same reason -- if a forced reset is pending, it should be resolved
+        // before the app tries to connect using whatever (possibly just-invalidated) settings
+        // were on disk.
+        Load += (_, _) => ShowMajorUpdateResetIfNeeded();
         // The board's SYNC button and the PC are usually not next to each other, so requiring a
         // click here before searching starts means an extra round trip just to press Connect --
         // search automatically from launch instead. The button stays live throughout: it cancels
@@ -144,6 +148,47 @@ public partial class MonitorForm : Form
 
         _settings.LastAcknowledgedCautionExeWriteTimeUtc = exeModifiedUtc;
         _settings.Save();
+    }
+
+    // AppSettings.MajorResetVersion is bumped by hand only in a specific release that deliberately
+    // wants every user's settings forced back to defaults (unlike ShowFirstLaunchCautionIfNeeded
+    // above, this never fires just because the exe changed) -- see that constant's own doc
+    // comment. The reset itself only actually happens if the user acknowledges via OK; closing the
+    // dialog any other way leaves LastAppliedMajorResetVersion behind, so this asks again next
+    // launch rather than silently resetting without the user having seen why.
+    private void ShowMajorUpdateResetIfNeeded()
+    {
+        if (_settings.LastAppliedMajorResetVersion >= AppSettings.MajorResetVersion)
+        {
+            return;
+        }
+
+        using var form = new MajorUpdateResetForm(CurrentLanguage);
+        if (form.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        _settings.ResetToDefaults();
+        _settings.LastAppliedMajorResetVersion = AppSettings.MajorResetVersion;
+        _settings.Save();
+        // InputController cached derived state (the SensorCorrection running average, and
+        // DirectionClassifier/JumpDetector's learned weight reference) from the pre-reset settings
+        // at construction/calibration time -- neither re-reads _settings on its own, so both need
+        // an explicit nudge to actually match the freshly-reset values now on disk. Mirrors
+        // SettingsForm.Save's own handling of the same two cases.
+        _inputController.ClearForcedCorrectionHistory();
+        _inputController.ResetWeightCalibration();
+        // PostureMode/MovementMode are otherwise only ever changed by the user directly clicking
+        // these radios (see the constructor), which is what normally keeps them in sync -- a
+        // settings reset changes the underlying value without going through that click, so the
+        // radios need an explicit nudge back in sync too. Setting the one that should become
+        // checked (rather than leaving an already-correct one alone) fires SetPostureMode/
+        // SetMovementMode's own CheckedChanged handler as a side effect, which is a harmless,
+        // redundant re-save/re-calibration on top of the reset already done above.
+        (_settings.PostureMode == PostureMode.Sitting ? _postureModeSittingRadio : _postureModeStandingRadio).Checked = true;
+        (_settings.MovementMode == MovementMode.WeightShift ? _movementModeWeightShiftRadio : _movementModeFootstepRadio).Checked = true;
+        ApplyLocalization();
     }
 
     private const string RepositoryUrl = "https://github.com/Nyamochi/WiiFitToVRC";

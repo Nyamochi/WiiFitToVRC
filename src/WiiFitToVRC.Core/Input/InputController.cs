@@ -8,12 +8,15 @@ namespace WiiFitToVRC.Core.Input;
 /// Wires the direction/crouch/jump detectors to real output. Call Update() on every raw sensor
 /// sample (not throttled to a UI repaint rate) so turn-via-mouse/right-stick stays smooth.
 ///
-/// Four output modes: Keyboard (turn via Q/E), KeyboardMouse (turn via mouse-look), Controller (a
-/// virtual Xbox 360 pad via ViGEmBus), and Osc (VRChat's own OSC input endpoint over UDP) --
-/// VRChat turned out to filter out SendInput-synthesized keyboard/mouse input as not "real"
-/// player input, so games like that need the controller path instead; some VR headset setups
-/// lock input focus to the VR device and reject SendInput entirely (even the virtual controller),
-/// which is what the OSC path is for.
+/// Four concrete output modes: Keyboard (turn via Q/E), KeyboardMouse (turn via mouse-look),
+/// Controller (a virtual Xbox 360 pad via ViGEmBus), and Osc (VRChat's own OSC input endpoint over
+/// UDP) -- VRChat turned out to filter out SendInput-synthesized keyboard/mouse input as not
+/// "real" player input, so games like that need the controller path instead; some VR headset
+/// setups lock input focus to the VR device and reject SendInput entirely (even the virtual
+/// controller), which is what the OSC path is for. A fifth, KeyboardMouseOscAuto (the default),
+/// isn't really its own mode -- see _effectiveOutputMode/VrAppDetector -- it just picks
+/// KeyboardMouse or Osc automatically based on whether VRChat and SteamVR are currently running
+/// together.
 /// </summary>
 public sealed class InputController : IDisposable
 {
@@ -37,6 +40,15 @@ public sealed class InputController : IDisposable
     private readonly VirtualControllerSender _controller = new();
     private readonly OscSender _osc = new();
     private readonly SensorCorrection _sensorCorrection = new();
+    private readonly VrAppDetector _vrAppDetector = new();
+
+    // Resolved once per Update() call from _settings.OutputMode -- OutputMode.KeyboardMouseOscAuto
+    // becomes KeyboardMouse or Osc here (see VrAppDetector), and is never seen anywhere else in
+    // this class. Every internal mode check below reads this instead of _settings.OutputMode
+    // directly, so Auto only needs to be resolved in exactly one place. Starts as KeyboardMouse
+    // (Auto's own safe default) so ReleaseOutputOnly/ReleaseAll behave sanely even if called
+    // before Update() has ever run once.
+    private OutputMode _effectiveOutputMode = OutputMode.KeyboardMouse;
 
     private Direction _lastAppliedDirection = Direction.Idle;
     private bool _lastCrouching;
@@ -155,7 +167,11 @@ public sealed class InputController : IDisposable
             }
         }
 
-        if (_settings.OutputMode == OutputMode.Controller)
+        _effectiveOutputMode = _settings.OutputMode == OutputMode.KeyboardMouseOscAuto
+            ? (RefreshVrAutoDetection(nowMs) ? OutputMode.Osc : OutputMode.KeyboardMouse)
+            : _settings.OutputMode;
+
+        if (_effectiveOutputMode == OutputMode.Controller)
         {
             _controller.Connect(); // no-op once already connected, or already failed once
         }
@@ -228,6 +244,15 @@ public sealed class InputController : IDisposable
         ReleaseTapIfDue(isJump: false, nowMs);
     }
 
+    // Only called (see the Update ternary above) while AppSettings.OutputMode is actually
+    // KeyboardMouseOscAuto, so VrAppDetector's own 10-second poll never runs at all for anyone
+    // using a fixed output mode.
+    private bool RefreshVrAutoDetection(long nowMs)
+    {
+        _vrAppDetector.Update(nowMs);
+        return _vrAppDetector.ShouldUseOsc;
+    }
+
     private bool UpdateJump(CalibratedReading cal, long nowMs, bool sitting)
     {
         bool jumped = _jump.Update(cal.Total, nowMs, _settings.JumpSensitivity, sitting, sitting ? _direction.ReferenceTotal : 0);
@@ -242,11 +267,11 @@ public sealed class InputController : IDisposable
 
     private void ApplyDirection(Direction direction, long nowMs)
     {
-        if (_settings.OutputMode == OutputMode.Controller)
+        if (_effectiveOutputMode == OutputMode.Controller)
         {
             ApplyDirectionController(direction, nowMs);
         }
-        else if (_settings.OutputMode == OutputMode.Osc)
+        else if (_effectiveOutputMode == OutputMode.Osc)
         {
             ApplyDirectionOsc(direction, nowMs);
         }
@@ -294,7 +319,7 @@ public sealed class InputController : IDisposable
                 KeySender.KeyDown(_settings.BackwardKey);
                 break;
             case Direction.TurnRight:
-                if (_settings.OutputMode == OutputMode.KeyboardMouse)
+                if (_effectiveOutputMode == OutputMode.KeyboardMouse)
                 {
                     MouseSender.MoveRelative(_settings.MouseTurnSpeed);
                 }
@@ -304,7 +329,7 @@ public sealed class InputController : IDisposable
                 }
                 break;
             case Direction.TurnLeft:
-                if (_settings.OutputMode == OutputMode.KeyboardMouse)
+                if (_effectiveOutputMode == OutputMode.KeyboardMouse)
                 {
                     MouseSender.MoveRelative(-_settings.MouseTurnSpeed);
                 }
@@ -462,11 +487,11 @@ public sealed class InputController : IDisposable
     // rather than immediate.
     private void PressTap(bool isJump, long nowMs)
     {
-        if (_settings.OutputMode == OutputMode.Controller)
+        if (_effectiveOutputMode == OutputMode.Controller)
         {
             _controller.SetButton(isJump ? _settings.JumpButton : _settings.CrouchButton, true);
         }
-        else if (isJump && _settings.OutputMode == OutputMode.Osc)
+        else if (isJump && _effectiveOutputMode == OutputMode.Osc)
         {
             // VRChat's OSC input has no crouch address, so only jump uses it here -- crouch
             // always falls through to the plain key press below, even in OSC mode.
@@ -499,11 +524,11 @@ public sealed class InputController : IDisposable
 
     private void ReleaseTapNow(bool isJump)
     {
-        if (_settings.OutputMode == OutputMode.Controller)
+        if (_effectiveOutputMode == OutputMode.Controller)
         {
             _controller.SetButton(isJump ? _settings.JumpButton : _settings.CrouchButton, false);
         }
-        else if (isJump && _settings.OutputMode == OutputMode.Osc)
+        else if (isJump && _effectiveOutputMode == OutputMode.Osc)
         {
             _osc.SetJump(false);
         }
@@ -524,13 +549,13 @@ public sealed class InputController : IDisposable
 
     private void ReleaseOutputOnly()
     {
-        if (_settings.OutputMode == OutputMode.Controller)
+        if (_effectiveOutputMode == OutputMode.Controller)
         {
             _controller.SetLeftStick(0, 0);
             _controller.SetRightStick(0, 0);
             _controller.SetButton(_settings.DashButton, false);
         }
-        else if (_settings.OutputMode == OutputMode.Osc)
+        else if (_effectiveOutputMode == OutputMode.Osc)
         {
             _osc.SetMoveAxis(0, 0);
             _osc.SetLookLeft(false);
@@ -559,7 +584,7 @@ public sealed class InputController : IDisposable
             // binding), so tap once more to bring it back to standing. This is an emergency
             // cleanup path (disconnect/presence lost), so an instant tap is acceptable here even
             // though ordinary taps hold for TapHoldMs.
-            if (_settings.OutputMode == OutputMode.Controller)
+            if (_effectiveOutputMode == OutputMode.Controller)
             {
                 _controller.TapButton(_settings.CrouchButton);
             }
