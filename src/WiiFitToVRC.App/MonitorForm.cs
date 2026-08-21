@@ -57,6 +57,13 @@ public partial class MonitorForm : Form
     private readonly RadioButton _postureModeStandingRadio = new() { Location = new Point(0, 0), AutoSize = true };
     private readonly RadioButton _postureModeSittingRadio = new() { Location = new Point(110, 0), AutoSize = true };
 
+    // Same isolated-Panel trick as _postureModePanel just above -- see AppSettings.MovementMode.
+    // Independent of posture, so it gets its own row rather than joining that radio group.
+    private readonly Label _movementModeCaption = new() { AutoSize = true, Location = new Point(10, 390) };
+    private readonly Panel _movementModePanel = new() { Location = new Point(10, 408), Size = new Size(340, 22), BorderStyle = BorderStyle.None };
+    private readonly RadioButton _movementModeFootstepRadio = new() { Location = new Point(0, 0), AutoSize = true };
+    private readonly RadioButton _movementModeWeightShiftRadio = new() { Location = new Point(110, 0), AutoSize = true };
+
     private BalanceBoardDevice? _device;
     private StreamWriter? _logWriter;
     private int _logRowCount;
@@ -94,6 +101,8 @@ public partial class MonitorForm : Form
         _settingsButton.Click += (_, _) => OpenSettings();
         _postureModeStandingRadio.CheckedChanged += (_, _) => { if (_postureModeStandingRadio.Checked) SetPostureMode(PostureMode.Standing); };
         _postureModeSittingRadio.CheckedChanged += (_, _) => { if (_postureModeSittingRadio.Checked) SetPostureMode(PostureMode.Sitting); };
+        _movementModeFootstepRadio.CheckedChanged += (_, _) => { if (_movementModeFootstepRadio.Checked) SetMovementMode(MovementMode.Footstep); };
+        _movementModeWeightShiftRadio.CheckedChanged += (_, _) => { if (_movementModeWeightShiftRadio.Checked) SetMovementMode(MovementMode.WeightShift); };
         // Registered first, so this synchronous handler (including its modal dialog) fully
         // finishes before either of the async handlers below start -- the safety notice should be
         // the very first thing a user sees, not something racing the connect flow or update check.
@@ -415,6 +424,9 @@ public partial class MonitorForm : Form
         // firing it (and thus an extra redundant Save()) during initial layout.
         (_settings.PostureMode == PostureMode.Sitting ? _postureModeSittingRadio : _postureModeStandingRadio).Checked = true;
 
+        _movementModePanel.Controls.AddRange([_movementModeFootstepRadio, _movementModeWeightShiftRadio]);
+        (_settings.MovementMode == MovementMode.WeightShift ? _movementModeWeightShiftRadio : _movementModeFootstepRadio).Checked = true;
+
         Controls.AddRange([
             _statusLabel, _connectButton, _calibrateButton, _settingsButton,
             _pressureCaption, _pressurePanel,
@@ -424,6 +436,7 @@ public partial class MonitorForm : Form
             _distanceCaption, _distanceLabel,
             _labelCombo, _recordButton, _recordStatusLabel,
             _postureModeCaption, _postureModePanel,
+            _movementModeCaption, _movementModePanel,
         ]);
     }
 
@@ -437,6 +450,12 @@ public partial class MonitorForm : Form
         // is Sitting (see instantWeightCalibration), or via the normal ~20+ second "stand still"
         // process if it's Standing.
         _inputController.ResetWeightCalibration();
+    }
+
+    private void SetMovementMode(MovementMode mode)
+    {
+        _settings.MovementMode = mode;
+        _settings.Save();
     }
 
     /// <summary>Re-applies all static UI text for the current language -- called at startup and
@@ -466,6 +485,9 @@ public partial class MonitorForm : Form
         _postureModeCaption.Text = Localizer.Get("Caption_PostureMode", lang);
         _postureModeStandingRadio.Text = Localizer.Get("PostureMode_Standing", lang);
         _postureModeSittingRadio.Text = Localizer.Get("PostureMode_Sitting", lang);
+        _movementModeCaption.Text = Localizer.Get("Caption_MovementMode", lang);
+        _movementModeFootstepRadio.Text = Localizer.Get("MovementMode_Footstep", lang);
+        _movementModeWeightShiftRadio.Text = Localizer.Get("MovementMode_WeightShift", lang);
         // Only re-stamps the placeholder zeros -- once a device is connected, UpdateUi refreshes
         // this with real (already-correctly-localized) values on every UI tick anyway.
         if (_device is null)

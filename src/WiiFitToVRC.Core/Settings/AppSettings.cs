@@ -63,6 +63,20 @@ public enum PostureMode
     Sitting,
 }
 
+/// <summary>Footstep (the original, default behavior -- see DirectionClassifier): alternating
+/// footstep pairs on opposing corners. WeightShift (see WeightShiftClassifier): no pairing at all,
+/// Forward/Backward/TurnLeft/TurnRight is read directly and continuously off however far the
+/// current lean sits past a threshold -- simply how hard you're leaning right now is simply how
+/// hard you're moving right now. Dash/Jump/Crouch aren't available under WeightShift (see
+/// InputController.Update) -- it's movement only, sharing Footstep's own key bindings. Independent
+/// of PostureMode -- either can be combined with either posture. Toggled from a button on the main
+/// window, not the Settings dialog, matching PostureMode.</summary>
+public enum MovementMode
+{
+    Footstep,
+    WeightShift,
+}
+
 public sealed class AppSettings
 {
     public AppLanguage Language { get; set; } = AppLanguage.Auto;
@@ -98,6 +112,15 @@ public sealed class AppSettings
     /// PresenceWeightThreshold/SleepSeconds (see the Effective* properties below); every other
     /// setting still applies normally regardless of posture.</summary>
     public PostureMode PostureMode { get; set; } = PostureMode.Standing;
+
+    /// <summary>Footstep (default) vs. WeightShift -- see MovementMode. Toggled from a button on
+    /// the main window, not the Settings dialog, matching PostureMode.</summary>
+    public MovementMode MovementMode { get; set; } = MovementMode.Footstep;
+
+    /// <summary>0-100, see GestureSensitivityScale -- the single shared lean threshold
+    /// WeightShiftClassifier compares X/Y against for all four directions. Only meaningful under
+    /// MovementMode.WeightShift.</summary>
+    public int WeightShiftSensitivity { get; set; } = 50;
 
     // Someone seated only rests a fraction of their body weight on the board (the chair carries
     // the rest), so the normal standing threshold -- calibrated against a full standing weight --

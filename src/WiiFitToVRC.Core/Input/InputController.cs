@@ -161,6 +161,11 @@ public sealed class InputController : IDisposable
         }
 
         bool sitting = _settings.PostureMode == PostureMode.Sitting;
+        // MovementMode.WeightShift has no discrete gesture events to hang Jump/Crouch off of at
+        // all -- it's continuous lean output only (see WeightShiftClassifier, and AppSettings.
+        // MovementMode's own doc comment) -- so both are skipped entirely below, independent of
+        // PostureMode.
+        bool weightShift = _settings.MovementMode == MovementMode.WeightShift;
         bool jumped = false;
 
         // Sitting jump fires on total weight collapsing toward zero as the feet lift clear (see
@@ -171,7 +176,7 @@ public sealed class InputController : IDisposable
         // gate for that reason. Standing doesn't have this conflict -- its SleepSeconds is long
         // enough to ride out a jump's own airborne dip -- so it stays gated behind presence as
         // before, further down.
-        if (sitting)
+        if (sitting && !weightShift)
         {
             jumped = UpdateJump(cal, nowMs, sitting: true);
         }
@@ -189,9 +194,16 @@ public sealed class InputController : IDisposable
             return;
         }
 
-        var direction = _direction.Update(cal, nowMs, isPresent: true, _settings.FootstepThresholdPercent / 100.0, _settings.DashPeriodMs, _settings.StepHoldMs, _settings.StepContinuationMs, _settings.ContinuationStepCount, _settings.TurnSensitivity, _settings.TurnMode == TurnMode.Footstep, sitting);
+        Direction direction = weightShift
+            ? WeightShiftClassifier.Classify(cal, _settings.WeightShiftSensitivity)
+            : _direction.Update(cal, nowMs, isPresent: true, _settings.FootstepThresholdPercent / 100.0, _settings.DashPeriodMs, _settings.StepHoldMs, _settings.StepContinuationMs, _settings.ContinuationStepCount, _settings.TurnSensitivity, _settings.TurnMode == TurnMode.Footstep, sitting);
         ApplyDirection(direction, nowMs);
         ReleaseAndRepressDashKeyIfDue(nowMs);
+
+        if (weightShift)
+        {
+            return;
+        }
 
         if (!sitting)
         {

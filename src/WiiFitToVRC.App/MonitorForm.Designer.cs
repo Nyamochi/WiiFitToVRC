@@ -22,7 +22,9 @@ partial class MonitorForm
     private void InitializeComponent()
     {
         AutoScaleMode = AutoScaleMode.None;
-        ClientSize = new Size(660, 380);
+        // 380 -> 450: room for the new "移動方法" (Movement method) row below Posture -- see
+        // MonitorForm's _movementModeCaption/_movementModePanel fields.
+        ClientSize = new Size(660, 450);
         StartPosition = FormStartPosition.CenterScreen;
         Text = "WiiFitToVRC";
         // FixedToolWindow carries WS_EX_TOOLWINDOW, which Windows explicitly excludes from the

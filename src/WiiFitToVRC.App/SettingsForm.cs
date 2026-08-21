@@ -198,6 +198,14 @@ public sealed class SettingsForm : Form
     private readonly TextBox _debugFolderInput = new() { Location = new Point(ValueColumnX, 823), Size = new Size(180, 24) };
     private readonly Button _debugFolderBrowseButton = new() { Location = new Point(ValueColumnX + 186, 822), Size = new Size(34, 24) };
 
+    // AppSettings.WeightShiftSensitivity -- the single shared lean threshold for
+    // MovementMode.WeightShift (see WeightShiftClassifier). Placed at the very bottom of the tab
+    // per its own request, not grouped with the Footstep-only sliders above.
+    private readonly TrackBar _weightShiftSensitivitySlider = new() { Minimum = 0, Maximum = 100, Location = new Point(ValueColumnX + 55, 857), Size = new Size(140, 40), TickFrequency = 10 };
+    private readonly Label _weightShiftSensitivityWeakLabel = new() { Location = new Point(ValueColumnX, 865), AutoSize = true };
+    private readonly Label _weightShiftSensitivityStrongLabel = new() { Location = new Point(ValueColumnX + 201, 865), AutoSize = true };
+    private readonly Label _weightShiftSensitivityValueLabel = new() { Location = new Point(ValueColumnX + 255, 865), AutoSize = true };
+
     private readonly ComboBox _forwardKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _dashKeyCombo = MakeCombo<VirtualKey>();
     private readonly ComboBox _dashModifierKeyCombo = MakeCombo<VirtualKey>();
@@ -272,6 +280,10 @@ public sealed class SettingsForm : Form
         _strideSlider.ValueChanged += (_, _) => _strideValueLabel.Text = _strideSlider.Value.ToString();
         _stepContinuationSlider.ValueChanged += (_, _) => _stepContinuationValueLabel.Text = _stepContinuationSlider.Value.ToString();
         _continuationStepCountSlider.ValueChanged += (_, _) => _continuationStepCountValueLabel.Text = _continuationStepCountSlider.Value.ToString();
+        // Plain numeric display, not FormatSensitivityValue's "OFF" -- unlike Walk/Dash/Turn/Jump/
+        // Crouch, 0 here isn't a hard-disable sentinel (see WeightShiftClassifier), just the least
+        // sensitive end of a continuous range, same as Stride/Walk-Dash-continuation above.
+        _weightShiftSensitivitySlider.ValueChanged += (_, _) => _weightShiftSensitivityValueLabel.Text = _weightShiftSensitivitySlider.Value.ToString();
         // The Dash input mode radio labels spell out the actual bound keys ("W + Shift", "W
         // double-tap"), so they need to stay in sync with the Keybinds tab's combo boxes live,
         // not just at dialog-open time.
@@ -427,6 +439,7 @@ public sealed class SettingsForm : Form
         var presenceLabel = new Label { Text = Localizer.Get("Settings_PresenceThreshold", _uiLanguage), Location = new Point(10, 673), AutoSize = true };
         var sleepLabel = new Label { Text = Localizer.Get("Settings_SleepSeconds", _uiLanguage), Location = new Point(10, 711), AutoSize = true };
         var debugFolderLabel = new Label { Text = Localizer.Get("Settings_DebugFolder", _uiLanguage), Location = new Point(10, 827), AutoSize = true };
+        var weightShiftSensitivityLabel = new Label { Text = Localizer.Get("Settings_WeightShiftSensitivity", _uiLanguage), Location = new Point(10, 865), AutoSize = true };
 
         _outputKeyboardRadio.Text = Localizer.Get("Settings_OutputMode_Keyboard", _uiLanguage);
         _outputKeyboardMouseRadio.Text = Localizer.Get("Settings_OutputMode_KeyboardMouse", _uiLanguage);
@@ -455,6 +468,8 @@ public sealed class SettingsForm : Form
         _jumpSensitivityStrongLabel.Text = sensitive;
         _crouchSensitivityWeakLabel.Text = insensitive;
         _crouchSensitivityStrongLabel.Text = sensitive;
+        _weightShiftSensitivityWeakLabel.Text = insensitive;
+        _weightShiftSensitivityStrongLabel.Text = sensitive;
         _strideNarrowLabel.Text = Localizer.Get("Settings_GestureSensitivity_Narrow", _uiLanguage);
         _strideWideLabel.Text = Localizer.Get("Settings_GestureSensitivity_Wide", _uiLanguage);
         _stepContinuationNarrowLabel.Text = Localizer.Get("Settings_GestureSensitivity_Narrow", _uiLanguage);
@@ -492,12 +507,13 @@ public sealed class SettingsForm : Form
             _forcedControllerCorrectionHintLabel, _forcedControllerCorrectionCheck,
             _debugModeCheck,
             debugFolderLabel, _debugFolderInput, _debugFolderBrowseButton,
+            weightShiftSensitivityLabel, _weightShiftSensitivityWeakLabel, _weightShiftSensitivitySlider, _weightShiftSensitivityStrongLabel, _weightShiftSensitivityValueLabel,
         ]);
 
         // The tab's content now extends well past its fixed visible height -- scroll internally
         // (a vertical scrollbar appears automatically) rather than growing the window without bound.
         _generalTab.AutoScroll = true;
-        _generalTab.AutoScrollMinSize = new Size(0, 904);
+        _generalTab.AutoScrollMinSize = new Size(0, 930);
     }
 
     private void BuildKeybindsTab()
@@ -612,6 +628,8 @@ public sealed class SettingsForm : Form
         _jumpSensitivityValueLabel.Text = FormatSensitivityValue(_jumpSensitivitySlider.Value);
         _crouchSensitivitySlider.Value = Math.Clamp(source.CrouchSensitivity, _crouchSensitivitySlider.Minimum, _crouchSensitivitySlider.Maximum);
         _crouchSensitivityValueLabel.Text = FormatSensitivityValue(_crouchSensitivitySlider.Value);
+        _weightShiftSensitivitySlider.Value = Math.Clamp(source.WeightShiftSensitivity, _weightShiftSensitivitySlider.Minimum, _weightShiftSensitivitySlider.Maximum);
+        _weightShiftSensitivityValueLabel.Text = _weightShiftSensitivitySlider.Value.ToString();
 
         _turnModeHoldRadio.Checked = source.TurnMode == TurnMode.Hold;
         _turnModeFootstepRadio.Checked = source.TurnMode == TurnMode.Footstep;
@@ -672,6 +690,7 @@ public sealed class SettingsForm : Form
         _settings.TurnSensitivity = TurnDisplayToRaw(_turnSensitivitySlider.Value);
         _settings.JumpSensitivity = _jumpSensitivitySlider.Value;
         _settings.CrouchSensitivity = _crouchSensitivitySlider.Value;
+        _settings.WeightShiftSensitivity = _weightShiftSensitivitySlider.Value;
         _settings.TurnMode = _turnModeHoldRadio.Checked ? TurnMode.Hold : TurnMode.Footstep;
         _settings.DashInputMode = _dashInputModeDoubleTapRadio.Checked ? DashInputMode.DoubleTap : DashInputMode.ComboKey;
         bool forcedControllerCorrectionWasOn = _settings.ForcedControllerCorrection;

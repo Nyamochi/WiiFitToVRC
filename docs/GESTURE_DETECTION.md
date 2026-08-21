@@ -286,6 +286,33 @@ likewise drops the other model's state right away. No turn-equivalent output is 
 mode while disabled -- no turn keys, no mouse-look movement, no right-stick deflection, and no OSC
 `LookLeft`/`LookRight` messages.
 
+## Movement method: Footstep vs. Weight-shift
+
+`AppSettings.MovementMode`, toggled from the main window (below Posture, not in the Settings
+dialog -- same pattern as Posture itself) -- everything above this section describes **Footstep**,
+the default. **Weight-shift**
+([`WeightShiftClassifier.cs`](../src/WiiFitToVRC.Core/Motion/WeightShiftClassifier.cs)) is a much
+simpler alternative: no footstep pairing at all, just Forward/Backward/TurnLeft/TurnRight read
+directly off however far X/Y (see `DirectionClassifier.ComputeX`/`ComputeY`) currently sits past a
+single shared threshold -- literally however hard you're leaning right now is however hard you're
+moving right now, released the instant the lean drops back under threshold. Whichever axis is
+leaning harder relative to that same threshold wins, so a diagonal lean reads as one clean
+direction rather than none or both. It shares Footstep's own key bindings (Forward/Backward/
+TurnRight/TurnLeft), but has no Dash (there's no pairing interval to time a dash against) and
+drives no Jump or Crouch at all -- it's movement only, and is independent of Posture (either
+posture can be combined with either movement method, since X/Y don't depend on the learned weight
+reference).
+
+The one setting it has, **Weight-shift mode strength** (bottom of the Settings dialog's General
+tab), is the single shared lean threshold for all four directions, scaled by
+`GestureSensitivityScale` like Turn/Jump/Crouch. Its neutral (50) baseline, 25 percentage points,
+was tuned against a real 35-second neutral-stance recording
+(`debug/session_20260815_192404.csv`, someone just standing normally): X swung as far as 12.8 and
+Y as far as 19.4 during that whole recording, purely from ordinary sway, so 25 sits comfortably
+above both, producing zero false triggers at or below the default strength. Real intentional
+leaning in forward/backward/turn recordings reached 40-80+ at even moderate percentiles, leaving a
+wide gap between "still just standing" and "clearly leaning" for the default to sit inside.
+
 ## Jump: rise, then rapid collapse
 
 [`JumpDetector.cs`](../src/WiiFitToVRC.Core/Motion/JumpDetector.cs) tracks a slow-moving baseline
