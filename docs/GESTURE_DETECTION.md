@@ -97,6 +97,35 @@ threshold %** of the weight reference (e.g. 120%) — a discrete "this foot just
   that, so Dash can never fire and every alternation reads as a plain Forward/Backward step
   instead.
 
+### A crossing must be a genuine climb, not just a nudge over the line
+
+Every corner-threshold crossing used throughout this document -- footstep, diagonal-turn, and
+sitting alike -- goes through the same `DirectionClassifier.CornerPeakTracker`, which requires more
+than the raw value simply being on the far side of the line at this instant. A crossing only counts
+as an edge if the corner actually *climbed* into it: risen by at least 20% of the crossing
+threshold from its own lowest point within the preceding 500ms, not just nudged over the line from
+wherever it already happened to be sitting.
+
+This closes a real gap a point-in-time threshold alone leaves open: a corner that's genuinely
+resting -- weight loaded on it, but nobody stepping -- can still read a value close to (even
+briefly over) the footstep threshold, especially soon after a nearby real step shifted weight onto
+it. Real recordings (`debug/session_20260815_192743.csv`) contained exactly this: a handful of
+confirmed edges where the raw trace showed a corner sitting essentially flat at 116-119% of
+reference for 500+ms -- a loaded but genuinely resting stance, not a step in progress -- before
+ordinary sensor noise nudged it over 120% for a moment. Indistinguishable from a real footstep by a
+point threshold alone, but every one of those cases showed under 7% of threshold worth of rise from
+its own recent low point. Every genuine step across walk/dash/turn recordings, standing and sitting
+alike, showed at least 34% and typically 60-140% of threshold worth of rise -- a wide, comfortable
+gap the 20% requirement sits inside without risking real steps, including the very first step of a
+fresh walking/dashing burst (which still dips and climbs the same way, just from whatever the
+resting stance happens to sit at rather than from zero).
+
+Re-running the full set of turn/walk/dash/backward/sitting recordings with this requirement in
+place left every file's *primary* direction count exactly unchanged (e.g. a dedicated turn_left
+recording still reads exactly 377 TurnLeft confirmations), while cutting spurious secondary noise
+substantially -- a dash-then-stop recording's spurious Backward confirmations dropped from 77 to
+39, and a turn_right recording's from 20 to 13.
+
 ### Forward/Backward/Dash: the first few steps tap, later steps hold
 
 A confirmed Forward/Backward/Dash direction doesn't hold for the same duration every time -- it

@@ -530,26 +530,63 @@ public sealed class DirectionClassifier
     /// counts as "above", so no edges fire until a reference exists); the diagonal-turn trackers
     /// pass a fixed reference of 1.0 with thresholdRatio as a plain percentage, so it's really just
     /// "value >= thresholdRatio" -- an absolute threshold reusing the same edge/refractory logic.
+    ///
+    /// A crossing only counts as an edge if the value actually *climbed* into it -- risen by at
+    /// least RequiredRiseRatio of the crossing threshold from its own lowest point within the
+    /// preceding TroughLookbackMs -- not just nudged over the line from wherever it already was.
+    /// Real recordings (debug/session_20260815_192743.csv) contained a handful of confirmed edges
+    /// where the raw trace showed the corner sitting essentially flat at 116-119% of reference for
+    /// 500+ms (a slightly loaded but genuinely resting stance, not a step in progress) before
+    /// ordinary sensor noise nudged it over the 120% line for a moment -- indistinguishable from a
+    /// real footstep by a point threshold alone, but obviously not one by eye. Every one of those
+    /// showed under 7% of threshold worth of rise from its own recent low point, while every
+    /// genuine step across walk/dash/turn recordings (standing and sitting alike) showed at least
+    /// 34% and typically 60-140% -- a wide, comfortable gap RequiredRiseRatio sits inside without
+    /// risking real steps, including the very first step of a fresh walking/dashing burst (which
+    /// still dips and climbs the same way, just from whatever the resting stance happens to sit at
+    /// rather than from zero).
     /// </summary>
     private sealed class CornerPeakTracker
     {
         private const long RefractoryMs = 150; // debounce: minimum gap between edges on the same corner
 
+        private const long TroughLookbackMs = 500;
+        private const double RequiredRiseRatio = 0.20;
+
         private long _lastEdgeMs;
+        private readonly Queue<(long Ms, double Value)> _recentHistory = new();
 
         public bool IsAbove { get; private set; }
 
         public bool Update(double value, long nowMs, double reference, double thresholdRatio)
         {
-            bool wasAbove = IsAbove;
-            IsAbove = reference > 0 && value >= reference * thresholdRatio;
-
-            bool edge = IsAbove && !wasAbove && nowMs - _lastEdgeMs >= RefractoryMs;
-            if (edge)
+            _recentHistory.Enqueue((nowMs, value));
+            while (_recentHistory.Count > 0 && nowMs - _recentHistory.Peek().Ms > TroughLookbackMs)
             {
-                _lastEdgeMs = nowMs;
+                _recentHistory.Dequeue();
             }
-            return edge;
+
+            bool wasAbove = IsAbove;
+            double threshold = reference * thresholdRatio;
+            IsAbove = reference > 0 && value >= threshold;
+
+            if (!(IsAbove && !wasAbove && nowMs - _lastEdgeMs >= RefractoryMs))
+            {
+                return false;
+            }
+
+            double trough = value;
+            foreach (var (_, pastValue) in _recentHistory)
+            {
+                trough = Math.Min(trough, pastValue);
+            }
+            if (value - trough < threshold * RequiredRiseRatio)
+            {
+                return false; // stagnant near-threshold noise, not a genuine climb -- see doc comment
+            }
+
+            _lastEdgeMs = nowMs;
+            return true;
         }
     }
 }
