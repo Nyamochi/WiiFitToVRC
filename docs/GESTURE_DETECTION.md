@@ -14,11 +14,27 @@ Y (front-back) = (TopRight% + TopLeft%) - (BottomRight% + BottomLeft%)  positive
 
 [`PresenceGate.cs`](../src/WiiFitToVRC.Core/Motion/PresenceGate.cs) gates *all* output (including
 the arrow lights in the app window) on the calibrated total weight crossing the **presence weight
-threshold** setting. Both directions share one **sleep/wake seconds** delay: the board must stay
-above the threshold continuously for that long before output unlocks (so a stray brush against the
-board doesn't start sending input), and must stay below it continuously for the same duration
-before output re-locks (so momentary weight dips during normal play don't cut output, and stepping
-off takes a moment to register).
+threshold** setting. Both directions share one **sleep/wake seconds** delay (time hysteresis): the
+board must stay above the "on" threshold continuously for that long before output unlocks (so a
+stray brush against the board doesn't start sending input), and below the "off" threshold
+continuously for the same duration before output re-locks (so momentary weight dips during normal
+play don't cut output, and stepping off takes a moment to register).
+
+The on/off thresholds are also two separate values, not one shared threshold (amplitude
+hysteresis) -- with a single value, a total that dithers right on the boundary resets *both*
+timers every sample, so neither ever accumulates enough to fire at all. This matters most for
+`AppSettings.PostureMode.Sitting`, whose sleep/wake delay is 0 (see "Presence and calibration"
+below) -- with only one threshold there, a single sample poking across it toggles presence
+immediately. Real seated recordings (`debug/sit_*.csv`) confirmed this happening constantly: a
+from-scratch simulation of the old single-threshold logic showed presence flickering off and back
+on up to 139 times within one continuously-seated session that should have read present the whole
+time. Splitting the threshold (on = the configured/Sitting's 500, off = 2/3 of that for standing,
+a tuned 250 for Sitting) collapsed most of those sessions down to their one legitimate sit-down
+transition, and cut the worst case from 139 to 51 flickers -- what's left there is genuine
+foot-lift dips during seated forward-gait footwork, not sensor noise, so no threshold placement
+removes it without also delaying real presence loss. Standing recordings showed no difference
+either way (a standing person's resting weight sits thousands of units clear of the threshold), so
+the split costs standing nothing.
 
 ## The weight reference: what does "resting" look like right now?
 

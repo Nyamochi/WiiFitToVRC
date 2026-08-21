@@ -176,7 +176,7 @@ public sealed class InputController : IDisposable
             jumped = UpdateJump(cal, nowMs, sitting: true);
         }
 
-        if (!_presence.Update(cal.Total, nowMs, _settings.EffectivePresenceWeightThreshold, _settings.EffectiveSleepSeconds))
+        if (!_presence.Update(cal.Total, nowMs, _settings.EffectivePresenceWeightThreshold, _settings.EffectivePresenceOffWeightThreshold, _settings.EffectiveSleepSeconds))
         {
             // Nobody's on the board yet (or hasn't been long enough after stepping on/off) --
             // force everything back to Idle/released so key output and arrow lighting both go

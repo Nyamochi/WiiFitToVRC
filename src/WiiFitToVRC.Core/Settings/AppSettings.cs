@@ -108,8 +108,20 @@ public sealed class AppSettings
     private const int SittingPresenceWeightThreshold = 500;
     private const int SittingSleepSeconds = 0;
 
+    // PresenceGate's "off" (presence-loss) threshold is lower than its "on" one -- amplitude
+    // hysteresis, see that class's doc comment. Sitting's own off threshold is hardcoded rather
+    // than a fixed fraction of SittingPresenceWeightThreshold since it was tuned directly against
+    // real seated recordings (debug/sit_*.csv); standing's is a fraction of the user's own
+    // PresenceWeightThreshold slider since real standing recordings never approached either
+    // threshold closely enough to need session-specific tuning.
+    private const int SittingPresenceOffWeightThreshold = 250;
+    private const double StandingPresenceOffThresholdRatio = 2.0 / 3.0;
+
     public int EffectivePresenceWeightThreshold =>
         PostureMode == PostureMode.Sitting ? SittingPresenceWeightThreshold : PresenceWeightThreshold;
+
+    public int EffectivePresenceOffWeightThreshold =>
+        PostureMode == PostureMode.Sitting ? SittingPresenceOffWeightThreshold : (int)(PresenceWeightThreshold * StandingPresenceOffThresholdRatio);
 
     public int EffectiveSleepSeconds =>
         PostureMode == PostureMode.Sitting ? SittingSleepSeconds : SleepSeconds;
