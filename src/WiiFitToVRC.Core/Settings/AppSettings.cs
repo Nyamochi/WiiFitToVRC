@@ -241,6 +241,14 @@ public sealed class AppSettings
     /// (OutputMode.Controller only). One shared value for both directions.</summary>
     public int ControllerTurnSpeed { get; set; } = 60;
 
+    /// <summary>Exe write-time (UTC) the safety caution popup (floor mat / heavy-player jump
+    /// warning) was last acknowledged for -- see MonitorForm.ShowFirstLaunchCautionIfNeeded. Not
+    /// exposed in the Settings UI. Compared against the running exe's own
+    /// File.GetLastWriteTimeUtc each launch -- the same signal CheckForUpdateAsync already uses to
+    /// tell whether the running build is current -- so the popup reappears once after any future
+    /// update swaps in a new exe, not just on the very first-ever launch.</summary>
+    public DateTime LastAcknowledgedCautionExeWriteTimeUtc { get; set; }
+
     public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, "settings.json");
 
     public static AppSettings Load(string? path = null)

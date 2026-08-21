@@ -94,6 +94,10 @@ public partial class MonitorForm : Form
         _settingsButton.Click += (_, _) => OpenSettings();
         _postureModeStandingRadio.CheckedChanged += (_, _) => { if (_postureModeStandingRadio.Checked) SetPostureMode(PostureMode.Standing); };
         _postureModeSittingRadio.CheckedChanged += (_, _) => { if (_postureModeSittingRadio.Checked) SetPostureMode(PostureMode.Sitting); };
+        // Registered first, so this synchronous handler (including its modal dialog) fully
+        // finishes before either of the async handlers below start -- the safety notice should be
+        // the very first thing a user sees, not something racing the connect flow or update check.
+        Load += (_, _) => ShowFirstLaunchCautionIfNeeded();
         // The board's SYNC button and the PC are usually not next to each other, so requiring a
         // click here before searching starts means an extra round trip just to press Connect --
         // search automatically from launch instead. The button stays live throughout: it cancels
@@ -110,6 +114,27 @@ public partial class MonitorForm : Form
         // Fire-and-forget -- an offline/slow update check must never delay or block the
         // board-connect flow above.
         Load += (_, _) => _ = CheckForUpdateAsync();
+    }
+
+    // Reuses the exact same "compare this exe's own File.GetLastWriteTimeUtc" signal
+    // CheckForUpdateAsync already relies on to tell whether the running build is current -- just
+    // compared against what was last acknowledged (AppSettings.LastAcknowledgedCautionExeWriteTimeUtc)
+    // instead of against GitHub's latest commit. That means this doesn't fire only once ever, but
+    // once per exe build: the very first launch, and again the first launch after any future
+    // update swaps in a new exe (auto-updater or otherwise), same lifecycle as the update notice.
+    private void ShowFirstLaunchCautionIfNeeded()
+    {
+        DateTime exeModifiedUtc = File.GetLastWriteTimeUtc(Application.ExecutablePath);
+        if (_settings.LastAcknowledgedCautionExeWriteTimeUtc == exeModifiedUtc)
+        {
+            return;
+        }
+
+        using var form = new CautionForm(CurrentLanguage);
+        form.ShowDialog(this);
+
+        _settings.LastAcknowledgedCautionExeWriteTimeUtc = exeModifiedUtc;
+        _settings.Save();
     }
 
     private const string RepositoryUrl = "https://github.com/Nyamochi/WiiFitToVRC";
