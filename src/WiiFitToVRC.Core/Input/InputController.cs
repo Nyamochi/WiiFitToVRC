@@ -86,6 +86,13 @@ public sealed class InputController : IDisposable
     private double _dashDistanceMeters;
     private int _stepCount;
 
+    // OutputMode.Osc's forward-axis magnitude (see ComputeOscForwardMagnitude): the real gap
+    // since the previous Forward/Dash step, cached from StepPaired since Update() itself only
+    // gets a discrete Direction, not the underlying stride timing. Starts at OscSlowestIntervalMs
+    // so the very first step of a session (before any real interval exists yet) reads as ordinary
+    // walking pace rather than an arbitrary default.
+    private long _lastForwardIntervalMs = OscSlowestIntervalMs;
+
     public Direction LastDirection => _lastAppliedDirection;
     public bool IsCrouching => _lastCrouching;
     public bool IsPresent => _presence.IsPresent;
@@ -129,10 +136,12 @@ public sealed class InputController : IDisposable
             case Direction.Forward:
                 _walkDistanceMeters += WalkDistancePerStepMeters;
                 _stepCount++;
+                _lastForwardIntervalMs = intervalMs;
                 break;
             case Direction.Dash:
                 _dashDistanceMeters += DashDistancePerStepMeters;
                 _stepCount++;
+                _lastForwardIntervalMs = intervalMs;
                 break;
         }
     }
@@ -420,12 +429,32 @@ public sealed class InputController : IDisposable
     // Like the controller path, OSC axes/buttons are absolute state resent fresh every sample --
     // no separate "release the old direction" step needed, except LookHorizontal (turn), which
     // goes through ResolveHeldTurnDirection for its own guaranteed-minimum-duration hold.
+    // Forward/Dash both used to send a flat 1.0 -- the only speed distinction was the separate
+    // /input/Run button below. VRChat's MoveForward axis works like an analog stick tilt, though:
+    // a partial push walks, a full push runs. Reading the real stride cadence instead lets the
+    // axis itself carry that continuously, from OscSlowestIntervalMs (0.5 -- ordinary walking
+    // pace) up to OscFastestIntervalMs (1.0 -- flat-out dashing), rather than only ever sending
+    // "half speed" or "full speed" with nothing in between. Reference points tuned against real
+    // recordings: a dedicated walk-only session (debug/session_20260815_192743.csv) had a median
+    // stride gap of 454ms, and dedicated dash sessions (debug/session_20260815_192625.csv,
+    // .../192444.csv) had median dash gaps of 227-234ms -- 450ms/200ms bracket that pair with a
+    // little headroom on the fast end for a genuinely quick dasher to reach true 1.0, while
+    // ordinary walking (anything at or slower than 450ms) sits right at the 0.5 floor.
+    private const long OscSlowestIntervalMs = 450;
+    private const long OscFastestIntervalMs = 200;
+
+    private double ComputeOscForwardMagnitude()
+    {
+        double t = (double)(_lastForwardIntervalMs - OscFastestIntervalMs) / (OscSlowestIntervalMs - OscFastestIntervalMs);
+        return 1.0 - Math.Clamp(t, 0.0, 1.0) * 0.5;
+    }
+
     private void ApplyDirectionOsc(Direction direction, long nowMs)
     {
         double vertical = direction switch
         {
-            Direction.Forward => 1.0,
-            Direction.Dash => 1.0,
+            Direction.Forward => ComputeOscForwardMagnitude(),
+            Direction.Dash => ComputeOscForwardMagnitude(),
             Direction.Backward => -1.0,
             _ => 0.0,
         };

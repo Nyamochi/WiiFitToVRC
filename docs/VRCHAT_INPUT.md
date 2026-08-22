@@ -74,7 +74,11 @@ Fix 2. For that case, [`OscSender.cs`](../src/WiiFitToVRC.Core/Input/OscSender.c
 a local UDP message VRChat listens for directly, independent of window focus or input-device
 locking.
 
-- `/input/Vertical` / `/input/Horizontal` (float axes) carry forward/backward movement.
+- `/input/Vertical` / `/input/Horizontal` (float axes) carry forward/backward movement. Forward's
+  own magnitude isn't a flat 1.0 -- like a real analog stick's tilt, it scales continuously with
+  actual stride cadence (see `InputController.ComputeOscForwardMagnitude`), from 0.5 at ordinary
+  walking pace up to 1.0 at a full dash, tuned against real recordings' median stride gaps
+  (~450ms walking, ~230ms dashing). Backward stays a flat -1.0 either way.
 - `/input/LookLeft` / `/input/LookRight` (bool) carry turning. VRChat's OSC address list also
   defines a `/input/LookHorizontal` float axis, but it didn't reliably turn the character in
   practice even while the value was visibly changing in VRChat's own OSC debug view -- the
