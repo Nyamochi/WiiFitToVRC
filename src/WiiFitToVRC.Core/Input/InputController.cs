@@ -80,8 +80,10 @@ public sealed class InputController : IDisposable
     // is never saved to or restored from settings.json, by design -- this is a session odometer,
     // not a lifetime one. Dash covers more ground per step than an ordinary walking stride, hence
     // the separate (larger) per-step distance.
-    private const double WalkDistancePerStepMeters = 0.35;
-    private const double DashDistancePerStepMeters = 0.5;
+    // 2.2x the original 0.35m/0.5m per-step figures -- both scaled by the same factor, so Dash
+    // still covers proportionally more ground per step than an ordinary walking stride.
+    private const double WalkDistancePerStepMeters = 0.35 * 2.2;
+    private const double DashDistancePerStepMeters = 0.5 * 2.2;
     private double _walkDistanceMeters;
     private double _dashDistanceMeters;
     private int _stepCount;
